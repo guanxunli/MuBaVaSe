@@ -1,20 +1,19 @@
-n <- 100
-p <- 1000
-L <- 10
-sigma <- 0.1
-sigma0 <- 0.6
-prior_pi <- rep(1/ p, p)
-set.seed(2021)
-## Generate data
-index_t <- sample(seq_len(p), size = L, replace = FALSE)
-b <- rep(0, p)
-b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-X <- matrix(rnorm(n * p), nrow = n, ncol = p)
-Y<- X %*% b + rnorm(n, sd = sigma)
+# n <- 100
+# p <- 1000
+# sigma <- 0.1
+# sigma0 <- 0.6
+# L <- 10
+# set.seed(2021)
+# ## Generate data
+# index_t <- sample(seq_len(p), size = L, replace = FALSE)
+# b <- rep(0, p)
+# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+# Y<- X %*% b + rnorm(n, sd = sigma)
 
 #### Define functions
 ## get sigma0
-lBF_model <- function(sigma0, prior_pi, z2, s2) {
+lBF_model_single <- function(sigma0, prior_pi, z2, s2) {
   tmp1 <- log(sqrt(s2 / (sigma0^2 + s2))) 
   tmp2 <- z2 / 2 * sigma0^2 / (sigma0^2 + s2)
   lBF <- tmp1 + tmp2
@@ -24,7 +23,7 @@ lBF_model <- function(sigma0, prior_pi, z2, s2) {
   return(- maxlBF - log(wBF_sum))
 }
 
-sigma0_opt <- function(sigma0_opt_fun, sigma0_int, prior_pi, z2, s2) {
+sigma0_opt_single <- function(sigma0_opt_fun, sigma0_int, prior_pi, z2, s2) {
   tmp1 <- sigma0_opt_fun(sigma0 = sigma0_int, prior_pi = prior_pi, z2 = z2, s2 = s2)
   sigma0 <- optim(sigma0_int, sigma0_opt_fun, method = "L-BFGS-B", lower = 0, 
                   prior_pi = prior_pi, z2 = z2, s2 = s2)$par
@@ -37,17 +36,17 @@ sigma0_opt <- function(sigma0_opt_fun, sigma0_int, prior_pi, z2, s2) {
 }
 
 ## Calculate the KL divergence
-KL_fun <- function(X, Y, sigma, b, b2, sigma0, prior_pi, z2, s2) {
+KL_fun_single <- function(X, Y, sigma, b, b2, sigma0, prior_pi, z2, s2) {
   n <- length(Y)
   tmp1 <- sum(dnorm(Y, mean = 0, sd = sigma, log = TRUE))
-  tmp2 <- -lBF_model(sigma0 = sigma0, prior_pi = prior_pi, z2 = z2, s2 = s2)
+  tmp2 <- -lBF_model_single(sigma0 = sigma0, prior_pi = prior_pi, z2 = z2, s2 = s2)
   tmp3 <- n / 2 * log(2 * pi * sigma^2)
   tmp4 <- 1 / (2 * sigma^2) * (crossprod(Y) - 2 * crossprod(Y, X %*% b) + sum(X^2 %*% b2))
   return(tmp1 + tmp2 + tmp3 + tmp4)
 }
 
 ## Calculate ERSS
-ERSS_fun <- function(X, Y, b_mat, b2_mat) {
+ERSS_fun_single <- function(X, Y, b_mat, b2_mat) {
   mu_lmat <- X %*% b_mat
   mu2_lmat <- X^2 %*% b2_mat
   mu_pred <- rowSums(mu_lmat)
@@ -57,7 +56,7 @@ ERSS_fun <- function(X, Y, b_mat, b2_mat) {
 }
 
 ## Sum of single effect model
-sum_single_effect <- function(X, Y, sigma_int, sigma0_int, prior_pi, L, itermax = 100, tol = 1e-4) {
+sum_single_effect_single <- function(X, Y, sigma_int = 1, sigma0_int = 1, prior_pi, L, itermax = 100, tol = 1e-4) {
   # Initialization
   p <- ncol(X)
   n <- nrow(X)
@@ -69,6 +68,7 @@ sum_single_effect <- function(X, Y, sigma_int, sigma0_int, prior_pi, L, itermax 
   # Save matrix
   b_mat <- matrix(0, nrow = p, ncol = L)
   b2_mat <- matrix(0, nrow = p, ncol = L)
+  b_mat_list <- list()
   # Begin iteration
   for (iter in seq_len(itermax)) {
     res <- Y - X %*% rowSums(b_mat)
@@ -82,7 +82,7 @@ sum_single_effect <- function(X, Y, sigma_int, sigma0_int, prior_pi, L, itermax 
       z2 <- b_hat^2 / s2
       # calculate sigma0
       sigma0_int <- max(c(b_hat^2 - s2, 1))
-      sigma0 <- sigma0_opt(lBF_model, sigma0_int, prior_pi = prior_pi, z2 = z2, s2 = s2)
+      sigma0 <- sigma0_opt_single(lBF_model_single, sigma0_int, prior_pi = prior_pi, z2 = z2, s2 = s2)
       # Get Bayesian Factor
       tmp1 <- log(sqrt(s2 / (sigma0^2 + s2))) 
       tmp2 <- z2 / 2 * sigma0^2 / (sigma0^2 + s2)
@@ -97,24 +97,30 @@ sum_single_effect <- function(X, Y, sigma_int, sigma0_int, prior_pi, L, itermax 
       # Calculate posterior mean
       b_mat[, l] <- post_alpha * post_mu
       b2_mat[, l] <- post_alpha * (post_mu^2 + post_sigma2)
-      KL_div <- KL_div + KL_fun(X = X, Y = res_tmp, sigma = sigma, b = b_mat[, l], b2 = b2_mat[, l],
+      KL_div <- KL_div + KL_fun_single(X = X, Y = res_tmp, sigma = sigma, b = b_mat[, l], b2 = b2_mat[, l],
                                 sigma0 = sigma0, prior_pi = prior_pi, z2 = z2, s2 = s2)
       res <- res_tmp - X %*% b_mat[, l]
     }
-    ERSS <- ERSS_fun(X = X, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
+    ERSS <- ERSS_fun_single(X = X, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
     sigma <- ERSS / n
     ELBO[iter + 1] <- -n / 2 * log(2 * pi * sigma) - 1 / (2 * sigma) * ERSS + KL_div
-    if (ELBO[iter + 1] -   ELBO[iter] < 1e-4) {
-      break
-    }
+    b_mat_list[[iter]] <- b_mat
+    if (abs(ELBO[iter + 1] -   ELBO[iter]) < 1e-4) break
   }
+  ELBO <- as.numeric(na.omit(ELBO[-1]))
+  b_mat <- b_mat_list[[which.max(ELBO)]]
   res <- list()
   res$ELBO <- ELBO
   res$b_mat <- b_mat
   return(res)
 }
 
-#### check results
-res <- sum_single_effect(X, Y, sigma, sigma0, pi, L, itermax = 100)
-print(sort(index_t))
-which(abs(round(rowSums(res$b_mat), 4)) > 0)
+# #### check results
+# prior_pi <- rep(1/p, p)
+# res <- sum_single_effect_single(X = X, Y = Y, prior_pi = prior_pi, L = L)
+# print(sort(index_t))
+# which(abs(round(rowSums(res$b_mat), 4)) > 0)
+
+# res <- susieR::susie(X = X, y = Y)
+# print(sort(index_t))
+# which(abs(round(colSums(res$alpha * res$mu), 4)) > 0)
