@@ -1,15 +1,15 @@
-n <- 100
-p <- 1000
-sigma <- 0.1
-sigma0 <- 0.6
-L <- 10
-set.seed(202107)
-## Generate data
-index_t <- sample(seq_len(p), size = L, replace = FALSE)
-b <- rep(0, p)
-b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-X <- matrix(rnorm(n * p), nrow = n, ncol = p)
-Y <- X %*% b + rnorm(n, sd = sigma)
+# n <- 100
+# p <- 1000
+# sigma <- 0.1
+# sigma0 <- 0.6
+# L <- 10
+# set.seed(202107)
+# ## Generate data
+# index_t <- sample(seq_len(p), size = L, replace = FALSE)
+# b <- rep(0, p)
+# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+# Y <- X %*% b + rnorm(n, sd = sigma)
 
 #### Define functions
 ## get sigma0
@@ -37,19 +37,18 @@ sigma0_opt_single <- function(lsigma02_int, prior_pi, z2, s2, b_hat) {
 }
 
 ## Calculate the KL divergence
-KL_fun_single <- function(X, Y, sigma2, b, b2, lsigma02, prior_pi, z2, s2) {
+KL_fun_single <- function(X_scale, X_scale2, Y, sigma2, b, b2, lBF) {
   n <- length(Y)
   tmp1 <- sum(dnorm(Y, mean = 0, sd = sqrt(sigma2), log = TRUE))
-  tmp2 <- -lBF_model_single(lsigma02 = lsigma02, prior_pi = prior_pi, z2 = z2, s2 = s2)
   tmp3 <- n / 2 * log(2 * pi * sigma2)
-  tmp4 <- 1 / (2 * sigma2) * (crossprod(Y) - 2 * crossprod(Y, scale(X) %*% b) + sum(scale(X)^2 %*% b2))
-  return(tmp1 + tmp2 + tmp3 + tmp4)
+  tmp4 <- 1 / (2 * sigma2) * (crossprod(Y) - 2 * crossprod(Y, X_scale%*% b) + sum(X_scale2 %*% b2))
+  return(tmp1 + lBF + tmp3 + tmp4)
 }
 
 ## Calculate ERSS
-ERSS_fun_single <- function(X, Y, b_mat, b2_mat) {
-  mu_lmat <- scale(X) %*% b_mat
-  mu2_lmat <- scale(X)^2 %*% b2_mat
+ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
+  mu_lmat <- X_scale %*% b_mat
+  mu2_lmat <- X_scale2 %*% b2_mat
   mu_pred <- rowSums(mu_lmat)
   res_tmp <- sum((Y - mu_pred)^2)
   var_sum <- sum(mu2_lmat - mu_lmat^2)
@@ -65,7 +64,9 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
   mean_Y <- mean(Y)
   Y <- Y - mean_Y
   X_scale <- scale(X)
-  XtX <- crossprod(X_scale)
+  # X_scale <- X
+  X2 <- colSums(X_scale * X_scale)
+  X_scale2 <- X_scale * X_scale
   
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(Y))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
@@ -87,8 +88,8 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
       res_tmp <- res + X_scale %*% b_mat[, l]
       # update parameters
       XtY <- crossprod(X_scale, res_tmp)
-      b_hat <- XtY / diag(XtX)
-      s2 <- sigma2 / diag(XtX)
+      b_hat <- XtY / X2
+      s2 <- sigma2 / X2
       z2 <- b_hat^2 / s2
       # calculate sigma0
       lsigma02_int <- sigma02_vec[l]
@@ -101,6 +102,7 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
       maxlBF <- max(lBF)
       wBF <- exp(lBF - maxlBF)
       wBF_sum <- sum(prior_pi * wBF)
+      lBF_model <- maxlBF + log(wBF_sum)
       # Get posterior
       post_alpha <- prior_pi * wBF / wBF_sum
       post_sigma2 <- 1 / (1/s2 + 1/sigma02)
@@ -108,11 +110,11 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
       # Calculate posterior mean
       b_mat[, l] <- post_alpha * post_mu
       b2_mat[, l] <- post_alpha * (post_mu^2 + post_sigma2)
-      KL_div <- KL_div + KL_fun_single(X = X, Y = res_tmp, sigma2 = sigma2, b = b_mat[, l], b2 = b2_mat[, l],
-                                       lsigma02 = log(sigma02), prior_pi = prior_pi, z2 = z2, s2 = s2)
-      res <- res_tmp - scale(X) %*% b_mat[, l]
+      KL_div <- KL_div + KL_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = res_tmp, sigma2 = sigma2, 
+                                       b = b_mat[, l], b2 = b2_mat[, l], lBF = lBF_model)
+      res <- res_tmp - X_scale %*% b_mat[, l]
     }
-    ERSS <- ERSS_fun_single(X = X, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
+    ERSS <- ERSS_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
     ELBO[iter + 1] <- -n / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
     sigma2 <- ERSS / n
     if (abs(ELBO[iter + 1] -   ELBO[iter]) < 1e-4) break
@@ -125,15 +127,15 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
   return(res)
 }
 
-#### check results
-## package
-res <- susieR::susie(X = X, y = Y, L = L)
-res1 <- which(abs(round(colSums(res$alpha * res$mu), 4)) > 0)
-length(intersect(res1, index_t)) / L
-length(intersect(res1, index_t)) / length(res1)
-
-## My code
-res <- sum_single_effect_single(X = X, Y = Y, L = L)
-res1 <- which(abs(round(rowSums(res$b_mat), 4)) > 0)
-length(intersect(res1, index_t)) / L
-length(intersect(res1, index_t)) / length(res1)
+# #### check results
+# ## package
+# res <- susieR::susie(X = X, y = Y, L = L)
+# res1 <- which(abs(round(colSums(res$alpha * res$mu), 4)) > 0)
+# length(intersect(res1, index_t)) / L
+# length(intersect(res1, index_t)) / length(res1)
+# 
+# ## My code
+# res <- sum_single_effect_single(X = X, Y = Y, L = L)
+# res1 <- which(abs(round(rowSums(res$b_mat), 4)) > 0)
+# length(intersect(res1, index_t)) / L
+# length(intersect(res1, index_t)) / length(res1)
