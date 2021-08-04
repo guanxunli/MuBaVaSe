@@ -3,7 +3,7 @@
 # sigma <- 0.1
 # sigma0 <- 0.6
 # L <- 10
-# set.seed(202107)
+# set.seed(2021)
 # ## Generate data
 # index_t <- sample(seq_len(p), size = L, replace = FALSE)
 # b <- rep(0, p)
@@ -55,9 +55,28 @@ ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
   return(res_tmp + var_sum)
 }
 
+## Select effect set
+effset_fun <- function(index_L, alpha_mat, Xcor, cor_low_bd = 0.5, sigma0_low_bd = 1e-8) {
+  if (length(index_L) == 0) {
+    return(NULL)
+  } else{
+    index_eff <- NULL
+    for (iter_l in seq_len(length(index_L))) {
+      index_sel <- which(alpha_mat[, iter_l] > 1/p)
+      if (length(index_sel) == 1) {
+        index_eff <- c(index_eff, index_sel)
+      } else{
+        cor_tmp <- max(abs(Xcor[index_sel, index_sel]))
+        if (cor_tmp > cor_low_bd) index_eff <- c(index_eff, index_sel)
+      }
+    }
+  }
+  return(index_eff)
+}
+
 ## Main functions
 sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL, prior_pi = NULL, 
-                                     L = NULL, itermax = 100, tol = 1e-4) {
+                                     L = NULL, itermax = 100, tol = 1e-4, cor_low_bd = 0.5, sigma0_low_bd = 1e-8) {
   # Initialization
   p <- ncol(X)
   n <- nrow(X)
@@ -65,6 +84,8 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
   Y <- Y - mean_Y
   X_scale <- scale(X)
   # X_scale <- X
+  Xcor <- cor(X)
+  diag(Xcor) <- 0
   X2 <- colSums(X_scale * X_scale)
   X_scale2 <- X_scale * X_scale
   
@@ -80,6 +101,7 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
   # Save matrix
   b_mat <- matrix(0, nrow = p, ncol = L)
   b2_mat <- matrix(0, nrow = p, ncol = L)
+  alpha_mat <- matrix(0, nrow = p, ncol = L)
   # Begin iteration
   for (iter in seq_len(itermax)) {
     res <- Y - X_scale %*% rowSums(b_mat)
@@ -108,6 +130,7 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
       post_sigma2 <- 1 / (1/s2 + 1/sigma02)
       post_mu <- post_sigma2 / s2 * b_hat
       # Calculate posterior mean
+      alpha_mat[, l] <- post_alpha
       b_mat[, l] <- post_alpha * post_mu
       b2_mat[, l] <- post_alpha * (post_mu^2 + post_sigma2)
       KL_div <- KL_div + KL_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = res_tmp, sigma2 = sigma2, 
@@ -120,22 +143,27 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
     if (abs(ELBO[iter + 1] -   ELBO[iter]) < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
+  index_L <- which(sigma02_vec > sigma0_low_bd)
+  index_eff <- effset_fun(index_L, alpha_mat, Xcor, cor_low_bd, sigma0_low_bd) 
   # return results
   res <- list()
   res$ELBO <- ELBO
-  res$b_mat <- b_mat
+  res$index_eff <- index_eff
+  res$post_mean <- rowSums(b_mat[, index_L])
   return(res)
 }
 
 # #### check results
 # ## package
 # res <- susieR::susie(X = X, y = Y, L = L)
-# res1 <- which(abs(round(colSums(res$alpha * res$mu), 4)) > 0)
+# res1 <- as.numeric(res$sets$cs)
 # length(intersect(res1, index_t)) / L
 # length(intersect(res1, index_t)) / length(res1)
+# sum((colSums(res$alpha * res$mu) - b)^2)
 # 
 # ## My code
 # res <- sum_single_effect_single(X = X, Y = Y, L = L)
-# res1 <- which(abs(round(rowSums(res$b_mat), 4)) > 0)
+# res1 <- res$index_eff
 # length(intersect(res1, index_t)) / L
 # length(intersect(res1, index_t)) / length(res1)
+# sum((res$post_mean- b)^2)

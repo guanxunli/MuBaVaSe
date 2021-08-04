@@ -7,13 +7,13 @@ out_res <- data.frame("dat1_md_sens" = rep(NA, iter_sim_max), "dat1_md_prec" = r
                       "dat2_md_sens" = rep(NA, iter_sim_max), "dat2_md_prec" = rep(NA, iter_sim_max),
                       "dat1_sd_sens" = rep(NA, iter_sim_max), "dat1_sd_prec" = rep(NA, iter_sim_max),
                       "dat2_sd_sens" = rep(NA, iter_sim_max), "dat2_sd_prec" = rep(NA, iter_sim_max))
-n <- 100
-p <- 2000
-p_c <- 15
-p_1 <- 3
-p_2 <- 2
+n <- 500
+p <- 1000
+p_c <- 30
+p_1 <- 5
+p_2 <- 5
 sigma <- 1
-sigma0 <- 0.5
+sigma0 <- 0.6
 set.seed(2021)
 for (iter_sim in seq_len(iter_sim_max)) {
   if (iter_sim %% 50 == 0) print(iter_sim)
