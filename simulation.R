@@ -3,10 +3,10 @@ source("Multi_dataset.R")
 #### Initialization
 ## Define parameters
 iter_sim_max <- 500
-out_res <- data.frame("dat1_md_sens" = rep(NA, iter_sim_max), "dat1_md_prec" = rep(NA, iter_sim_max),
-                      "dat2_md_sens" = rep(NA, iter_sim_max), "dat2_md_prec" = rep(NA, iter_sim_max),
-                      "dat1_sd_sens" = rep(NA, iter_sim_max), "dat1_sd_prec" = rep(NA, iter_sim_max),
-                      "dat2_sd_sens" = rep(NA, iter_sim_max), "dat2_sd_prec" = rep(NA, iter_sim_max))
+out_res <- data.frame("dat1_md_sens" = rep(NA, iter_sim_max), "dat1_md_prec" = rep(NA, iter_sim_max), "dat1_md_error" = rep(NA, iter_sim_max), 
+                      "dat2_md_sens" = rep(NA, iter_sim_max), "dat2_md_prec" = rep(NA, iter_sim_max), "dat2_md_error" = rep(NA, iter_sim_max), 
+                      "dat1_sd_sens" = rep(NA, iter_sim_max), "dat1_sd_prec" = rep(NA, iter_sim_max), "dat1_sd_error" = rep(NA, iter_sim_max), 
+                      "dat2_sd_sens" = rep(NA, iter_sim_max), "dat2_sd_prec" = rep(NA, iter_sim_max), "dat2_sd_error" = rep(NA, iter_sim_max)) 
 n <- 500
 p <- 1000
 p_c <- 30
@@ -33,23 +33,28 @@ for (iter_sim in seq_len(iter_sim_max)) {
   Y_2 <- X_2 %*% b_2 + rnorm(n, sd = sigma)
   
   #### two data set at the same times
-  res <- sum_single_effect_multi(X_1 = X_1, X_2 = X_2, Y_1 = Y_1, Y_2 = Y_2)
+  res <- sum_single_effect_multi(X_1 = X_1, X_2 = X_2, Y_1 = Y_1, Y_2 = Y_2, L = p_c + p_1 + p_2)
   res1 <- res$index_eff_1
   res2 <- res$index_eff_2
   out_res[iter_sim, 1] <- length(intersect(res1, c(index_1, index_c))) / (p_c + p_1)
   out_res[iter_sim, 2] <- length(intersect(res1, c(index_1, index_c))) / length(res1)
-  out_res[iter_sim, 3] <- length(intersect(res2, c(index_2, index_c))) / (p_c + p_2)
-  out_res[iter_sim, 4] <- length(intersect(res2, c(index_2, index_c))) / length(res2)
+  out_res[iter_sim, 3] <- sum((res$post_mean1 - b_1)^2)
+  
+  out_res[iter_sim, 4] <- length(intersect(res2, c(index_2, index_c))) / (p_c + p_2)
+  out_res[iter_sim, 5] <- length(intersect(res2, c(index_2, index_c))) / length(res2)
+  out_res[iter_sim, 6] <- sum((res$post_mean2 - b_2)^2)
   
   #### Single data set
   ## data set 1
-  res <- susieR::susie(X = X_1, y = Y_1)
+  res <- susieR::susie(X = X_1, y = Y_1, L = p_c + p_1)
   res1 <- as.numeric(res$sets$cs)
-  out_res[iter_sim, 5] <- length(intersect(res1, c(index_1, index_c))) / (p_c + p_1)
-  out_res[iter_sim, 6] <- length(intersect(res1, c(index_1, index_c))) / length(res1)
+  out_res[iter_sim, 7] <- length(intersect(res1, c(index_1, index_c))) / (p_c + p_1)
+  out_res[iter_sim, 8] <- length(intersect(res1, c(index_1, index_c))) / length(res1)
+  out_res[iter_sim, 9] <- sum((colSums(res$alpha * res$mu) - b_1)^2)
   ## data set 2
-  res <- susieR::susie(X = X_2, y = Y_2)
+  res <- susieR::susie(X = X_2, y = Y_2, L = p_c + p_2)
   res2 <- as.numeric(res$sets$cs)
-  out_res[iter_sim, 7] <- length(intersect(res2, c(index_1, index_c))) / (p_c + p_1)
-  out_res[iter_sim, 8] <- length(intersect(res2, c(index_1, index_c))) / length(res2)
+  out_res[iter_sim, 10] <- length(intersect(res2, c(index_1, index_c))) / (p_c + p_1)
+  out_res[iter_sim, 11] <- length(intersect(res2, c(index_1, index_c))) / length(res2)
+  out_res[iter_sim, 12] <- sum((colSums(res$alpha * res$mu) - b_2)^2)
 }
