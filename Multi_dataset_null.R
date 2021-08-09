@@ -8,7 +8,7 @@ sigma <- 1
 sigma0 <- 0.6
 r <- 0.2
 q <- 0.05
-set.seed(1234)
+set.seed(2021)
 ## Generate data
 index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
@@ -133,6 +133,7 @@ sum_single_effect_multi <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigm
   b2_mat_2 <- matrix(0, nrow = p, ncol = L)
   alpha_mat_1 <- matrix(0, nrow = p, ncol = L)
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
+  alpha_vec <- rep(NA, L)
   # Begin iteration
   for (iter in seq_len(itermax)) {
     res_1 <- Y_1 - X_scale_1 %*% rowSums(b_mat_1)
@@ -174,7 +175,7 @@ sum_single_effect_multi <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigm
       lBF_model <- maxlBF + log(wBF_sum)
       ## Get posterior
       post_alpha <- prior_pi * wBF / wBF_sum
-      print(post_alpha[3001])
+      alpha_vec[l] <- tail(post_alpha, 1)
       # data set 1
       post_sigma2_1 <- 1 / (1/s2_1 + 1/sigma02)
       post_mu_1 <- post_sigma2_1 / s2_1 * b_hat_1
@@ -213,6 +214,7 @@ sum_single_effect_multi <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigm
   res$ELBO <- ELBO
   res$sigma02_vec <- sigma02_vec
   res$sigma2 <- sigma2
+  res$alpha_vec <- alpha_vec
   
   res$alpha_mat_1 <- alpha_mat_1
   res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE])
