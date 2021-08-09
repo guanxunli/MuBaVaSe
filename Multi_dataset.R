@@ -1,9 +1,9 @@
 ## Define parameters
-n <- 350
+n <- 500
 p <- 1000
-p_c <- 1
-p_1 <- 0
-p_2 <- 0
+p_c <- 30
+p_1 <- 5
+p_2 <- 5
 sigma <- 1
 sigma0 <- 0.6
 r <- 0.2
@@ -15,11 +15,9 @@ index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
 index_2 <- sample(setdiff(seq_len(p), c(index_1, index_c)), size = p_2, replace = FALSE)
 
 b_1 <- rep(0, p)
-b_1[index_c] <- 0.2
-# b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
+b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 b_2 <- rep(0, p)
-b_2[index_c] <- 1
-# b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
+b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
 
 X_1 <- matrix(rnorm(p * n), nrow = n, ncol = p)
 X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
@@ -173,7 +171,7 @@ sum_single_effect_multi <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigm
       s2_2 <- sigma2 / X2_2
       z2_2 <- b_hat_2^2 / s2_2
       # calculate sigma0
-      lsigma02_int <- sigma02_vec[l]
+      lsigma02_int <- max(log(sigma02_vec[l]), -30)
       sigma02 <- sigma0_opt_multi(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2)
       sigma02_vec[l] <- sigma02
       ## Get Bayesian Factor
@@ -226,34 +224,41 @@ sum_single_effect_multi <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigm
   ELBO <- as.numeric(na.omit(ELBO[-1]))
   # select effect index
   index_L <- which(sigma02_vec > sigma0_low_bd)
-  index_eff_1 <- effset_fun(index_L, alpha_mat_1, Xcor_1, cor_low_bd, sigma0_low_bd) 
-  index_eff_2 <- effset_fun(index_L, alpha_mat_2, Xcor_2, cor_low_bd, sigma0_low_bd) 
+  index_eff_1 <- effset_fun(index_L, alpha_mat_1, Xcor_1, cor_low_bd, sigma0_low_bd)
+  index_eff_2 <- effset_fun(index_L, alpha_mat_2, Xcor_2, cor_low_bd, sigma0_low_bd)
   # return results
   res <- list()
   res$ELBO <- ELBO
+  res$sigma2 <- sigma2
+  res$sigma02_vec <- sigma02_vec
+  
+  res$alpha_mat_1 <- alpha_mat_1
   res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE])
-  res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
   res$index_eff_1 <- index_eff_1
+  
+  res$alpha_mat_2 <- alpha_mat_2
+  res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
   res$index_eff_2 <- index_eff_2
+
   return(res)
 }
 
 #### check results
 ## package
 # data set 1
-res <- susieR::susie(X = X_1, y = Y_1)
+res <- susieR::susie(X = X_1, y = Y_1, L = 35)
 res1 <- as.numeric(res$sets$cs)
 length(intersect(res1, c(index_1, index_c))) / (p_1 + p_c)
 length(intersect(res1, c(index_1, index_c))) / length(res1)
 sum((colSums(res$alpha * res$mu) - b_1)^2)
 # data set 2
-res <- susieR::susie(X = X_2, y = Y_2)
+res <- susieR::susie(X = X_2, y = Y_2, L = 35)
 res2 <- as.numeric(res$sets$cs)
 length(intersect(res2, c(index_2, index_c))) / (p_2 + p_c)
 length(intersect(res2, c(index_2, index_c))) / length(res2)
 sum((colSums(res$alpha * res$mu) - b_2)^2)
 # new method
-res <- sum_single_effect_multi(X_1, Y_1, X_2, Y_2)
+res <- sum_single_effect_multi(X_1, Y_1, X_2, Y_2, L = 40)
 res1 <- res$index_eff_1
 length(intersect(res1, c(index_1, index_c))) / (p_1 + p_c)
 length(intersect(res1, c(index_1, index_c))) / length(res1)

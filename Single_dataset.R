@@ -1,15 +1,15 @@
-# n <- 100
-# p <- 1000
-# sigma <- 0.1
-# sigma0 <- 0.6
-# L <- 10
-# set.seed(2021)
-# ## Generate data
-# index_t <- sample(seq_len(p), size = L, replace = FALSE)
-# b <- rep(0, p)
-# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-# X <- matrix(rnorm(n * p), nrow = n, ncol = p)
-# Y <- X %*% b + rnorm(n, sd = sigma)
+n <- 500
+p <- 1000
+sigma <- 1
+sigma0 <- 0.6
+L <- 20
+set.seed(2021)
+## Generate data
+index_t <- sample(seq_len(p), size = L, replace = FALSE)
+b <- rep(0, p)
+b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+Y <- X %*% b + rnorm(n, sd = sigma)
 
 #### Define functions
 ## get sigma0
@@ -114,7 +114,7 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
       s2 <- sigma2 / X2
       z2 <- b_hat^2 / s2
       # calculate sigma0
-      lsigma02_int <- sigma02_vec[l]
+      lsigma02_int <- max(log(sigma02_vec[l]), -30)
       sigma02 <- sigma0_opt_single(lsigma02_int, prior_pi = prior_pi, z2 = z2, s2 = s2, b_hat = b_hat)
       sigma02_vec[l] <- sigma02
       # Get Bayesian Factor
@@ -153,17 +153,17 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
   return(res)
 }
 
-# #### check results
-# ## package
-# res <- susieR::susie(X = X, y = Y, L = L)
-# res1 <- as.numeric(res$sets$cs)
-# length(intersect(res1, index_t)) / L
-# length(intersect(res1, index_t)) / length(res1)
-# sum((colSums(res$alpha * res$mu) - b)^2)
-# 
-# ## My code
-# res <- sum_single_effect_single(X = X, Y = Y, L = L)
-# res1 <- res$index_eff
-# length(intersect(res1, index_t)) / L
-# length(intersect(res1, index_t)) / length(res1)
-# sum((res$post_mean- b)^2)
+#### check results
+## package
+res <- susieR::susie(X = X, y = Y, L = L)
+res1 <- as.numeric(res$sets$cs)
+length(intersect(res1, index_t)) / L
+length(intersect(res1, index_t)) / length(res1)
+sum((colSums(res$alpha * res$mu) - b)^2)
+
+## My code
+res <- sum_single_effect_single(X = X, Y = Y, L = L)
+res1 <- res$index_eff
+length(intersect(res1, index_t)) / L
+length(intersect(res1, index_t)) / length(res1)
+sum((res$post_mean- b)^2)
