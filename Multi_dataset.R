@@ -1,14 +1,12 @@
 # ## Define parameters
 # n <- 500
 # p <- 1000
-# p_c <- 30
+# p_c <- 25
 # p_1 <- 5
 # p_2 <- 5
 # sigma <- 1
 # sigma0 <- 0.6
-# r <- 0.2
-# q <- 0.05
-# set.seed(1234)
+# set.seed(2021)
 # ## Generate data
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
@@ -18,6 +16,11 @@
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
+# 
+# alpha_1 <- rep(0, p)
+# alpha_1[c(index_c, index_1)] <- 1
+# alpha_2 <- rep(0, p)
+# alpha_2[c(index_c, index_2)] <- 1
 # 
 # X_1 <- matrix(rnorm(p * n), nrow = n, ncol = p)
 # X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
@@ -84,32 +87,28 @@ ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
 ## Select effect set
 effset_fun <- function(index_L, alpha_mat, Xcor, cor_low_bd = 0.5, sigma0_low_bd = 1e-8) {
   if (length(index_L) == 0) {
-    return(NULL)
+    return(list(index_eff = NULL, L_eff = NULL))
   } else{
     index_eff <- NULL
+    L_eff <- NULL
     for (iter_l in seq_len(length(index_L))) {
       index_sel <- which(alpha_mat[, iter_l] > 1/p)
       if (length(index_sel) == 1) {
         index_eff <- c(index_eff, index_sel)
+        L_eff <- c(L_eff, index_L[iter_l])
       } else if (length(index_sel) > 1) {
         cor_tmp <- max(abs(Xcor[index_sel, index_sel]))
-        if (cor_tmp > cor_low_bd) index_eff <- c(index_eff, index_sel)
+        if (cor_tmp > cor_low_bd) {
+          index_eff <- c(index_eff, index_sel)
+          L_eff <- c(L_eff, index_L[iter_l])
+        }
       }
     }
   }
-  return(index_eff)
+  return(list(index_eff = index_eff, L_eff = L_eff))
 }
 
-# ## main function
-# sigma02_int = NULL
-# sigma2_int = NULL
-# r = 0.2
-# q = 0.05
-# L = NULL
-# itermax = 100
-# tol = 1e-4
-# cor_low_bd = 0.5
-# sigma0_low_bd = 1e-8
+## main function
 sum_single_effect_multi <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
                               r = 0.2, q = 0.05, L = NULL, itermax = 100, tol = 1e-4, 
                               cor_low_bd = 0.5, sigma0_low_bd = 1e-8) {
@@ -232,38 +231,57 @@ sum_single_effect_multi <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigm
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
   
-  res$alpha_mat_1 <- alpha_mat_1
-  res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE])
-  res$index_eff_1 <- index_eff_1
+  res$alpha_1 <- 1 - apply(1 - alpha_mat_1, 1, prod)
+  res$post_mean1 <- rowSums(b_mat_1[, index_eff_1$L_eff, drop = FALSE])
+  res$index_eff_1 <- index_eff_1$index_eff
   
-  res$alpha_mat_2 <- alpha_mat_2
-  res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
-  res$index_eff_2 <- index_eff_2
+  res$alpha_2 <- 1 - apply(1 - alpha_mat_2, 1, prod)
+  res$post_mean2 <- rowSums(b_mat_2[, index_eff_2$L_eff, drop = FALSE])
+  res$index_eff_2 <- index_eff_2$index_eff
 
   return(res)
 }
 
 # #### check results
-# ## package
+# res1 <- susieR::susie(X = X_1, y = Y_1, L = p_1 + p_c)
+# res2 <- susieR::susie(X = X_2, y = Y_2, L = p_2 + p_c)
+# res <- sum_single_effect_multi(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 1, q = 1)
+# ## compare alpha
 # # data set 1
-# res <- susieR::susie(X = X_1, y = Y_1, L = 35)
-# res1 <- as.numeric(res$sets$cs)
-# length(intersect(res1, c(index_1, index_c))) / (p_1 + p_c)
-# length(intersect(res1, c(index_1, index_c))) / length(res1)
-# sum((colSums(res$alpha * res$mu) - b_1)^2)
+# res_alpha1 <- 1 - apply(1 - res1$alpha, 2, prod)
+# res_alpha_1 <- res$alpha_1
+# sum(abs(res_alpha1 - alpha_1))
+# sum(abs(res_alpha_1 - alpha_1))
+# sum((res_alpha1 - alpha_1)^2)
+# sum((res_alpha_1 - alpha_1)^2)
 # # data set 2
-# res <- susieR::susie(X = X_2, y = Y_2, L = 35)
-# res2 <- as.numeric(res$sets$cs)
-# length(intersect(res2, c(index_2, index_c))) / (p_2 + p_c)
-# length(intersect(res2, c(index_2, index_c))) / length(res2)
-# sum((colSums(res$alpha * res$mu) - b_2)^2)
-# # new method
-# res <- sum_single_effect_multi(X_1, Y_1, X_2, Y_2, L = 40)
-# res1 <- res$index_eff_1
-# length(intersect(res1, c(index_1, index_c))) / (p_1 + p_c)
-# length(intersect(res1, c(index_1, index_c))) / length(res1)
-# sum((res$post_mean1- b_1)^2)
-# res2 <- res$index_eff_2
-# length(intersect(res2, c(index_2, index_c))) / (p_2 + p_c)
-# length(intersect(res2, c(index_2, index_c))) / length(res2)
+# res_alpha2 <- 1 - apply(1 - res2$alpha, 2, prod)
+# res_alpha_2 <- res$alpha_2
+# sum(abs(res_alpha2 - alpha_2))
+# sum(abs(res_alpha_2 - alpha_2))
+# sum((res_alpha2 - alpha_2)^2)
+# sum((res_alpha_2 - alpha_2)^2)
+# 
+# ## posterior mean
+# # data set 1
+# sum((colSums(res1$alpha * res1$mu) - b_1)^2)
+# sum((res$post_mean1 - b_1)^2)
+# # data set 2
+# sum((colSums(res2$alpha * res2$mu) - b_2)^2)
 # sum((res$post_mean2 - b_2)^2)
+# 
+# ## index error
+# # data set 1
+# res_index1 <- as.numeric(res1$sets$cs)
+# res_index_1 <- res$index_eff_1
+# length(intersect(res_index1, c(index_1, index_c))) / (p_1 + p_c)
+# length(intersect(res_index_1, c(index_1, index_c))) / (p_1 + p_c)
+# length(intersect(res_index1, c(index_1, index_c))) / length(res_index1)
+# length(intersect(res_index_1, c(index_1, index_c))) / length(res_index_1)
+# # data set 2
+# res_index2 <- as.numeric(res2$sets$cs)
+# res_index_2 <- res$index_eff_2
+# length(intersect(res_index2, c(index_2, index_c))) / (p_2 + p_c)
+# length(intersect(res_index_2, c(index_2, index_c))) / (p_1 + p_c)
+# length(intersect(res_index2, c(index_2, index_c))) / length(res_index2)
+# length(intersect(res_index_2, c(index_2, index_c))) / length(res_index_2)
