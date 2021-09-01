@@ -8,7 +8,7 @@
 # sigma0 <- 0.6
 # A1 <- matrix(0, nrow = p, ncol = p)
 # A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(202108)
+# set.seed(2021)
 # # Define the true graph given order
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
@@ -82,8 +82,8 @@ joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL,
   }
   ## return results
   # Here we need to return the order for the original data set
-  return(list(alpha_res_1 = alpha_res_1[order(order_dta), ], alpha_res_2 = alpha_res_2[order(order_dta), ],
-              A_res_1 = A_res_1[order(order_dta), ], A_res_2 = A_res_2[order(order_dta), ], 
+  return(list(alpha_res_1 = alpha_res_1[order(order_dta), order(order_dta)], alpha_res_2 = alpha_res_2[order(order_dta), order(order_dta)],
+              A_res_1 = A_res_1[order(order_dta), order(order_dta)], A_res_2 = A_res_2[order(order_dta), order(order_dta)], 
               llike = llike_1 + llike_2))
 }
 
@@ -131,17 +131,9 @@ single_graph_fun <- function(dta, order_data = NULL) {
 # 
 # #### check posterior
 # ## data set 1
-# # l1 error
-# sum(abs(res_single1$A_res - A1))
-# sum(abs(res_joint$A_res_1 - A1))
-# # l2 error
 # sum((res_single1$A_res - A1)^2)
 # sum((res_joint$A_res_1 - A1)^2)
 # ## data set 2
-# # l1 error
-# sum(abs(res_single2$A_res - A2))
-# sum(abs(res_joint$A_res_2 - A2))
-# # l2 error
 # sum((res_single2$A_res - A2)^2)
 # sum((res_joint$A_res_2 - A2)^2)
 # 
@@ -149,8 +141,16 @@ single_graph_fun <- function(dta, order_data = NULL) {
 # order_new <-sample(seq_len(p), p)
 # dta_1_new <- dta_1[order_new, ]
 # dta_2_new <- dta_2[order_new, ]
-# A1_new <- A1[order_new, ]
-# A2_new <- A2[order_new, ]
+# A1_new <- A1[order_new, order_new]
+# A2_new <- A2[order_new, order_new]
+# eps_1_new <- eps_1[order_new, ]
+# eps_2_new <- eps_2[order_new, ]
+# alpha_mat_new_1 <- alpha_mat_1[order_new, order_new]
+# alpha_mat_new_2 <- alpha_mat_2[order_new, order_new]
+# # sum((dta_1_new - solve(diag(1, p) - A1_new, eps_1_new))^2)
+# 
 # res_joint <- joint_graph_fun(dta_1 = dta_1_new, dta_2 = dta_2_new, r = 1, q = 1, tau = 1.5, order_dta = order(order_new))
+# sum((res_joint$alpha_res_1 - alpha_mat_new_1)^2)
+# sum((res_joint$alpha_res_2 - alpha_mat_new_2)^2)
 # sum((res_joint$A_res_1 - A1_new)^2)
 # sum((res_joint$A_res_2 - A2_new)^2)

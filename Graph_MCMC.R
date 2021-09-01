@@ -111,4 +111,4 @@ Graph_MCMC <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02
 # ## MCMC
 # time1 <- Sys.time()
 # res <- Graph_MCMC(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10) 
-# Sys.time() - time1
+# Sys.time() - time1 (13.72 min)
