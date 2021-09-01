@@ -87,7 +87,17 @@ ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
   return(res_tmp + var_sum)
 }
 
-## main function
+## main function with null model
+# X_1 and X_2 are regressors, n x p matrix, each column is one feature
+# Y_1 and Y_2 are response, n x 1 vector
+# sigma02_int is initialization for signal prior variance
+# sigma2_int is initialization for error variance
+# r is for common part and q is for single part
+# tau is the prior power for null model 1 / (p^tau)
+# L is the effict size
+# itermax is the maximum iteration
+# tol is the threshold for ELBO
+# sigma0_low_bd is the threshold for select effect l
 sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
                                     r = 0.2, q = 0.05, tau = 2, L = NULL, itermax = 100, 
                                     tol = 1e-4, sigma0_low_bd = 1e-8) {
@@ -107,10 +117,12 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   X2_2 <- colSums(X_scale_2 * X_scale_2)
   X_scale2_2 <- X_scale_2 * X_scale_2
   
+  # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
 
+  # Initialize prior
   prior_pi <- c(rep(q, 2 * p), rep(r, p))
   prior_pi <- prior_pi / sum(prior_pi)
   pnull <- 1 - p ^ (1 - tau)
@@ -120,6 +132,7 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
   sigma02_vec <- rep(sigma02_int, L)
+  
   # Save matrix
   b_mat_1 <- matrix(0, nrow = p, ncol = L)
   b2_mat_1 <- matrix(0, nrow = p, ncol = L)
@@ -128,6 +141,7 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   alpha_mat_1 <- matrix(0, nrow = p, ncol = L)
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
   alpha_vec <- rep(NA, L)
+  
   # Begin iteration
   for (iter in seq_len(itermax)) {
     res_1 <- Y_1 - X_scale_1 %*% rowSums(b_mat_1)
@@ -193,17 +207,19 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
       res_1 <- res_tmp_1 - X_scale_1 %*% b_mat_1[, l]
       res_2 <- res_tmp_2 - X_scale_2 %*% b_mat_2[, l]
     }
+    # calculate ELBO
     ERSS_1 <- ERSS_fun_single(X_scale = X_scale_1, X_scale2 = X_scale2_1, Y = Y_1, b_mat = b_mat_1, b2_mat = b2_mat_1)
     ERSS_2 <- ERSS_fun_single(X_scale = X_scale_2, X_scale2 = X_scale2_2, Y = Y_2, b_mat = b_mat_2, b2_mat = b2_mat_2)
     ERSS <- ERSS_1 + ERSS_2
     ELBO[iter + 1] <- - n * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
+    # estimate sigma2
     sigma2 <- ERSS / (2 * n)
     if (ELBO[iter + 1] -   ELBO[iter] < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
   # select effect index
   index_L <- which(sigma02_vec > sigma0_low_bd)
-  # return results
+  ## return results
   res <- list()
   res$ELBO <- ELBO
   res$sigma2 <- sigma2
@@ -211,19 +227,22 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   res$alpha_vec <- alpha_vec
   
   if (length(index_L) > 0) {
+    # data set 1
     res$alpha_1 <- 1 - apply(1 - alpha_mat_1[, index_L, drop = FALSE], 1, prod)
     res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE])
-    
+    # data set 2
     res$alpha_2 <- 1 - apply(1 - alpha_mat_2[, index_L, drop = FALSE], 1, prod)
     res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
-    
+    # return results
     return(res)
   } else{
+    # data set 1
     res$alpha_1 <- rep(0, p)
     res$post_mean1 <- rep(0, p)
-    
+    # data set 2
     res$alpha_2 <- rep(0, p)
     res$post_mean2 <- rep(0, p)
+    # return results
     return(res)
   }
 }
