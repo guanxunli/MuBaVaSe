@@ -31,14 +31,6 @@ order_tmp <- sample(1:p, p)
 dta_1 <- dta_1[order_tmp, ]
 dta_2 <- dta_2[order_tmp, ]
 
-## filp the order
-order_change <- function(order_old) {
-  order_new <- order_old
-  index_change <- sample(1:p, 2)
-  order_new[index_change] <- order_old[c(index_change[2], index_change[1])]
-  return(order_new)
-}
-
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
 # order_int is the initialized order for nodes
@@ -51,64 +43,132 @@ order_change <- function(order_old) {
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
 Graph_MCMC <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 1, 
-                       q = 1, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8) {
-  ## load the main function
-  source("Graph_given_order.R")
+                       q = 1, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000) {
   ## Initialization
   p <- nrow(dta_1)
+  n <- ncol(dta_1)
+  # Initialize order
   if (is.null(order_int)) {
-    order_old <- sample(1:p, size = p)
+    var_1 <- apply(dta_1, 1, var)
+    var_2 <- apply(dta_2, 1, var)
+    order_old <- order(var_1 + var_2, decreasing = FALSE)
   } else {
     order_old <- order_int
   }
-  res_old <- joint_graph_fun(dta_1 = dta_1, dta_2 = dta_2, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
-                             q = q, tau = tau, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                             order_dta = order_int)
-  llike_old <- res_old$llike
+  # change data
+  dta_1_old <- dta_1[order_old, ]
+  dta_2_old <- dta_2[order_old, ]
+  ## load the main function
+  source("Graph_given_order.R")
+  res_old <- joint_graph_fun(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
+                             q = q, tau = tau, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
+  # variable selection
+  alpha_res_1_old <- res_old$alpha_res_1
+  alpha_res_2_old <- res_old$alpha_res_2
+  # posterior of parameters
+  A_res_1_old <- res_old$A_res_1
+  A_res_2_old <- res_old$A_res_2
+  # likelihood
+  sigma2_vec_old <- res_old$sigma2_vec
+  llike_1_vec_old <- res_old$llike_1_vec
+  llike_2_vec_old <- res_old$llike_2_vec
+  llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old)
   ## save lists
   alpha_list_1 <- list()
   alpha_list_2 <- list()
   A_list_1 <- list()
   A_list_2 <- list()
   order_list <- list()
+  ## load the function
+  source("Multi_dataset_null.R")
   ## begin iteration
   for (iter_MCMC in seq_len(iter_max)) {
-    # propose the new order
-    order_pro <- order_change(order_old)
-    # calculate the new graph
-    res_pro <- joint_graph_fun(dta_1 = dta_1, dta_2 = dta_2, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
-                               q = q, tau = tau, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                               order_dta = order_pro)
-    llike_pro <- res_pro$llike
-    # accept or reject
+    if (iter_MCMC %% 10 == 0) print(iter_MCMC)
+    ## Initialize proposal
+    dta_1_pro <- dta_1_old
+    dta_2_pro <- dta_2_old
+    order_pro <- order_old
+    # log likelihood
+    sigma2_vec_pro <- sigma2_vec_old
+    llike_1_vec_pro <- llike_1_vec_old
+    llike_2_vec_pro <- llike_2_vec_old
+    ## propose the new order
+    pos_change <- sample(seq_len(p - 1), 1)
+    llike_pro <- llike_old - sum(llike_1_vec_old[c(pos_change, pos_change + 1)]) - sum(llike_2_vec_old[c(pos_change, pos_change + 1)])
+    dta_1_pro[c(pos_change, pos_change + 1), ] <- dta_1_old[c(pos_change + 1, pos_change), ]
+    dta_2_pro[c(pos_change, pos_change + 1), ] <- dta_2_old[c(pos_change + 1, pos_change), ]
+    order_pro[c(pos_change, pos_change + 1)] <- order_old[c(pos_change + 1, pos_change)]
+    ## doing variable selection
+    res_pos <- sum_single_effect_multi_null(X_1 = t(dta_1_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_1 = dta_1_pro[pos_change, ],
+                                            X_2 = t(dta_2_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_2 = dta_2_pro[pos_change, ],
+                                            sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
+                                            r = r, q = q, tau = tau, L = pos_change - 1, 
+                                            itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd) 
+    res_pos1 <- sum_single_effect_multi_null(X_1 = t(dta_1_pro[seq_len(pos_change), , drop = FALSE]), Y_1 = dta_1_pro[pos_change + 1, ],
+                                             X_2 = t(dta_2_pro[seq_len(pos_change), , drop = FALSE]), Y_2 = dta_2_pro[pos_change + 1, ],
+                                             sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
+                                             r = r, q = q, tau = tau, L = pos_change, 
+                                             itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
+    # likelihood
+    sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
+    llike_1_vec_pro[pos_change] <- sum(dnorm(x = dta_1_pro[pos_change, ], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))
+    llike_2_vec_pro[pos_change] <- sum(dnorm(x = dta_2_pro[pos_change, ], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))
+    llike_1_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_1_pro[pos_change + 1, ], mean = res_pos1$Xb_1, sd = sqrt(res_pos1$sigma2), log = TRUE))
+    llike_2_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_2_pro[pos_change + 1, ], mean = res_pos1$Xb_2, sd = sqrt(res_pos1$sigma2), log = TRUE))
+    llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + sum(llike_2_vec_pro[c(pos_change, pos_change + 1)])
+    
+    # accept or not
     if (llike_pro > llike_old) {
-      # accept
-      llike_old <- llike_pro
-      res_old <- res_pro
-      order_old <- order_pro
+      accept <- TRUE
     } else {
-      p_ratio <- exp(llike_pro - llike_old) # accept prob
-      U <- runif(1)
-      if (U < p_ratio) {
-        # accept
-        llike_old <- llike_pro
-        res_old <- res_pro
-        order_old <- order_pro
+      U <- sample(1)
+      thres <- exp(llike_pro - llike_old)
+      if (U < thres) {
+        accept <- TRUE
+      } else {
+        accept <- FALSE
       }
     }
-    # save results
-    alpha_list_1[[iter_MCMC]] <- res_old$alpha_res_1
-    alpha_list_2[[iter_MCMC]] <- res_old$alpha_res_2
-    A_list_1[[iter_MCMC]] <- res_old$A_res_1
-    A_list_2[[iter_MCMC]] <- res_old$A_res_2
-    order_list[[iter_MCMC]] <- order_old 
+    
+    if (accept) {
+      # proposed matrix
+      alpha_res_1_old[c(pos_change, pos_change + 1), ] <- 0
+      alpha_res_2_old[c(pos_change, pos_change + 1), ] <- 0
+      A_res_1_old[c(pos_change, pos_change + 1), ] <- 0
+      A_res_2_old[c(pos_change, pos_change + 1), ] <- 0
+      # save matrix
+      alpha_res_1_old[pos_change, seq_len(pos_change - 1)] <- res_pos$alpha_1
+      alpha_res_2_old[pos_change, seq_len(pos_change - 1)] <- res_pos$alpha_2
+      alpha_res_1_old[pos_change + 1, seq_len(pos_change)] <- res_pos1$alpha_1
+      alpha_res_2_old[pos_change + 1, seq_len(pos_change)] <- res_pos1$alpha_2
+      A_res_1_old[pos_change, seq_len(pos_change - 1)] <- res_pos$post_mean1
+      A_res_2_old[pos_change, seq_len(pos_change - 1)] <- res_pos$post_mean2
+      A_res_1_old[pos_change + 1, seq_len(pos_change)] <- res_pos1$post_mean1
+      A_res_2_old[pos_change + 1, seq_len(pos_change)] <- res_pos1$post_mean2
+      # likelihood
+      sigma2_vec_old <- sigma2_vec_pro
+      llike_1_vec_old <- llike_1_vec_pro
+      llike_2_vec_old <- llike_2_vec_pro
+      llike_old <- llike_pro
+      # data and order
+      dta_1_old <- dta_1_pro
+      dta_2_old <- dta_2_pro
+      order_old <- order_pro
+    }
+    ## save lists
+    alpha_list_1[[iter_MCMC]] <- alpha_res_1_old
+    alpha_list_2[[iter_MCMC]] <- alpha_res_2_old
+    A_list_1[[iter_MCMC]] <- A_res_1_old
+    A_list_2[[iter_MCMC]] <- A_res_2_old
+    order_list[[iter_MCMC]] <- order_old
   }
   # return results
-  return(list(alpha_list_1 = alpha_list_1, alpha_list_2 = alpha_list_2, A_list_1 = A_list_1, A_list_2 = A_list_2,
-              order_list = order_list))
+  return(list(alpha_list_1 = alpha_list_1[-seq_len(burn_in)], alpha_list_2 = alpha_list_2[-seq_len(burn_in)], 
+              A_list_1 = A_list_1[-seq_len(burn_in)], A_list_2 = A_list_2[-seq_len(burn_in)],
+              order_list = order_list[-seq_len(burn_in)]))
 }
 
 # ## MCMC
 # time1 <- Sys.time()
-# res <- Graph_MCMC(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10) 
-# Sys.time() - time1 (13.72 min)
+# res <- Graph_MCMC(dta_1 = dta_1, dta_2 = dta_2, iter_max = 100, burn_in = 1)
+# Sys.time() - time1 (3 min)

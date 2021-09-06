@@ -28,65 +28,7 @@
 # X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n, sd = sigma)
 # Y_2 <- X_2 %*% b_2 + rnorm(n, sd = sigma)
-# 
-# #### Define functions
-# source("Multi_dataset.R")
-## get sigma0
-lBF_model_multi_null <- function(lsigma02, prior_pi, z2_1, s2_1, z2_2, s2_2) {
-  sigma02 <- exp(lsigma02)
-  # data set 1
-  tmp1_1 <- log(sqrt(s2_1 / (sigma02 + s2_1)))
-  tmp2_1 <- z2_1 / 2 * sigma02 / (sigma02 + s2_1)
-  lBF_1 <- tmp1_1 + tmp2_1
-  # data set 2
-  tmp1_2 <- log(sqrt(s2_2 / (sigma02 + s2_2)))
-  tmp2_2 <- z2_2 / 2 * sigma02 / (sigma02 + s2_2)
-  lBF_2 <- tmp1_2 + tmp2_2
-  # combine
-  lBF <- c(lBF_1, lBF_2, lBF_1 + lBF_2, 0)
-  maxlBF <- max(lBF)
-  wBF <- exp(lBF - maxlBF)
-  wBF_sum <- sum(prior_pi * wBF)
-  return(- maxlBF - log(wBF_sum))
-}
-
-sigma0_opt_multi_null <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2) {
-  tmp1 <- lBF_model_multi_null(lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1, 
-                          s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)
-  lsigma02 <- optim(par = log(max(c(b_hat_1^2 - s2_1, 1, b_hat_2^2 - s2_2))), fn = lBF_model_multi_null, 
-                    method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1, 
-                    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)$par
-  tmp2 <- lBF_model_multi_null(lsigma02 = lsigma02, prior_pi = prior_pi, z2_1 = z2_1, 
-                          s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)
-  if (tmp2 < tmp1) {
-    return(exp(lsigma02))
-  } else{
-    return(exp(lsigma02_int))
-  }
-}
-
-## Calculate the KL divergence
-KL_fun_multi <- function(X_scale_1, X_scale2_1, Y_1, X_scale_2, Y_2, X_scale2_2,
-                         sigma2, b_1, b2_1, b_2, b2_2, lBF) {
-  n <- length(Y_1)
-  tmp1_1 <- sum(dnorm(Y_1, mean = 0, sd = sqrt(sigma2), log = TRUE))
-  tmp1_2 <- sum(dnorm(Y_2, mean = 0, sd = sqrt(sigma2), log = TRUE))
-  tmp3 <- n * log(2 * pi * sigma2)
-  tmp4_1 <- 1 / (2 * sigma2) * (crossprod(Y_1) - 2 * crossprod(Y_1, X_scale_1%*% b_1) + sum(X_scale2_1 %*% b2_1))
-  tmp4_2 <- 1 / (2 * sigma2) * (crossprod(Y_2) - 2 * crossprod(Y_2, X_scale_2%*% b_2) + sum(X_scale2_2 %*% b2_2))
-  return(tmp1_1 + tmp1_2 + lBF + tmp3 + tmp4_1 + tmp4_2)
-}
-
-## Calculate ERSS
-ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
-  mu_lmat <- X_scale %*% b_mat
-  mu2_lmat <- X_scale2 %*% b2_mat
-  mu_pred <- rowSums(mu_lmat)
-  res_tmp <- sum((Y - mu_pred)^2)
-  var_sum <- sum(mu2_lmat - mu_lmat^2)
-  return(res_tmp + var_sum)
-}
-
+ 
 ## main function with null model
 # X_1 and X_2 are regressors, n x p matrix, each column is one feature
 # Y_1 and Y_2 are response, n x 1 vector
@@ -98,30 +40,44 @@ ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
 # itermax is the maximum iteration
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
+# b_int_1 is the initialized value for b_1
+# b_int_2 is the initialized value for b_2
+# alpha_int_1 is the initialized value for alpha_1
+# alpha_int_2 is the initialized value for alpha_2
+
 sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
-                                    r = 0.2, q = 0.05, tau = 2, L = NULL, itermax = 100, 
-                                    tol = 1e-4, sigma0_low_bd = 1e-8) {
+                                         r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
+                                         tol = 1e-4, sigma0_low_bd = 1e-8,
+                                         b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL) {
   ## Initialization
   p <- ncol(X_1)
   n <- nrow(X_1)
+  
+  # Initialize sigma
+  if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
+  if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
+  if (is.null(L)) L <- min(10, p)
+  # Initialize b and alpha
+  if (is.null(b_int_1)) b_int_1 <- rep(0, p)
+  if (is.null(b_int_2)) b_int_2 <- rep(0, p)
+  if (is.null(alpha_int_1)) alpha_int_1 <- rep(0, p)
+  if (is.null(alpha_int_2)) alpha_int_2 <- rep(0, p)
+  
   # data set 1
+  Y_1 <- Y_1 - X_1 %*% b_int_1
   mean_Y_1 <- mean(Y_1)
   Y_1 <- Y_1 - mean_Y_1
   X_scale_1 <- scale(X_1)
   X2_1 <- colSums(X_scale_1 * X_scale_1)
   X_scale2_1 <- X_scale_1 * X_scale_1
   # data set 2
+  Y_2 <- Y_2 - X_2 %*% b_int_2
   mean_Y_2 <- mean(Y_2)
   Y_2 <- Y_2 - mean_Y_2
   X_scale_2 <- scale(X_2)
   X2_2 <- colSums(X_scale_2 * X_scale_2)
   X_scale2_2 <- X_scale_2 * X_scale_2
   
-  # Initialize sigma
-  if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
-  if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
-  if (is.null(L)) L <- min(10, p)
-
   # Initialize prior
   prior_pi <- c(rep(q, 2 * p), rep(r, p))
   prior_pi <- prior_pi / sum(prior_pi)
@@ -140,9 +96,9 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   b2_mat_2 <- matrix(0, nrow = p, ncol = L)
   alpha_mat_1 <- matrix(0, nrow = p, ncol = L)
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
-  alpha_vec <- rep(NA, L)
   
   # Begin iteration
+  source("utility.R")
   for (iter in seq_len(itermax)) {
     res_1 <- Y_1 - X_scale_1 %*% rowSums(b_mat_1)
     res_2 <- Y_2 - X_scale_2 %*% rowSums(b_mat_2)
@@ -183,7 +139,6 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
       lBF_model <- maxlBF + log(wBF_sum)
       ## Get posterior
       post_alpha <- prior_pi * wBF / wBF_sum
-      alpha_vec[l] <- tail(post_alpha, 1)
       # data set 1
       post_sigma2_1 <- 1 / (1/s2_1 + 1/sigma02)
       post_mu_1 <- post_sigma2_1 / s2_1 * b_hat_1
@@ -224,66 +179,26 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   res$ELBO <- ELBO
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
-  res$alpha_vec <- alpha_vec
   
   if (length(index_L) > 0) {
     # data set 1
-    res$alpha_1 <- 1 - apply(1 - alpha_mat_1[, index_L, drop = FALSE], 1, prod)
-    res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE])
+    res$alpha_1 <- 1 - (1 - alpha_int_1) * apply(1 - alpha_mat_1[, index_L, drop = FALSE], 1, prod) 
+    res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE]) + b_int_1
+    res$Xb_1 <- mean_Y_1 + X_scale_1 %*% res$post_mean1
     # data set 2
-    res$alpha_2 <- 1 - apply(1 - alpha_mat_2[, index_L, drop = FALSE], 1, prod)
-    res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
-    # return results
-    return(res)
+    res$alpha_2 <- 1 - (1 - alpha_int_2) * apply(1 - alpha_mat_2[, index_L, drop = FALSE], 1, prod)
+    res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE]) + b_int_2
+    res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
   } else{
     # data set 1
     res$alpha_1 <- rep(0, p)
     res$post_mean1 <- rep(0, p)
+    res$Xb_1 <- rep(mean_Y_1, n)
     # data set 2
     res$alpha_2 <- rep(0, p)
     res$post_mean2 <- rep(0, p)
-    # return results
-    return(res)
+    res$Xb_2 <- rep(mean_Y_1, n)
   }
+  # return results
+  return(res)
 }
-
-# #### check results
-# res <- sum_single_effect_multi(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 1, q = 1)
-# res_null <- sum_single_effect_multi_null(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 1, q = 1, tau = 1.5)
-# ## compare alpha
-# # data set 1
-# sum(abs(res$alpha_1 - alpha_1))
-# sum(abs(res_null$alpha_1 - alpha_1))
-# sum((res$alpha_1 - alpha_1)^2)
-# sum((res_null$alpha_1 - alpha_1)^2)
-# # data set 2
-# sum(abs(res$alpha_2 - alpha_2))
-# sum(abs(res_null$alpha_2 - alpha_2))
-# sum((res$alpha_2 - alpha_2)^2)
-# sum((res_null$alpha_2 - alpha_2)^2)
-# 
-# ## posterior mean
-# # data set 1
-# sum((res$post_mean1 - b_1)^2)
-# sum((res_null$post_mean1 - b_1)^2)
-# # data set 2
-# sum((res$post_mean2 - b_2)^2)
-# sum((res_null$post_mean2 - b_2)^2)
-# 
-# ## index error
-# # data set 1
-# res_index1 <- res$index_eff_1
-# # res_index_1 <- which(res$alpha_1 > 1e-3)
-# res_index_1 <- which(res_null$alpha_1 > 1e-3)
-# length(intersect(res_index1, c(index_1, index_c))) / (p_1 + p_c)
-# length(intersect(res_index_1, c(index_1, index_c))) / (p_1 + p_c)
-# length(intersect(res_index1, c(index_1, index_c))) / length(res_index1)
-# length(intersect(res_index_1, c(index_1, index_c))) / length(res_index_1)
-# # data set 2
-# res_index2 <- res$index_eff_2
-# # res_index_2 <- which(res$alpha_2 > 1e-3)
-# res_index_2 <- which(res_null$alpha_2 > 1e-3)
-# length(intersect(res_index2, c(index_2, index_c))) / (p_2 + p_c)
-# length(intersect(res_index_2, c(index_2, index_c))) / (p_1 + p_c)
-# length(intersect(res_index2, c(index_2, index_c))) / length(res_index2)
-# length(intersect(res_index_2, c(index_2, index_c))) / length(res_index_2)

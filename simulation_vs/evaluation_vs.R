@@ -34,7 +34,7 @@ res1 <- susieR::susie(X = X_1, y = Y_1, L = p_1 + p_c)
 res2 <- susieR::susie(X = X_2, y = Y_2, L = p_2 + p_c)
 
 ## Joint inference
-source("Multi_dataset.R")
+source("original code//Multi_dataset.R")
 res <- sum_single_effect_multi(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 0.2, q = 0.05)
 source("Multi_dataset_null.R")
 res_null <- sum_single_effect_multi_null(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 1, q = 1, tau = 1.5)

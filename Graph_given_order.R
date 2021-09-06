@@ -36,20 +36,11 @@
 # itermax is the maximum iteration
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
-# order_dta is order of the graph
 joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 1, 
-                            q = 1, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
-                            order_dta = NULL) {
-  ## load variable selection function
-  source("Multi_dataset_null.R")
+                            q = 1, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8) {
   ## Initialization
   p <- nrow(dta_1)
-  if (is.null(order_dta) == FALSE) {
-    dta_1 <- dta_1[order_dta, ]
-    dta_2 <- dta_2[order_dta, ]
-  } else {
-    order_dta <- seq_len(p)
-  }
+  n <- ncol(dta_1)
   ## save matrix
   # probability of the edge exists
   alpha_res_1 <- matrix(0, nrow = p, ncol = p)
@@ -57,9 +48,22 @@ joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL,
   # posterior mean of the edge
   A_res_1 <- matrix(0, nrow = p, ncol = p)
   A_res_2 <- matrix(0, nrow = p, ncol = p)
+  # predicted value
+  Xb_mat_1 <- matrix(NA, nrow = p, ncol = n)
+  Xb_mat_2 <- matrix(NA, nrow = p, ncol = n)
   # log likelihood  
-  llike_1 <- 0
-  llike_2 <- 0
+  llike_1_vec <- rep(NA, p)
+  llike_2_vec <- rep(NA, p)
+  sigma2_vec <- rep(NA, p)
+  sigma2_vec[1] <- var(c(dta_1[1, ], dta_2[1, ]))
+  mean_1 <- mean(dta_1[1, ])
+  mean_2 <- mean(dta_2[1, ])
+  Xb_mat_1[1, ] <- mean_1
+  Xb_mat_2[1, ] <- mean_2
+  llike_1_vec[1] <- sum(dnorm(dta_1[1, ], mean = mean_1, sd = sqrt(sigma2_vec[1]), log = TRUE))
+  llike_2_vec[1] <- sum(dnorm(dta_2[1, ], mean = mean_2, sd = sqrt(sigma2_vec[1]), log = TRUE))
+  ## load variable selection function
+  source("Multi_dataset_null.R")
   # begin iteration
   for (iter_p in seq_len(p - 1)) {
     X_1 <- t(dta_1[seq_len(iter_p), , drop = FALSE])
@@ -70,45 +74,47 @@ joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL,
     res <- sum_single_effect_multi_null(X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2, sigma02_int = sigma02_int,
                                         sigma2_int = sigma2_int, r = r, q = q, tau = tau, L = iter_p, 
                                         itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
-    # calculate the log likelihood
-    sigma2_tmp <- res$sigma2
-    llike_1 <- llike_1 + sum(dnorm(x = Y_1, mean = X_1 %*% A_res_1[iter_p + 1, seq_len(iter_p)], sd = sqrt(sigma2_tmp), log = TRUE))
-    llike_2 <- llike_2 + sum(dnorm(x = Y_2, mean = X_2 %*% A_res_2[iter_p + 1, seq_len(iter_p)], sd = sqrt(sigma2_tmp), log = TRUE))
     # save the matrix we want
     alpha_res_1[iter_p + 1, seq_len(iter_p)] <- res$alpha_1
     alpha_res_2[iter_p + 1, seq_len(iter_p)] <- res$alpha_2
     A_res_1[iter_p + 1, seq_len(iter_p)] <- res$post_mean1
     A_res_2[iter_p + 1, seq_len(iter_p)] <- res$post_mean2
+    # calculate the likelihood
+    sigma2_vec[iter_p + 1] <- res$sigma2
+    Xb_mat_1[iter_p + 1, ] <- res$Xb_1
+    Xb_mat_2[iter_p + 1, ] <- res$Xb_2
+    llike_1_vec[iter_p + 1] <- sum(dnorm(x = Y_1, mean = res$Xb_1, sd = res$sigma2, log = TRUE))
+    llike_2_vec[iter_p + 1] <- sum(dnorm(x = Y_2, mean = res$Xb_2, sd = res$sigma2, log = TRUE))
   }
   ## return results
-  # Here we need to return the order for the original data set
-  return(list(alpha_res_1 = alpha_res_1[order(order_dta), order(order_dta)], alpha_res_2 = alpha_res_2[order(order_dta), order(order_dta)],
-              A_res_1 = A_res_1[order(order_dta), order(order_dta)], A_res_2 = A_res_2[order(order_dta), order(order_dta)], 
-              llike = llike_1 + llike_2))
+  return(list(alpha_res_1 = alpha_res_1, alpha_res_2 = alpha_res_2, A_res_1 = A_res_1, A_res_2 = A_res_2, 
+              llike_1_vec = llike_1_vec, llike_2_vec = llike_2_vec, Xb_mat_1 = Xb_mat_1, Xb_mat_2 = Xb_mat_2,
+              sigma2_vec = sigma2_vec))
 }
 
-
-## single inference
-single_graph_fun <- function(dta, order_data = NULL) {
-  p <- nrow(dta)
-  alpha_res <- matrix(0, nrow = p, ncol = p)
-  A_res<- matrix(0, nrow = p, ncol = p)
-  
-  if (is.null(order_data) == FALSE) {
-    dta <- dta[order_data, ]
-  }
-  
-  for (iter_p in seq_len(p - 1)) {
-    X <- t(dta[seq_len(iter_p), , drop = FALSE])
-    Y <- dta[iter_p + 1, ]
-    res <- susieR::susie(X = X, y = Y, L = iter_p)
-    alpha_res[iter_p + 1, seq_len(iter_p)] <- 1 - apply(1 - res$alpha[,,drop = FALSE], 1, prod)
-    A_res[iter_p + 1, seq_len(iter_p)] <- rowSums(res$mu * res$alpha)
-  }
-  ## return results
-  return(list(alpha_res = alpha_res, A_res = A_res))
-}
-
+# ## single inference
+# single_graph_fun <- function(dta, order_data = NULL) {
+#   p <- nrow(dta)
+#   alpha_res <- matrix(0, nrow = p, ncol = p)
+#   A_res<- matrix(0, nrow = p, ncol = p)
+#   
+#   if (is.null(order_data) == FALSE) {
+#     dta <- dta[order_data, ]
+#   }
+#   
+#   for (iter_p in seq_len(p - 1)) {
+#     X <- t(dta[seq_len(iter_p), , drop = FALSE])
+#     Y <- dta[iter_p + 1, ]
+#     res <- susieR::susie(X = X, y = Y, L = iter_p)
+#     alpha_res[iter_p + 1, seq_len(iter_p)] <- 1 - apply(1 - res$alpha[,,drop = FALSE], 1, prod)
+#     A_res[iter_p + 1, seq_len(iter_p)] <- rowSums(res$mu * res$alpha)
+#   }
+#   ## return results
+#   return(list(alpha_res = alpha_res, A_res = A_res))
+# }
+# 
+# 
+# ## check results
 # res_joint <- joint_graph_fun(dta_1 = dta_1, dta_2 = dta_2, r = 1, q = 1, tau = 1.5)
 # res_single1 <- single_graph_fun(dta_1)
 # res_single2 <- single_graph_fun(dta_2)
@@ -136,21 +142,3 @@ single_graph_fun <- function(dta, order_data = NULL) {
 # ## data set 2
 # sum((res_single2$A_res - A2)^2)
 # sum((res_joint$A_res_2 - A2)^2)
-# 
-# ## Check order
-# order_new <-sample(seq_len(p), p)
-# dta_1_new <- dta_1[order_new, ]
-# dta_2_new <- dta_2[order_new, ]
-# A1_new <- A1[order_new, order_new]
-# A2_new <- A2[order_new, order_new]
-# eps_1_new <- eps_1[order_new, ]
-# eps_2_new <- eps_2[order_new, ]
-# alpha_mat_new_1 <- alpha_mat_1[order_new, order_new]
-# alpha_mat_new_2 <- alpha_mat_2[order_new, order_new]
-# # sum((dta_1_new - solve(diag(1, p) - A1_new, eps_1_new))^2)
-# 
-# res_joint <- joint_graph_fun(dta_1 = dta_1_new, dta_2 = dta_2_new, r = 1, q = 1, tau = 1.5, order_dta = order(order_new))
-# sum((res_joint$alpha_res_1 - alpha_mat_new_1)^2)
-# sum((res_joint$alpha_res_2 - alpha_mat_new_2)^2)
-# sum((res_joint$A_res_1 - A1_new)^2)
-# sum((res_joint$A_res_2 - A2_new)^2)
