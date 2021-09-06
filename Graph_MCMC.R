@@ -42,8 +42,8 @@ dta_2 <- dta_2[order_tmp, ]
 # itermax is the maximum iteration
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
-Graph_MCMC <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 1, 
-                       q = 1, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000) {
+Graph_MCMC <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
+                       q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000) {
   ## Initialization
   p <- nrow(dta_1)
   n <- ncol(dta_1)
@@ -99,16 +99,34 @@ Graph_MCMC <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02
     dta_2_pro[c(pos_change, pos_change + 1), ] <- dta_2_old[c(pos_change + 1, pos_change), ]
     order_pro[c(pos_change, pos_change + 1)] <- order_old[c(pos_change + 1, pos_change)]
     ## doing variable selection
-    res_pos <- sum_single_effect_multi_null(X_1 = t(dta_1_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_1 = dta_1_pro[pos_change, ],
-                                            X_2 = t(dta_2_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_2 = dta_2_pro[pos_change, ],
-                                            sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
-                                            r = r, q = q, tau = tau, L = pos_change - 1, 
-                                            itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd) 
+    if (pos_change == 1) {
+      res_pos$sigma2 <- var(c(dta_1_pro[1, ], dta_2_pro[1, ]))
+      res_pos$alpha_1 <- rep(0, p)
+      res_pos$post_mean1 <- rep(0, p)
+      res_pos$Xb_1 <- rep(mean(dta_1_pro[1, ]), n)
+      res_pos$alpha_2 <- rep(0, p)
+      res_pos$post_mean2 <- rep(0, p)
+      res_pos$Xb_2 <- rep(mean(dta_1_pro[1, ]), n)
+    } else {
+      res_pos <- sum_single_effect_multi_null(X_1 = t(dta_1_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_1 = dta_1_pro[pos_change, ],
+                                              X_2 = t(dta_2_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_2 = dta_2_pro[pos_change, ],
+                                              sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
+                                              r = r, q = q, tau = tau, L = pos_change - 1, 
+                                              itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                              b_int_1 = A_res_1_old[seq_len(pos_change - 1)],
+                                              b_int_2 = A_res_2_old[seq_len(pos_change - 1)],
+                                              alpha_int_1 = alpha_res_1_old[seq_len(pos_change - 1)],
+                                              alpha_int_2 = alpha_res_2_old[seq_len(pos_change - 1)])
+    }
     res_pos1 <- sum_single_effect_multi_null(X_1 = t(dta_1_pro[seq_len(pos_change), , drop = FALSE]), Y_1 = dta_1_pro[pos_change + 1, ],
                                              X_2 = t(dta_2_pro[seq_len(pos_change), , drop = FALSE]), Y_2 = dta_2_pro[pos_change + 1, ],
                                              sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
                                              r = r, q = q, tau = tau, L = pos_change, 
-                                             itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
+                                             itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                             b_int_1 = c(A_res_1_old[seq_len(pos_change - 1)], 0),
+                                             b_int_2 = c(A_res_2_old[seq_len(pos_change - 1)], 0),
+                                             alpha_int_1 = c(alpha_res_1_old[seq_len(pos_change - 1)], 0),
+                                             alpha_int_2 = c(alpha_res_2_old[seq_len(pos_change - 1)], 0))
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
     llike_1_vec_pro[pos_change] <- sum(dnorm(x = dta_1_pro[pos_change, ], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))

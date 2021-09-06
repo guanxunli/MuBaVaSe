@@ -64,19 +64,19 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   if (is.null(alpha_int_2)) alpha_int_2 <- rep(0, p)
   
   # data set 1
-  Y_1 <- Y_1 - X_1 %*% b_int_1
-  mean_Y_1 <- mean(Y_1)
-  Y_1 <- Y_1 - mean_Y_1
   X_scale_1 <- scale(X_1)
   X2_1 <- colSums(X_scale_1 * X_scale_1)
   X_scale2_1 <- X_scale_1 * X_scale_1
+  Y_1 <- Y_1 - X_scale_1 %*% b_int_1
+  mean_Y_1 <- mean(Y_1)
+  Y_1 <- Y_1 - mean_Y_1
   # data set 2
-  Y_2 <- Y_2 - X_2 %*% b_int_2
-  mean_Y_2 <- mean(Y_2)
-  Y_2 <- Y_2 - mean_Y_2
   X_scale_2 <- scale(X_2)
   X2_2 <- colSums(X_scale_2 * X_scale_2)
   X_scale2_2 <- X_scale_2 * X_scale_2
+  Y_2 <- Y_2 - X_scale_2 %*% b_int_2
+  mean_Y_2 <- mean(Y_2)
+  Y_2 <- Y_2 - mean_Y_2
   
   # Initialize prior
   prior_pi <- c(rep(q, 2 * p), rep(r, p))
@@ -191,13 +191,13 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
     res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
   } else{
     # data set 1
-    res$alpha_1 <- rep(0, p)
-    res$post_mean1 <- rep(0, p)
-    res$Xb_1 <- rep(mean_Y_1, n)
+    res$alpha_1 <- alpha_int_1
+    res$post_mean1 <- rep(0, p) + b_int_1
+    res$Xb_1 <- mean_Y_1 + X_scale_1 %*% res$post_mean1
     # data set 2
-    res$alpha_2 <- rep(0, p)
-    res$post_mean2 <- rep(0, p)
-    res$Xb_2 <- rep(mean_Y_1, n)
+    res$alpha_2 <- alpha_int_2
+    res$post_mean2 <- rep(0, p) + b_int_2
+    res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
   }
   # return results
   return(res)

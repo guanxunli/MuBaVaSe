@@ -36,8 +36,8 @@
 # itermax is the maximum iteration
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
-joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 1, 
-                            q = 1, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8) {
+joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
+                            q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8) {
   ## Initialization
   p <- nrow(dta_1)
   n <- ncol(dta_1)
