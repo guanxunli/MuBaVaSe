@@ -1,6 +1,6 @@
 #### Define functions
 ## get sigma0
-lBF_model_multi_null <- function(lsigma02, prior_pi, z2_1, s2_1, z2_2, s2_2) {
+lBF_model_two <- function(lsigma02, prior_pi, z2_1, s2_1, z2_2, s2_2) {
   sigma02 <- exp(lsigma02)
   # data set 1
   tmp1_1 <- log(sqrt(s2_1 / (sigma02 + s2_1)))
@@ -18,13 +18,13 @@ lBF_model_multi_null <- function(lsigma02, prior_pi, z2_1, s2_1, z2_2, s2_2) {
   return(- maxlBF - log(wBF_sum))
 }
 
-sigma0_opt_multi_null <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2) {
-  tmp1 <- lBF_model_multi_null(lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1, 
+sigma0_opt_two <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2) {
+  tmp1 <- lBF_model_two(lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1, 
                                s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)
-  lsigma02 <- optim(par = log(max(c(b_hat_1^2 - s2_1, 1, b_hat_2^2 - s2_2))), fn = lBF_model_multi_null, 
+  lsigma02 <- optim(par = log(max(c(b_hat_1^2 - s2_1, 1, b_hat_2^2 - s2_2))), fn = lBF_model_two, 
                     method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1, 
                     s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)$par
-  tmp2 <- lBF_model_multi_null(lsigma02 = lsigma02, prior_pi = prior_pi, z2_1 = z2_1, 
+  tmp2 <- lBF_model_two(lsigma02 = lsigma02, prior_pi = prior_pi, z2_1 = z2_1, 
                                s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)
   if (tmp2 < tmp1) {
     return(exp(lsigma02))
@@ -34,7 +34,7 @@ sigma0_opt_multi_null <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2
 }
 
 ## Calculate the KL divergence
-KL_fun_multi <- function(X_scale_1, X_scale2_1, Y_1, X_scale_2, Y_2, X_scale2_2,
+KL_fun_two <- function(X_scale_1, X_scale2_1, Y_1, X_scale_2, Y_2, X_scale2_2,
                          sigma2, b_1, b2_1, b_2, b2_2, lBF) {
   n <- length(Y_1)
   tmp1_1 <- sum(dnorm(Y_1, mean = 0, sd = sqrt(sigma2), log = TRUE))

@@ -36,8 +36,8 @@
 # itermax is the maximum iteration
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
-joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
-                            q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8) {
+joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
+                                q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8) {
   ## Initialization
   p <- nrow(dta_1)
   n <- ncol(dta_1)
@@ -63,7 +63,7 @@ joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL,
   llike_1_vec[1] <- sum(dnorm(dta_1[1, ], mean = mean_1, sd = sqrt(sigma2_vec[1]), log = TRUE))
   llike_2_vec[1] <- sum(dnorm(dta_2[1, ], mean = mean_2, sd = sqrt(sigma2_vec[1]), log = TRUE))
   ## load variable selection function
-  source("Multi_dataset_null.R")
+  source("sum_single_effect_two.R")
   # begin iteration
   for (iter_p in seq_len(p - 1)) {
     X_1 <- t(dta_1[seq_len(iter_p), , drop = FALSE])
@@ -71,7 +71,7 @@ joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL,
     X_2 <- t(dta_2[seq_len(iter_p), , drop = FALSE])
     Y_2 <- dta_2[iter_p + 1, ]
     ## variable selection
-    res <- sum_single_effect_multi_null(X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2, sigma02_int = sigma02_int,
+    res <- sum_single_effect_two(X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2, sigma02_int = sigma02_int,
                                         sigma2_int = sigma2_int, r = r, q = q, tau = tau, L = iter_p, 
                                         itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
     # save the matrix we want
@@ -115,7 +115,7 @@ joint_graph_fun <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL,
 # 
 # 
 # ## check results
-# res_joint <- joint_graph_fun(dta_1 = dta_1, dta_2 = dta_2, r = 1, q = 1, tau = 1.5)
+# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 1, q = 1, tau = 1.5)
 # res_single1 <- single_graph_fun(dta_1)
 # res_single2 <- single_graph_fun(dta_2)
 # 

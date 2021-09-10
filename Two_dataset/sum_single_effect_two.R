@@ -45,10 +45,10 @@
 # alpha_int_1 is the initialized value for alpha_1
 # alpha_int_2 is the initialized value for alpha_2
 
-sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
-                                         r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
-                                         tol = 1e-4, sigma0_low_bd = 1e-8,
-                                         b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL) {
+sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
+                                 r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
+                                 tol = 1e-4, sigma0_low_bd = 1e-8,
+                                 b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL) {
   ## Initialization
   p <- ncol(X_1)
   n <- nrow(X_1)
@@ -98,7 +98,7 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
   
   # Begin iteration
-  source("utility.R")
+  source("utility_two.R")
   for (iter in seq_len(itermax)) {
     res_1 <- Y_1 - X_scale_1 %*% rowSums(b_mat_1)
     res_2 <- Y_2 - X_scale_2 %*% rowSums(b_mat_2)
@@ -120,7 +120,7 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
       z2_2 <- b_hat_2^2 / s2_2
       # calculate sigma0
       lsigma02_int <- max(log(sigma02_vec[l]), -30)
-      sigma02 <- sigma0_opt_multi_null(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2)
+      sigma02 <- sigma0_opt_two(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2)
       sigma02_vec[l] <- sigma02
       ## Get Bayesian Factor
       # data set 1
@@ -155,10 +155,10 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
       b_mat_2[, l] <- alpha_mat_2[, l] * post_mu_2
       b2_mat_2[, l] <- alpha_mat_2[, l] * (post_mu_2^2 + post_sigma2_2)
       ## calculate the KL divergence
-      KL_div <- KL_div + KL_fun_multi(X_scale_1 = X_scale_1, Y_1 = res_tmp_1, X_scale_2 = X_scale_2, Y_2 = res_tmp_2, 
-                                      X_scale2_1 = X_scale2_1, X_scale2_2 = X_scale2_2,sigma2 = sigma2, 
-                                      b_1 = b_mat_1[, l], b2_1 = b2_mat_1[, l], b_2 = b_mat_2[, l], 
-                                      b2_2 = b2_mat_2[, l], lBF = lBF_model)
+      KL_div <- KL_div + KL_fun_two(X_scale_1 = X_scale_1, Y_1 = res_tmp_1, X_scale_2 = X_scale_2, Y_2 = res_tmp_2, 
+                                    X_scale2_1 = X_scale2_1, X_scale2_2 = X_scale2_2,sigma2 = sigma2, 
+                                    b_1 = b_mat_1[, l], b2_1 = b2_mat_1[, l], b_2 = b_mat_2[, l], 
+                                    b2_2 = b2_mat_2[, l], lBF = lBF_model)
       res_1 <- res_tmp_1 - X_scale_1 %*% b_mat_1[, l]
       res_2 <- res_tmp_2 - X_scale_2 %*% b_mat_2[, l]
     }
@@ -202,3 +202,8 @@ sum_single_effect_multi_null <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL,
   # return results
   return(res)
 }
+
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
+#                              r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
+#                              tol = 1e-4, sigma0_low_bd = 1e-8,
+#                              b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL)

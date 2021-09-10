@@ -6,7 +6,6 @@
 # pro_1, pro_2 : probability of edges for the data set 1 and data set 2, respectively 
 # signal_level : scale for the coefficients matrix
 # sig : sd for the error term
-signal_level = 0.2, sig = 1
 graph_generate_unif <- function(p, n, n_graph = 1, pro_c = 0.1, pro_1 = 0.02, pro_2 = 0.02, 
                                 signal_level = 0.2, sig = 1) {
   # G is the true graph
