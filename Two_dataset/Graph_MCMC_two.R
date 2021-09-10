@@ -26,10 +26,6 @@
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
 # dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-# 
-# order_tmp <- sample(1:p, p)
-# dta_1 <- dta_1[order_tmp, ]
-# dta_2 <- dta_2[order_tmp, ]
 
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
@@ -49,9 +45,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   n <- ncol(dta_1)
   # Initialize order
   if (is.null(order_int)) {
-    var_1 <- apply(dta_1, 1, var)
-    var_2 <- apply(dta_2, 1, var)
-    order_old <- order(var_1 + var_2, decreasing = FALSE)
+    order_old <- sample(seq_len(p), p)
   } else {
     order_old <- order_int
   }
@@ -60,7 +54,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   dta_2_old <- dta_2[order_old, ]
   ## load the main function
   source("Graph_given_order_two.R")
-  res_old <- joint_graph_fun(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
+  res_old <- joint_graph_fun_two(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
                              q = q, tau = tau, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
   # variable selection
   alpha_res_1_old <- res_old$alpha_res_1
@@ -83,7 +77,6 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   source("sum_single_effect_two.R")
   ## begin iteration
   for (iter_MCMC in seq_len(iter_max)) {
-    if (iter_MCMC %% 100 == 0) print(iter_MCMC)
     ## Initialize proposal
     dta_1_pro <- dta_1_old
     dta_2_pro <- dta_2_old
@@ -100,37 +93,38 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     order_pro[c(pos_change, pos_change + 1)] <- order_old[c(pos_change + 1, pos_change)]
     ## doing variable selection
     if (pos_change == 1) {
+      res_pos <- list()
       res_pos$sigma2 <- var(c(dta_1_pro[1, ], dta_2_pro[1, ]))
       res_pos$alpha_1 <- rep(0, p)
       res_pos$post_mean1 <- rep(0, p)
       res_pos$Xb_1 <- rep(mean(dta_1_pro[1, ]), n)
       res_pos$alpha_2 <- rep(0, p)
       res_pos$post_mean2 <- rep(0, p)
-      res_pos$Xb_2 <- rep(mean(dta_1_pro[1, ]), n)
+      res_pos$Xb_2 <- rep(mean(dta_2_pro[1, ]), n)
     } else {
-      res_pos <- sum_single_effect_multi_null(X_1 = t(dta_1_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_1 = dta_1_pro[pos_change, ],
-                                              X_2 = t(dta_2_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_2 = dta_2_pro[pos_change, ],
-                                              sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
-                                              r = r, q = q, tau = tau, L = pos_change - 1, 
-                                              itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
-                                              # b_int_1 = A_res_1_old[seq_len(pos_change - 1)],
-                                              # b_int_2 = A_res_2_old[seq_len(pos_change - 1)],
-                                              # alpha_int_1 = alpha_res_1_old[seq_len(pos_change - 1)],
-                                              # alpha_int_2 = alpha_res_2_old[seq_len(pos_change - 1)])
+      res_pos <- sum_single_effect_two(X_1 = t(dta_1_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_1 = dta_1_pro[pos_change, ],
+                                      X_2 = t(dta_2_pro[seq_len(pos_change - 1), , drop = FALSE]), Y_2 = dta_2_pro[pos_change, ],
+                                      sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
+                                      r = r, q = q, tau = tau, L = pos_change - 1, 
+                                      itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
+                                      # b_int_1 = A_res_1_old[seq_len(pos_change - 1)],
+                                      # b_int_2 = A_res_2_old[seq_len(pos_change - 1)],
+                                      # alpha_int_1 = alpha_res_1_old[seq_len(pos_change - 1)],
+                                      # alpha_int_2 = alpha_res_2_old[seq_len(pos_change - 1)])
     }
-    res_pos1 <- sum_single_effect_multi_null(X_1 = t(dta_1_pro[seq_len(pos_change), , drop = FALSE]), Y_1 = dta_1_pro[pos_change + 1, ],
-                                             X_2 = t(dta_2_pro[seq_len(pos_change), , drop = FALSE]), Y_2 = dta_2_pro[pos_change + 1, ],
-                                             sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
-                                             r = r, q = q, tau = tau, L = pos_change, 
-                                             itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
-                                             # b_int_1 = c(A_res_1_old[seq_len(pos_change - 1)], 0),
-                                             # b_int_2 = c(A_res_2_old[seq_len(pos_change - 1)], 0),
-                                             # alpha_int_1 = c(alpha_res_1_old[seq_len(pos_change - 1)], 0),
-                                             # alpha_int_2 = c(alpha_res_2_old[seq_len(pos_change - 1)], 0))
+    res_pos1 <- sum_single_effect_two(X_1 = t(dta_1_pro[seq_len(pos_change), , drop = FALSE]), Y_1 = dta_1_pro[pos_change + 1, ],
+                                      X_2 = t(dta_2_pro[seq_len(pos_change), , drop = FALSE]), Y_2 = dta_2_pro[pos_change + 1, ],
+                                      sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
+                                      r = r, q = q, tau = tau, L = pos_change, 
+                                      itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd)
+                                      # b_int_1 = c(A_res_1_old[seq_len(pos_change - 1)], 0),
+                                      # b_int_2 = c(A_res_2_old[seq_len(pos_change - 1)], 0),
+                                      # alpha_int_1 = c(alpha_res_1_old[seq_len(pos_change - 1)], 0),
+                                      # alpha_int_2 = c(alpha_res_2_old[seq_len(pos_change - 1)], 0))
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
     llike_1_vec_pro[pos_change] <- sum(dnorm(x = dta_1_pro[pos_change, ], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))
-    llike_2_vec_pro[pos_change] <- sum(dnorm(x = dta_2_pro[pos_change, ], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))
+    llike_2_vec_pro[pos_change] <- sum(dnorm(x = dta_2_pro[pos_change, ], mean = res_pos$Xb_2, sd = sqrt(res_pos$sigma2), log = TRUE))
     llike_1_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_1_pro[pos_change + 1, ], mean = res_pos1$Xb_1, sd = sqrt(res_pos1$sigma2), log = TRUE))
     llike_2_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_2_pro[pos_change + 1, ], mean = res_pos1$Xb_2, sd = sqrt(res_pos1$sigma2), log = TRUE))
     llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + sum(llike_2_vec_pro[c(pos_change, pos_change + 1)])
@@ -190,6 +184,3 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
 # time1 <- Sys.time()
 # res <- Graph_MCMC(dta_1 = X_1, dta_2 = X_2, iter_max = 200, burn_in = 1)
 # Sys.time() - time1 
-
-# 0.1 30min
-# 0.02 5min

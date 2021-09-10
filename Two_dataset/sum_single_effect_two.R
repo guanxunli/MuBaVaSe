@@ -10,7 +10,7 @@
 # ## Generate data
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p), c(index_1, index_c)), size = p_2, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
 # 
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
@@ -28,7 +28,7 @@
 # X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n, sd = sigma)
 # Y_2 <- X_2 %*% b_2 + rnorm(n, sd = sigma)
- 
+
 ## main function with null model
 # X_1 and X_2 are regressors, n x p matrix, each column is one feature
 # Y_1 and Y_2 are response, n x 1 vector
@@ -48,7 +48,8 @@
 sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
                                  r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
                                  tol = 1e-4, sigma0_low_bd = 1e-8,
-                                 b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL) {
+                                 b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL,
+                                 residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(X_1)
   n <- nrow(X_1)
@@ -57,6 +58,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
+  if(is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
   # Initialize b and alpha
   if (is.null(b_int_1)) b_int_1 <- rep(0, p)
   if (is.null(b_int_2)) b_int_2 <- rep(0, p)
@@ -168,7 +170,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
     ERSS <- ERSS_1 + ERSS_2
     ELBO[iter + 1] <- - n * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
     # estimate sigma2
-    sigma2 <- ERSS / (2 * n)
+    sigma2 <- max(ERSS / (2 * n), residual_variance_lowerbound)
     if (ELBO[iter + 1] -   ELBO[iter] < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
@@ -203,7 +205,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   return(res)
 }
 
-# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
-#                              r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL,
+#                              r = 0.2, q = 0.05, tau = 1.5, L = p_c + p_1 + p_2, itermax = 100,
 #                              tol = 1e-4, sigma0_low_bd = 1e-8,
 #                              b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL)

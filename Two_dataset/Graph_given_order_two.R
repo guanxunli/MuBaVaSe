@@ -55,11 +55,11 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
   llike_1_vec <- rep(NA, p)
   llike_2_vec <- rep(NA, p)
   sigma2_vec <- rep(NA, p)
-  sigma2_vec[1] <- var(c(dta_1[1, ], dta_2[1, ]))
   mean_1 <- mean(dta_1[1, ])
   mean_2 <- mean(dta_2[1, ])
   Xb_mat_1[1, ] <- mean_1
   Xb_mat_2[1, ] <- mean_2
+  sigma2_vec[1] <- var(c(dta_1[1, ], dta_2[1, ]))
   llike_1_vec[1] <- sum(dnorm(dta_1[1, ], mean = mean_1, sd = sqrt(sigma2_vec[1]), log = TRUE))
   llike_2_vec[1] <- sum(dnorm(dta_2[1, ], mean = mean_2, sd = sqrt(sigma2_vec[1]), log = TRUE))
   ## load variable selection function
