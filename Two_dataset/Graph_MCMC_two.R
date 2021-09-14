@@ -76,7 +76,9 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   ## load the function
   source("sum_single_effect_two.R")
   ## begin iteration
+  ELBO_list <- list()
   for (iter_MCMC in seq_len(iter_max)) {
+    if (iter_MCMC %% 100 == 0) print(iter_MCMC)
     ## Initialize proposal
     dta_1_pro <- dta_1_old
     dta_2_pro <- dta_2_old
@@ -121,6 +123,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
                                       # b_int_2 = c(A_res_2_old[seq_len(pos_change - 1)], 0),
                                       # alpha_int_1 = c(alpha_res_1_old[seq_len(pos_change - 1)], 0),
                                       # alpha_int_2 = c(alpha_res_2_old[seq_len(pos_change - 1)], 0))
+    ELBO_list[[iter_MCMC]] <- c(length(res_pos$ELBO), length(res_pos1$ELBO))
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
     llike_1_vec_pro[pos_change] <- sum(dnorm(x = dta_1_pro[pos_change, ], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))
@@ -181,6 +184,6 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
 }
 
 # ## MCMC
-# time1 <- Sys.time()
-# res <- Graph_MCMC(dta_1 = X_1, dta_2 = X_2, iter_max = 200, burn_in = 1)
-# Sys.time() - time1 
+time1 <- Sys.time()
+res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10000, burn_in = 500)
+Sys.time() - time1

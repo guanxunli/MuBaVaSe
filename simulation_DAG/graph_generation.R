@@ -1,111 +1,44 @@
-## generate joint graph
-# p : the number of features
-# n : the number of data points
-# n_graph : number of graphs
-# pro_c : probability of edges for the common part
-# pro_1, pro_2 : probability of edges for the data set 1 and data set 2, respectively 
-# signal_level : scale for the coefficients matrix
-# sig : sd for the error term
-graph_generate_unif <- function(p, n, n_graph = 1, pro_c = 0.1, pro_1 = 0.02, pro_2 = 0.02, 
-                                signal_level = 0.2, sig = 1) {
-  # G is the true graph
-  # X is the data set from the true graph
-  # A is the coefficients matrix
-  X <- list()
-  G <- list()
-  A <- list()
-  
-  for (iter_graph in seq_len(n_graph)) {
-    G[[iter_graph]] <- list()
-    # Generate graph first
-    G_1 <- matrix(0, p, p)
-    G_2 <- matrix(0, p, p)
-    edge_c <- rbinom(p * (p - 1) / 2, 1, prob = pro_c)
-    edge_1 <- edge_c
-    edge_1[which(edge_1 == 0)] <- rbinom(length(which(edge_1 == 0)), 1, prob = pro_1)
-    edge_2 <- edge_c
-    edge_2[which(edge_2 == 0)] <- rbinom(length(which(edge_2 == 0)), 1, prob = pro_2)
-    G_1[lower.tri(G_1)] <- edge_1
-    G_2[lower.tri(G_2)] <- edge_2
-    G[[iter_graph]]$G_1 <- G_1
-    G[[iter_graph]]$G_2 <- G_2
-    
-    # Generate coefficient matrix
-    A[[iter_graph]] <- list()
-    A_1 <- matrix(0, nrow = p, ncol = p)
-    A_2 <- matrix(0, nrow = p, ncol = p)
-    n_1 <- sum(G_1)
-    n_2 <- sum(G_2)
-    A_1[which(G_1 == 1)] <-  2 * rep(signal_level, n_1) *  (rbinom(n_1, 1, 0.5) - 1/2)
-    A_2[which(G_2 == 1)] <-  2 * rep(signal_level, n_2) *  (rbinom(n_2, 1, 0.5) - 1/2)
-    A[[iter_graph]]$A_1 <- A_1
-    A[[iter_graph]]$A_2 <- A_2
-    
-    # Generate data
-    X[[iter_graph]] <- list()
-    eps_1 <- matrix(rnorm(n * p, mean = 0, sd = sig), ncol = n)
-    X_1 <- solve(diag(1, nrow = p) - A_1, eps_1)
-    eps_2 <- matrix(rnorm(n * p, mean = 0, sd = sig), ncol = n)
-    X_2 <- solve(diag(1, nrow = p) - A_2, eps_2)
-    X[[iter_graph]]$X_1 <- X_1   
-    X[[iter_graph]]$X_2 <- X_2
-  }
-  # return results
-  return(list(X = X, G = G, A = A))
-}
 
-## generate joint graph
-# p : the number of features
-# n : the number of data points
-# n_graph : number of graphs
-# pro_c : probability of edges for the common part
-# pro_1, pro_2 : probability of edges for the data set 1 and data set 2, respectively 
-# signal_sig : sd for the coefficient matrix
-# sig : sd for the error term
-graph_generate_gaussian <- function(p, n, n_graph = 1, pro_c = 0.1, pro_1 = 0.02, pro_2 = 0.02, 
-                                    signal_sig = 1, sig = 0.2) {
-  # G is the true graph
-  # X is the data set from the true graph
-  # A is the coefficients matrix
+# K : number of graphs
+# n_tol : total number of observations
+# p : number of nodes
+# e_com : number of common edges
+# e_pri : number of private edges
+# n_graph : number of simulations
+# min_sig : minimun signal of the weights
+# low_err_var : lower bound for error variance
+# upp_err_var : upper bound for the error variance
+graph_generation <- function(K = 2, n_tol = 600, p = 100, e_com = 100, e_pri = 30, n_graph = 1, min_sig = 0.1,
+                             low_err_var = 1, upp_err_var = 2.25) {
+  ## initialization
+  n <- n_tol / K
+  # G is the true graph (p x p)
+  # X is the data set from the true graph (p x n)
+  # A is the coefficients matrix (p x p)
   X <- list()
   G <- list()
   A <- list()
-  
+  ## begin iteration
   for (iter_graph in seq_len(n_graph)) {
     G[[iter_graph]] <- list()
-    # Generate graph first
-    G_1 <- matrix(0, p, p)
-    G_2 <- matrix(0, p, p)
-    edge_c <- rbinom(p * (p - 1) / 2, 1, prob = pro_c)
-    edge_1 <- edge_c
-    edge_1[which(edge_1 == 0)] <- rbinom(length(which(edge_1 == 0)), 1, prob = pro_1)
-    edge_2 <- edge_c
-    edge_2[which(edge_2 == 0)] <- rbinom(length(which(edge_2 == 0)), 1, prob = pro_2)
-    G_1[lower.tri(G_1)] <- edge_1
-    G_2[lower.tri(G_2)] <- edge_2
-    G[[iter_graph]]$G_1 <- G_1
-    G[[iter_graph]]$G_2 <- G_2
-    
-    # Generate coefficient matrix
     A[[iter_graph]] <- list()
-    A_1 <- matrix(0, nrow = p, ncol = p)
-    A_2 <- matrix(0, nrow = p, ncol = p)
-    n_1 <- sum(G_1)
-    n_2 <- sum(G_2)
-    A_1[which(G_1 == 1)] <-  rnorm(n_1, mean = 0, sd = signal_sig)
-    A_2[which(G_2 == 1)] <-  rnorm(n_2, mean = 0, sd = signal_sig)
-    A[[iter_graph]]$A_1 <- A_1
-    A[[iter_graph]]$A_2 <- A_2
-    
-    # Generate data
     X[[iter_graph]] <- list()
-    eps_1 <- matrix(rnorm(n * p, mean = 0, sd = sig), ncol = n)
-    X_1 <- solve(diag(1, nrow = p) - A_1, eps_1)
-    eps_2 <- matrix(rnorm(n * p, mean = 0, sd = sig), ncol = n)
-    X_2 <- solve(diag(1, nrow = p) - A_2, eps_2)
-    X[[iter_graph]]$X_1 <- X_1   
-    X[[iter_graph]]$X_2 <- X_2
+    edge_com <- sample(seq_len(p * (p - 1) / 2), e_com)
+    for (iter_K in seq_len(K)) {
+      # generate graph
+      G[[iter_graph]][[iter_K]] <- matrix(0, nrow = p, ncol = p)
+      edge_pri <- sample(setdiff(seq_len(p * (p - 1) / 2), edge_com), e_pri)
+      G[[iter_graph]][[iter_K]][lower.tri(G[[iter_graph]][[iter_K]])][c(edge_com, edge_pri)] <- 1
+      # generate weight
+      A[[iter_graph]][[iter_K]] <- matrix(0, nrow = p, ncol = p)
+      A[[iter_graph]][[iter_K]][which(G[[iter_graph]][[iter_K]] == 1)] <- 
+        2 *  (rbinom(e_com + e_pri, 1, 0.5) - 1/2) * runif(e_com + e_pri, min = min_sig, max = 1)
+      # generate data
+      err_var <- runif(1, min = low_err_var, max = upp_err_var)
+      err_vec <- matrix(rnorm(n * p, mean = 0, sd = sqrt(err_var)), ncol = n)
+      X[[iter_graph]][[iter_K]] <- solve(diag(1, nrow = p) - A[[iter_graph]][[iter_K]], err_vec)
+    }
   }
-  # return results
-  return(list(X = X, G = G, A = A))
+  # return graph
+  return(list(G = G, A = A, X = X))
 }
