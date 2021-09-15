@@ -40,16 +40,11 @@
 # itermax is the maximum iteration
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
-# b_int_1 is the initialized value for b_1
-# b_int_2 is the initialized value for b_2
-# alpha_int_1 is the initialized value for alpha_1
-# alpha_int_2 is the initialized value for alpha_2
+# residual_variance_lowerbound is the lower bound for sigma2
 
 sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
                                  r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
-                                 tol = 1e-4, sigma0_low_bd = 1e-8,
-                                 b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL,
-                                 residual_variance_lowerbound = NULL) {
+                                 tol = 1e-4, sigma0_low_bd = 1e-8, residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(X_1)
   n <- nrow(X_1)
@@ -59,24 +54,17 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
   if(is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
-  # Initialize b and alpha
-  if (is.null(b_int_1)) b_int_1 <- rep(0, p)
-  if (is.null(b_int_2)) b_int_2 <- rep(0, p)
-  if (is.null(alpha_int_1)) alpha_int_1 <- rep(0, p)
-  if (is.null(alpha_int_2)) alpha_int_2 <- rep(0, p)
   
   # data set 1
   X_scale_1 <- scale(X_1)
   X2_1 <- colSums(X_scale_1 * X_scale_1)
   X_scale2_1 <- X_scale_1 * X_scale_1
-  Y_1 <- Y_1 - X_scale_1 %*% b_int_1
   mean_Y_1 <- mean(Y_1)
   Y_1 <- Y_1 - mean_Y_1
   # data set 2
   X_scale_2 <- scale(X_2)
   X2_2 <- colSums(X_scale_2 * X_scale_2)
   X_scale2_2 <- X_scale_2 * X_scale_2
-  Y_2 <- Y_2 - X_scale_2 %*% b_int_2
   mean_Y_2 <- mean(Y_2)
   Y_2 <- Y_2 - mean_Y_2
   
@@ -100,7 +88,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
   
   # Begin iteration
-  source("utility_two.R")
+  source("Two_dataset/utility_two.R")
   for (iter in seq_len(itermax)) {
     res_1 <- Y_1 - X_scale_1 %*% rowSums(b_mat_1)
     res_2 <- Y_2 - X_scale_2 %*% rowSums(b_mat_2)
@@ -184,22 +172,22 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   
   if (length(index_L) > 0) {
     # data set 1
-    res$alpha_1 <- 1 - (1 - alpha_int_1) * apply(1 - alpha_mat_1[, index_L, drop = FALSE], 1, prod) 
-    res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE]) + b_int_1
+    res$alpha_1 <- 1 - matrixStats::rowProds(1 - alpha_mat_1[, index_L, drop = FALSE])
+    res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE])
     res$Xb_1 <- mean_Y_1 + X_scale_1 %*% res$post_mean1
     # data set 2
-    res$alpha_2 <- 1 - (1 - alpha_int_2) * apply(1 - alpha_mat_2[, index_L, drop = FALSE], 1, prod)
-    res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE]) + b_int_2
+    res$alpha_2 <- 1 - matrixStats::rowProds(1 - alpha_mat_2[, index_L, drop = FALSE])
+    res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
     res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
   } else{
     # data set 1
-    res$alpha_1 <- alpha_int_1
-    res$post_mean1 <- rep(0, p) + b_int_1
-    res$Xb_1 <- mean_Y_1 + X_scale_1 %*% res$post_mean1
+    res$alpha_1 <- rep(0, p)
+    res$post_mean1 <- rep(0, p)
+    res$Xb_1 <- rep(mean_Y_1, n)
     # data set 2
-    res$alpha_2 <- alpha_int_2
-    res$post_mean2 <- rep(0, p) + b_int_2
-    res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
+    res$alpha_2 <- rep(0, p)
+    res$post_mean2 <- rep(0, p)
+    res$Xb_2 <- rep(mean_Y_2, n)
   }
   # return results
   return(res)
@@ -207,5 +195,4 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
 
 # res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL,
 #                              r = 0.2, q = 0.05, tau = 1.5, L = p_c + p_1 + p_2, itermax = 100,
-#                              tol = 1e-4, sigma0_low_bd = 1e-8,
-#                              b_int_1 = NULL, b_int_2 = NULL, alpha_int_1 = NULL, alpha_int_2 = NULL)
+#                              tol = 1e-4, sigma0_low_bd = 1e-8)

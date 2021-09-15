@@ -1,4 +1,3 @@
-
 # K : number of graphs
 # n_tol : total number of observations
 # p : number of nodes

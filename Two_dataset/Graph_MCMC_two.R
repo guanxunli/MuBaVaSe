@@ -1,31 +1,31 @@
-# ## define parameters
-# p <- 100
-# n <- 75
-# p_c <- 100
-# p_1 <- 20
-# p_2 <- 20
-# sigma <- 1
-# sigma0 <- 0.6
-# A1 <- matrix(0, nrow = p, ncol = p)
-# A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(2021)
-# # Define the true graph given order
-# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
-# 
-# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
-# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
-# eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-# eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
+## define parameters
+p <- 100
+n <- 75
+p_c <- 100
+p_1 <- 20
+p_2 <- 20
+sigma <- 1
+sigma0 <- 0.6
+A1 <- matrix(0, nrow = p, ncol = p)
+A2 <- matrix(0, nrow = p, ncol = p)
+set.seed(2021)
+# Define the true graph given order
+index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
+index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
+index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
+
+A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
+
+alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
+alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
+
+eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
+eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
 
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
@@ -183,7 +183,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
               order_list = order_list[-seq_len(burn_in)]))
 }
 
-# ## MCMC
-time1 <- Sys.time()
-res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10000, burn_in = 500)
-Sys.time() - time1
+# # ## MCMC
+# time1 <- Sys.time()
+# res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10000, burn_in = 500)
+# Sys.time() - time1

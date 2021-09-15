@@ -10,7 +10,7 @@ set.seed(2021)
 ## Generate data
 index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
-index_2 <- sample(setdiff(seq_len(p), c(index_1, index_c)), size = p_2, replace = FALSE)
+index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
 
 b_1 <- rep(0, p)
 b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
@@ -36,8 +36,8 @@ res2 <- susieR::susie(X = X_2, y = Y_2, L = p_2 + p_c)
 ## Joint inference
 source("original code//Multi_dataset.R")
 res <- sum_single_effect_multi(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 0.2, q = 0.05)
-source("Multi_dataset_null.R")
-res_null <- sum_single_effect_multi_null(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 1, q = 1, tau = 1.5)
+source("Two_dataset/sum_single_effect_two.R")
+res_null <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_1 + p_c + p_2, r = 1, q = 1, tau = 1.5)
 
 #### check results
 ## data set 1
