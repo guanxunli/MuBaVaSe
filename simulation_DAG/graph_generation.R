@@ -12,7 +12,7 @@ graph_generation <- function(K = 2, n_tol = 600, p = 100, e_com = 100, e_pri = 3
   ## initialization
   n <- n_tol / K
   # G is the true graph (p x p)
-  # X is the data set from the true graph (p x n)
+  # X is the data set from the true graph (n x p)
   # A is the coefficients matrix (p x p)
   X <- list()
   G <- list()
@@ -36,6 +36,7 @@ graph_generation <- function(K = 2, n_tol = 600, p = 100, e_com = 100, e_pri = 3
       err_var <- runif(1, min = low_err_var, max = upp_err_var)
       err_vec <- matrix(rnorm(n * p, mean = 0, sd = sqrt(err_var)), ncol = n)
       X[[iter_graph]][[iter_K]] <- solve(diag(1, nrow = p) - A[[iter_graph]][[iter_K]], err_vec)
+      X[[iter_graph]][[iter_K]] <- t(X[[iter_graph]][[iter_K]])
     }
   }
   # return graph

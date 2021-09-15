@@ -110,14 +110,14 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     } else {
       res_pos <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
                                        X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
-                                       sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
+                                       sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
                                        r = r, q = q, tau = tau, L = pos_change - 1, 
                                        itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                        residual_variance_lowerbound = residual_variance_lowerbound)
     }
     res_pos1 <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
                                       X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
-                                      sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
+                                      sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
                                       r = r, q = q, tau = tau, L = pos_change, 
                                       itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                       residual_variance_lowerbound = residual_variance_lowerbound)
