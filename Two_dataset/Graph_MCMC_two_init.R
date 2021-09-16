@@ -112,9 +112,15 @@ Graph_MCMC_two_init <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000
       res_pos$alpha_2 <- rep(0, p)
       res_pos$post_mean2 <- rep(0, p)
       res_pos$Xb_2 <- rep(mean(dta_2_pro[, 1]), n)
+      res_pos1 <- sum_single_effect_two_init(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
+                                             X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
+                                             sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
+                                             r = r, q = q, tau = tau, L = min(pos_change, 10), 
+                                             itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                             residual_variance_lowerbound = residual_variance_lowerbound)
     } else {
-      b_list_1_pro[[pos_change]] <- b_list_1_old[[pos_change + 1]][-pos_change, seq_len(min(pos_change - 1, 10))]
-      b_list_2_pro[[pos_change]] <- b_list_2_old[[pos_change + 1]][-pos_change, seq_len(min(pos_change - 1, 10))]
+      b_list_1_pro[[pos_change]] <- b_list_1_old[[pos_change + 1]][-pos_change, seq_len(min(pos_change - 1, 10)), drop = FALSE]
+      b_list_2_pro[[pos_change]] <- b_list_2_old[[pos_change + 1]][-pos_change, seq_len(min(pos_change - 1, 10)), drop = FALSE]
       res_pos <- sum_single_effect_two_init(X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
                                             X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
                                             sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
@@ -122,21 +128,22 @@ Graph_MCMC_two_init <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000
                                             itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                             residual_variance_lowerbound = residual_variance_lowerbound,
                                             b_mat_1 = b_list_1_pro[[pos_change]], b_mat_2 = b_list_2_pro[[pos_change]])
+      if (pos_change < 11) {
+        b_list_1_pro[[pos_change + 1]] <- cbind(rbind(b_list_1_old[[pos_change]], 0), 0)
+        b_list_2_pro[[pos_change + 1]] <- cbind(rbind(b_list_2_old[[pos_change]], 0), 0)
+      } else{
+        b_list_1_pro[[pos_change + 1]] <- rbind(b_list_1_old[[pos_change]], 0)
+        b_list_2_pro[[pos_change + 1]] <- rbind(b_list_2_old[[pos_change]], 0)
+      }
+      res_pos1 <- sum_single_effect_two_init(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
+                                             X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
+                                             sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
+                                             r = r, q = q, tau = tau, L = min(pos_change, 10), 
+                                             itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                             residual_variance_lowerbound = residual_variance_lowerbound,
+                                             b_mat_1 = b_list_1_pro[[pos_change + 1]], b_mat_2 = b_list_2_pro[[pos_change + 1]])
     }
-    if (pos_change < 11) {
-      b_list_1_pro[[pos_change + 1]] <- cbind(rbind(b_list_1_old[[pos_change]], 0), 0)
-      b_list_2_pro[[pos_change + 1]] <- cbind(rbind(b_list_2_old[[pos_change]], 0), 0)
-    } else{
-      b_list_1_pro[[pos_change + 1]] <- rbind(b_list_1_old[[pos_change]], 0)
-      b_list_2_pro[[pos_change + 1]] <- rbind(b_list_2_old[[pos_change]], 0)
-    }
-    res_pos1 <- sum_single_effect_two_init(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
-                                           X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
-                                           sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
-                                           r = r, q = q, tau = tau, L = min(pos_change, 10), 
-                                           itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                                           residual_variance_lowerbound = residual_variance_lowerbound,
-                                           b_mat_1 = b_list_1_pro[[pos_change + 1]], b_mat_2 = b_list_2_pro[[pos_change + 1]] )
+
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
     llike_1_vec_pro[pos_change] <- sum(dnorm(x = dta_1_pro[, pos_change], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))
@@ -203,5 +210,5 @@ Graph_MCMC_two_init <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000
 
 # # ## MCMC
 # time1 <- Sys.time()
-# res <- Graph_MCMC_two_init(dta_1 = dta_1, dta_2 = dta_2, iter_max = 200, burn_in = 1)
-# Sys.time() - time1 # 
+# res <- Graph_MCMC_two_init(dta_1 = dta_1, dta_2 = dta_2, iter_max = 500, burn_in = 1)
+# Sys.time() - time1 #
