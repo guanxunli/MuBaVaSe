@@ -97,8 +97,7 @@ Graph_MCMC_two <- function(dta_list, order_int = NULL, iter_max = 10000, sigma02
     sigma2_vec_pro <- sigma2_vec_old
     llike_mat_pro <- llike_mat_old
     ## propose the new order
-    # pos_change <- sample(seq_len(p - 1), 1)
-    pos_change <- iter_MCMC
+    pos_change <- sample(seq_len(p - 1), 1)
     llike_pro <- llike_old - sum(llike_mat_old[c(pos_change, pos_change + 1), ])
     for (iter_K in seq_len(K)) {
       dta_pro_list[[iter_K]][, c(pos_change, pos_change + 1)] <- dta_old_list[[iter_K]][, c(pos_change + 1, pos_change)]

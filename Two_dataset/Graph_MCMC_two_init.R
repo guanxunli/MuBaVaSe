@@ -1,33 +1,33 @@
-# ## define parameters
-# p <- 100
-# n <- 75
-# p_c <- 100
-# p_1 <- 20
-# p_2 <- 20
-# sigma <- 1
-# sigma0 <- 0.6
-# A1 <- matrix(0, nrow = p, ncol = p)
-# A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(2021)
-# # Define the true graph given order
-# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_1), size = p_2, replace = FALSE)
-# 
-# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
-# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
-# eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-# dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-# dta_2 <- t(dta_2)
+## define parameters
+p <- 100
+n <- 75
+p_c <- 100
+p_1 <- 20
+p_2 <- 20
+sigma <- 1
+sigma0 <- 0.6
+A1 <- matrix(0, nrow = p, ncol = p)
+A2 <- matrix(0, nrow = p, ncol = p)
+set.seed(2021)
+# Define the true graph given order
+index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
+index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
+index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_1), size = p_2, replace = FALSE)
+
+A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
+
+alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
+alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
+
+eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
+dta_1 <- t(dta_1)
+eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
+dta_2 <- t(dta_2)
 
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
@@ -58,16 +58,19 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   dta_1_old <- dta_1[, order_old]
   dta_2_old <- dta_2[, order_old]
   ## load the main function
-  source("Two_dataset/Graph_given_order_two.R")
-  res_old <- joint_graph_fun_two(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
-                                 q = q, tau = tau, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                                 residual_variance_lowerbound = residual_variance_lowerbound)
+  source("Two_dataset/Graph_given_order_two_init.R")
+  res_old <- joint_graph_fun_two_init(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
+                                      q = q, tau = tau, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                      residual_variance_lowerbound = residual_variance_lowerbound)
   # variable selection
   alpha_res_1_old <- res_old$alpha_res_1
   alpha_res_2_old <- res_old$alpha_res_2
   # posterior of parameters
   A_res_1_old <- res_old$A_res_1
   A_res_2_old <- res_old$A_res_2
+  # coefficient matrix
+  b_list_1_old <- res_old$b_list_1
+  b_list_2_old <- res_old$b_list_2
   # likelihood
   sigma2_vec_old <- res_old$sigma2_vec
   llike_1_vec_old <- res_old$llike_1_vec
@@ -80,13 +83,15 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   A_list_2 <- list()
   order_list <- list()
   ## load the function
-  source("Two_dataset/sum_single_effect_two.R")
+  source("Two_dataset/sum_single_effect_two_init.R")
   for (iter_MCMC in seq_len(iter_max)) {
     if (iter_MCMC %% 100 == 0) print(iter_MCMC)
     ## Initialize proposal
     dta_1_pro <- dta_1_old
     dta_2_pro <- dta_2_old
     order_pro <- order_old
+    b_list_1_pro <- b_list_1_old
+    b_list_2_pro <- b_list_2_old
     # log likelihood
     sigma2_vec_pro <- sigma2_vec_old
     llike_1_vec_pro <- llike_1_vec_old
@@ -108,19 +113,25 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
       res_pos$post_mean2 <- rep(0, p)
       res_pos$Xb_2 <- rep(mean(dta_2_pro[, 1]), n)
     } else {
-      res_pos <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
-                                       X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
-                                       sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
-                                       r = r, q = q, tau = tau, L = min(pos_change - 1, 10), 
-                                       itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                                       residual_variance_lowerbound = residual_variance_lowerbound)
+      b_list_1_pro[[pos_change]] <- b_list_1_old[[pos_change + 1]][-pos_change, ]
+      b_list_2_pro[[pos_change]] <- b_list_2_old[[pos_change + 1]][-pos_change, ]
+      res_pos <- sum_single_effect_two_init(X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
+                                            X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
+                                            sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
+                                            r = r, q = q, tau = tau, L = min(pos_change - 1, 10), 
+                                            itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                            residual_variance_lowerbound = residual_variance_lowerbound,
+                                            b_mat_1 = b_list_1_pro[[pos_change]], b_mat_2 = b_list_2_pro[[pos_change]])
     }
-    res_pos1 <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
-                                      X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
-                                      sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
-                                      r = r, q = q, tau = tau, L = min(pos_change, 10), 
-                                      itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                                      residual_variance_lowerbound = residual_variance_lowerbound)
+    b_list_1_pro[[pos_change + 1]] <- rbind(b_list_1_old[[pos_change]], 0)
+    b_list_2_pro[[pos_change + 1]] <- rbind(b_list_2_old[[pos_change]], 0)
+    res_pos1 <- sum_single_effect_two_init(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
+                                           X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
+                                           sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
+                                           r = r, q = q, tau = tau, L = min(pos_change, 10), 
+                                           itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                           residual_variance_lowerbound = residual_variance_lowerbound,
+                                           b_mat_1 = b_list_1_pro[[pos_change + 1]], b_mat_2 = b_list_2_pro[[pos_change + 1]] )
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
     llike_1_vec_pro[pos_change] <- sum(dnorm(x = dta_1_pro[, pos_change], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))
@@ -128,6 +139,10 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     llike_1_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_1_pro[, pos_change + 1], mean = res_pos1$Xb_1, sd = sqrt(res_pos1$sigma2), log = TRUE))
     llike_2_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_2_pro[, pos_change + 1], mean = res_pos1$Xb_2, sd = sqrt(res_pos1$sigma2), log = TRUE))
     llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + sum(llike_2_vec_pro[c(pos_change, pos_change + 1)])
+    b_list_1_pro[[pos_change]] <- res_pos$b_mat_1
+    b_list_2_pro[[pos_change]] <- res_pos$b_mat_2
+    b_list_1_pro[[pos_change + 1]] <- res_pos1$b_mat_1
+    b_list_2_pro[[pos_change + 1]] <- res_pos1$b_mat_2
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
@@ -156,6 +171,8 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
       A_res_2_old[pos_change, seq_len(pos_change - 1)] <- res_pos$post_mean2
       A_res_1_old[pos_change + 1, seq_len(pos_change)] <- res_pos1$post_mean1
       A_res_2_old[pos_change + 1, seq_len(pos_change)] <- res_pos1$post_mean2
+      b_list_1_old <- b_list_1_pro
+      b_list_2_old <- b_list_2_pro
       # likelihood
       sigma2_vec_old <- sigma2_vec_pro
       llike_1_vec_old <- llike_1_vec_pro

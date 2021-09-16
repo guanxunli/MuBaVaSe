@@ -40,7 +40,7 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
+joint_graph_fun_two_init <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
                                 q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                                 residual_variance_lowerbound = NULL) {
   ## Initialization
@@ -56,6 +56,9 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
   # predicted value
   Xb_mat_1 <- matrix(NA, nrow = n, ncol = p)
   Xb_mat_2 <- matrix(NA, nrow = n, ncol = p)
+  # coefficient matrix
+  b_list_1 <- list()
+  b_list_2 <- list()
   # log likelihood  
   llike_1_vec <- rep(NA, p)
   llike_2_vec <- rep(NA, p)
@@ -68,7 +71,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
   llike_1_vec[1] <- sum(dnorm(dta_1[, 1], mean = mean_1, sd = sqrt(sigma2_vec[1]), log = TRUE))
   llike_2_vec[1] <- sum(dnorm(dta_2[, 1], mean = mean_2, sd = sqrt(sigma2_vec[1]), log = TRUE))
   ## load variable selection function
-  source("Two_dataset/sum_single_effect_two.R")
+  source("Two_dataset/sum_single_effect_two_init.R")
   # begin iteration
   for (iter_p in seq_len(p - 1)) {
     X_1 <- dta_1[, seq_len(iter_p), drop = FALSE]
@@ -76,7 +79,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
     X_2 <- dta_2[, seq_len(iter_p), drop = FALSE]
     Y_2 <- dta_2[, iter_p + 1]
     ## variable selection
-    res <- sum_single_effect_two(X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2, sigma02_int = sigma02_int,
+    res <- sum_single_effect_two_init(X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2, sigma02_int = sigma02_int,
                                  sigma2_int = sigma2_int, r = r, q = q, tau = tau, L = min(iter_p, 10), 
                                  itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd, 
                                  residual_variance_lowerbound = residual_variance_lowerbound)
@@ -85,6 +88,8 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
     alpha_res_2[iter_p + 1, seq_len(iter_p)] <- res$alpha_2
     A_res_1[iter_p + 1, seq_len(iter_p)] <- res$post_mean1
     A_res_2[iter_p + 1, seq_len(iter_p)] <- res$post_mean2
+    b_list_1[[iter_p + 1]] <- res$b_mat_1
+    b_list_2[[iter_p + 1]] <- res$b_mat_2
     # calculate the likelihood
     sigma2_vec[iter_p + 1] <- res$sigma2
     Xb_mat_1[, iter_p + 1] <- res$Xb_1
@@ -95,11 +100,11 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
   ## return results
   return(list(alpha_res_1 = alpha_res_1, alpha_res_2 = alpha_res_2, A_res_1 = A_res_1, A_res_2 = A_res_2, 
               llike_1_vec = llike_1_vec, llike_2_vec = llike_2_vec, Xb_mat_1 = Xb_mat_1, Xb_mat_2 = Xb_mat_2,
-              sigma2_vec = sigma2_vec))
+              sigma2_vec = sigma2_vec, b_list_1 = b_list_1, b_list_2 = b_list_2))
 }
 
 # ################## check results with GES ##################
-# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.5, q = 0.02, tau = 1.5)
+# res_joint <- joint_graph_fun_two_init(dta_1 = dta_1, dta_2 = dta_2, r = 0.5, q = 0.02, tau = 1.5)
 # library(pcalg)
 # ######## data set 1
 # #### Define true
