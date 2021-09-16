@@ -100,7 +100,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
 }
 
 # ################## check results with GES ##################
-# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.5, q = 0.02, tau = 1.5) ## 22.7s
+# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.2, q = 0.05, tau = 1.5) ## 22.7s
 # library(pcalg)
 # ######## data set 1
 # #### Define true
