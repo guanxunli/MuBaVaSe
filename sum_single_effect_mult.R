@@ -196,6 +196,18 @@ sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NU
   return(out_res)
 }
 
+# ## general function
+# time1 <- Sys.time()
 # out_res <- sum_single_effect_mult(dta_list, sigma02_int = NULL, sigma2_int = NULL,
 #                                  tau = 1.5,  prior_vec = c(0.05, 0.05, 0.2), L = p_c + p_1 + p_2, itermax = 100,
 #                                  tol = 1e-4, sigma0_low_bd = 1e-8)
+# Sys.time() - time1
+# 
+# ## original function for twp data sets
+# source("Two_dataset/sum_single_effect_two.R")
+# time1 <- Sys.time()
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL,
+#                              tau = 1.5, r = 0.2, q = 0.05, L = p_c + p_1 + p_2, itermax = 100,
+#                              tol = 1e-4, sigma0_low_bd = 1e-8)
+# Sys.time() - time1
+# sum((out_res$ELBO - res$ELBO)^2)

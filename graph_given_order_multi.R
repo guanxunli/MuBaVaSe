@@ -40,12 +40,13 @@
 # prior_vec : prior for different models
 # tau is the prior power for null model 1 / (p^tau)
 # itermax is the maximum iteration
+# L_max is the maximum number of parents
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
 joint_graph_multi <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL, 
-                              tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                              tau = 1.5, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
                               residual_variance_lowerbound = NULL) {
   ## Initialization
   K <- length(dta_list)
@@ -85,7 +86,7 @@ joint_graph_multi <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL, p
     }
     ## variable selection
     res_vs <- sum_single_effect_mult(dta_vs_list, sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
-                                     tau = tau, prior_vec = prior_vec, L = min(iter_p, 10), itermax = itermax, 
+                                     tau = tau, prior_vec = prior_vec, L = min(iter_p, L_max), itermax = itermax, 
                                      tol = tol, sigma0_low_bd = sigma0_low_bd,
                                      residual_variance_lowerbound = residual_variance_lowerbound)
     ## save needed list
@@ -105,9 +106,15 @@ joint_graph_multi <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL, p
 }
 
 # ################## check results with two data sets ##################
-# source("Two_dataset/Graph_given_order_two.R")
-# res_two <- joint_graph_fun_two(dta_1, dta_2, r = 0.2, q = 0.05)
+# time1 <- Sys.time()
 # res_multi <- joint_graph_multi(dta_list = dta_list, prior_vec = c(0.05, 0.05, 0.2))
+# Sys.time() - time1
+# 
+# source("Two_dataset/Graph_given_order_two.R")
+# time1 <- Sys.time()
+# res_two <- joint_graph_fun_two(dta_1, dta_2, r = 0.2, q = 0.05)
+# Sys.time() - time1
+# 
 # sum((res_two$alpha_res_1 - res_multi$alpha_list[[1]])^2)
 # sum((res_two$llike_2_vec - res_multi$llike_mat[, 2])^2)
 # sum((res_two$Xb_mat_1 - res_multi$Xb_list[[1]])^2)

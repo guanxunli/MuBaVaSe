@@ -100,7 +100,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
 }
 
 # ################## check results with GES ##################
-# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.5, q = 0.02, tau = 1.5)
+# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.5, q = 0.02, tau = 1.5) ## 22.7s
 # library(pcalg)
 # ######## data set 1
 # #### Define true
@@ -113,8 +113,8 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
 # g_1 <- as(adj_1, "graphNEL")
 # weight_1 <- t(res_joint$A_res_1)
 # #### GES method
-# score1 <- new("GaussL0penObsScore", data = dta_1, intercept = FALSE, lambda = 2 * sqrt(log(p) / n))
-# ges_fit1 <- ges(score1)
+# score1 <- new("GaussL0penObsScore", data = dta_1, intercept = FALSE) # lambda = sqrt(2 * log(p) / n)
+# ges_fit1 <- ges(score1) #  2.2 mins
 # ges_adj1 <- as(ges_fit1$repr, "matrix")
 # ges_adj1 <- ifelse(ges_adj1 == TRUE, 1, 0)
 # ges_graph1 <- as(ges_fit1$repr, "graphNEL")
