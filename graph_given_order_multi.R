@@ -85,7 +85,7 @@ joint_graph_multi <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL, p
     }
     ## variable selection
     res_vs <- sum_single_effect_mult(dta_vs_list, sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
-                                     tau = tau, prior_vec = prior_vec, L = iter_p, itermax = itermax, 
+                                     tau = tau, prior_vec = prior_vec, L = min(iter_p, 10), itermax = itermax, 
                                      tol = tol, sigma0_low_bd = sigma0_low_bd,
                                      residual_variance_lowerbound = residual_variance_lowerbound)
     ## save needed list

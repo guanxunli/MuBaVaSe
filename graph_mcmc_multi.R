@@ -125,7 +125,7 @@ Graph_MCMC_two <- function(dta_list, order_int = NULL, iter_max = 10000, sigma02
       }
       res_pos <- sum_single_effect_mult(dta_list = dta_tmp_list, sigma02_int = sigma02_int, 
                                         sigma2_int = sigma2_vec_old[pos_change + 1], prior_vec = prior_vec, 
-                                        tau = tau, L = pos_change - 1, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                        tau = tau, L = min(pos_change - 1, 10), itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                         residual_variance_lowerbound = residual_variance_lowerbound)
     }
     dta_tmp_list <- list()
@@ -136,7 +136,7 @@ Graph_MCMC_two <- function(dta_list, order_int = NULL, iter_max = 10000, sigma02
     }
     res_pos1 <- sum_single_effect_mult(dta_list = dta_tmp_list, sigma02_int = sigma02_int, 
                                       sigma2_int = sigma2_vec_old[pos_change], prior_vec = prior_vec, 
-                                      tau = tau, L = pos_change, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                      tau = tau, L = min(pos_change, 10), itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                       residual_variance_lowerbound = residual_variance_lowerbound)
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)

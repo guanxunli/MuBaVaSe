@@ -38,12 +38,13 @@
 # r is for common part and q is for single part
 # tau is the prior power for null model 1 / (p^tau)
 # itermax is the maximum iteration
+# L_max is the largest number of parents
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
 Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
-                           q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000, 
+                           q = 0.05, tau = 1.5, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000, 
                            residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
@@ -60,7 +61,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   ## load the main function
   source("Two_dataset/Graph_given_order_two.R")
   res_old <- joint_graph_fun_two(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
-                                 q = q, tau = tau, itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                 q = q, tau = tau, itermax = itermax, L_max = L_max, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                  residual_variance_lowerbound = residual_variance_lowerbound)
   # variable selection
   alpha_res_1_old <- res_old$alpha_res_1
@@ -111,14 +112,14 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
       res_pos <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
                                        X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
                                        sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
-                                       r = r, q = q, tau = tau, L = min(pos_change - 1, 10), 
+                                       r = r, q = q, tau = tau, L = min(pos_change - 1, L_max), 
                                        itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                        residual_variance_lowerbound = residual_variance_lowerbound)
     }
     res_pos1 <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
                                       X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
                                       sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
-                                      r = r, q = q, tau = tau, L = min(pos_change, 10), 
+                                      r = r, q = q, tau = tau, L = min(pos_change, L_max), 
                                       itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                       residual_variance_lowerbound = residual_variance_lowerbound)
     # likelihood
@@ -181,5 +182,5 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
 
 # # ## MCMC
 # time1 <- Sys.time()
-# res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 500, burn_in = 1)
-# Sys.time() - time1 # 57.95097 secs
+# res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10000, burn_in = 5000)
+# Sys.time() - time1 # 2.11 mins for 500 and 37.7 mins for 10000

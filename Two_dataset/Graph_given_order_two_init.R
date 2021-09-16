@@ -36,12 +36,13 @@
 # r is for common part and q is for single part
 # tau is the prior power for null model 1 / (p^tau)
 # itermax is the maximum iteration
+# L_max is the largest number of parents
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
 joint_graph_fun_two_init <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
-                                q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                                q = 0.05, tau = 1.5, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
                                 residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
@@ -80,7 +81,7 @@ joint_graph_fun_two_init <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_in
     Y_2 <- dta_2[, iter_p + 1]
     ## variable selection
     res <- sum_single_effect_two_init(X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2, sigma02_int = sigma02_int,
-                                 sigma2_int = sigma2_int, r = r, q = q, tau = tau, L = min(iter_p, 10), 
+                                 sigma2_int = sigma2_int, r = r, q = q, tau = tau, L = min(iter_p, L_max), 
                                  itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd, 
                                  residual_variance_lowerbound = residual_variance_lowerbound)
     # save the matrix we want
