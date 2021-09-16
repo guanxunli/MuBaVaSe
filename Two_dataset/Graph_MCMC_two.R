@@ -12,7 +12,7 @@
 # # Define the true graph given order
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_1), size = p_2, replace = FALSE)
 # 
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
@@ -92,7 +92,8 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     llike_1_vec_pro <- llike_1_vec_old
     llike_2_vec_pro <- llike_2_vec_old
     ## propose the new order
-    pos_change <- sample(seq_len(p - 1), 1)
+    # pos_change <- sample(seq_len(p - 1), 1)
+    pos_change <- iter_MCMC
     llike_pro <- llike_old - sum(llike_1_vec_old[c(pos_change, pos_change + 1)]) - sum(llike_2_vec_old[c(pos_change, pos_change + 1)])
     dta_1_pro[, c(pos_change, pos_change + 1)] <- dta_1_old[, c(pos_change + 1, pos_change)]
     dta_2_pro[, c(pos_change, pos_change + 1)] <- dta_2_old[, c(pos_change + 1, pos_change)]
@@ -128,7 +129,6 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     llike_1_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_1_pro[, pos_change + 1], mean = res_pos1$Xb_1, sd = sqrt(res_pos1$sigma2), log = TRUE))
     llike_2_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_2_pro[, pos_change + 1], mean = res_pos1$Xb_2, sd = sqrt(res_pos1$sigma2), log = TRUE))
     llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + sum(llike_2_vec_pro[c(pos_change, pos_change + 1)])
-    
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
@@ -141,7 +141,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
         accept <- FALSE
       }
     }
-    
+    # update 
     if (accept) {
       # proposed matrix
       alpha_res_1_old[c(pos_change, pos_change + 1), ] <- 0

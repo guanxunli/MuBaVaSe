@@ -4,7 +4,6 @@
 # p_c <- 25
 # p_1 <- 5
 # p_2 <- 5
-# p_3 <- 5
 # sigma <- 1
 # sigma0 <- 0.6
 # set.seed(2021)
@@ -15,8 +14,10 @@
 # 
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
+# # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
+# # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
 # 
 # alpha_1 <- rep(0, p)
 # alpha_1[c(index_c, index_1)] <- 1
@@ -79,7 +80,7 @@ sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NU
   }
   
   # Initialize sigma
-  if (is.null(sigma2_int)) sigma2_int <- var(unlist(Y_list))
+  if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(unlist(Y_list)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
   
@@ -98,6 +99,7 @@ sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NU
   
   source("multi_utility.R")
   ## storage list
+  res_list <- matrix(NA, nrow = n, ncol = K)
   res_tmp_list <- matrix(NA, nrow = n, ncol = K)
   XtY_list <- matrix(NA, nrow = p, ncol = K)
   b_hat_list <- matrix(NA, nrow = p, ncol = K)
@@ -105,7 +107,6 @@ sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NU
   z2_list <- matrix(NA, nrow = p, ncol = K)
   for (iter in seq_len(itermax)) {
     ## calculate residuals
-    res_list <- matrix(NA, nrow = n, ncol = K)
     for (iter_K in seq_len(K)) {
       res_list[, iter_K]<- dta_list[[iter_K]]$Y - dta_list[[iter_K]]$X_scale %*% rowSums(b_list[[iter_K]])
     }
@@ -179,7 +180,7 @@ sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NU
   if (length(index_L) > 0) {
     for (iter_K in seq_len(K)) {
       out_res$res[[iter_K]] <- list()
-      out_res$res[[iter_K]]$alpha <-  1 - apply(1 - alpha_list[[iter_K]][, index_L, drop = FALSE], 1, prod) 
+      out_res$res[[iter_K]]$alpha <-  1 - matrixStats::rowProds(1 - alpha_list[[iter_K]][, index_L, drop = FALSE])
       out_res$res[[iter_K]]$post_mean <- rowSums(b_list[[iter_K]][, index_L, drop = FALSE])
       out_res$res[[iter_K]]$Xb <- dta_list[[iter_K]]$mean_Y + dta_list[[iter_K]]$X_scale %*% out_res$res[[iter_K]]$post_mean
     }

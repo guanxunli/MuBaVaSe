@@ -1,6 +1,6 @@
 # ## define parameters
 # p <- 100
-# n <- 75
+# n <- 300
 # p_c <- 100
 # p_1 <- 20
 # p_2 <- 20
@@ -108,7 +108,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
 # weight_true_1 <- t(A1)
 # #### our method
 # adj_1 <- res_joint$alpha_res_1
-# adj_1 <- ifelse(adj_1 > 0.5, 1, 0)
+# adj_1 <- t(ifelse(adj_1 > 0.5, 1, 0))
 # g_1 <- as(adj_1, "graphNEL")
 # weight_1 <- t(res_joint$A_res_1)
 # #### GES method
@@ -133,7 +133,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
 # weight_true_2 <- t(A2)
 # #### our method
 # adj_2 <- res_joint$alpha_res_2
-# adj_2 <- ifelse(adj_2 > 0.5, 1, 0)
+# adj_2 <- t(ifelse(adj_2 > 0.5, 1, 0))
 # g_2 <- as(adj_2, "graphNEL")
 # weight_2 <- t(res_joint$A_res_2)
 # #### GES method
