@@ -31,12 +31,16 @@ weight_true2 <- t(graph_sim$A[[1]][[2]])
 
 #### our method
 source("Two_dataset/Graph_MCMC_two.R")
+# source("Two_dataset/Graph_MCMC_two_init.R")
 dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
-out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
-                          q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000) 
-## analysis results
-out_res <- readRDS("~/Desktop/out_res.rds")
+out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
+                          q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000)
+# out_res <- Graph_MCMC_two_init(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
+#                           q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000)
+
+#### analysis results
+out_res <- readRDS("simulation_DAG/out_res.rds")
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)

@@ -133,8 +133,8 @@ Graph_MCMC_two_init <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000
       b_list_1_pro[[pos_change + 1]] <- rbind(b_list_1_old[[pos_change]], 0)
       b_list_2_pro[[pos_change + 1]] <- rbind(b_list_2_old[[pos_change]], 0)
       if (ncol(b_list_1_pro[[pos_change + 1]]) <  min(pos_change, L_max)) {
-        b_list_1_pro[[pos_change + 1]] <- cbind(b_list_1_old[[pos_change]], 0)
-        b_list_2_pro[[pos_change + 1]] <- cbind(b_list_2_old[[pos_change]], 0)
+        b_list_1_pro[[pos_change + 1]] <- cbind(b_list_1_pro[[pos_change + 1]], 0)
+        b_list_2_pro[[pos_change + 1]] <- cbind(b_list_2_pro[[pos_change + 1]], 0)
       } 
       res_pos1 <- sum_single_effect_two_init(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
                                              X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
