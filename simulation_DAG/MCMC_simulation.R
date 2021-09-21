@@ -34,10 +34,19 @@ source("Two_dataset/Graph_MCMC_two.R")
 # source("Two_dataset/Graph_MCMC_two_init.R")
 dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
-out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
-                          q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000)
-# out_res <- Graph_MCMC_two_init(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
-#                           q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000)
+## get initialized order
+dta <- rbind(dta_1, dta_2)
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE) 
+ges_fit <- ges(score_ges)
+ges_adj <- as(ges_fit$repr, "matrix")
+ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
+graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
+order_int <- as.numeric(igraph::topo_sort(graph_i))
+
+out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
+                          q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 10000)
+# out_res <- Graph_MCMC_two_init(dta_1, dta_2, order_int = NULL, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
+#                           q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 10000)
 
 #### analysis results
 out_res <- readRDS("simulation_DAG/out_res.rds")
