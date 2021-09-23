@@ -74,6 +74,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   llike_1_vec_old <- res_old$llike_1_vec
   llike_2_vec_old <- res_old$llike_2_vec
   llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old)
+  llike_vec <- rep(NA, iter_max)
   ## save lists
   alpha_list_1 <- list()
   alpha_list_2 <- list()
@@ -173,11 +174,12 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     A_list_1[[iter_MCMC]] <- A_res_1_old
     A_list_2[[iter_MCMC]] <- A_res_2_old
     order_list[[iter_MCMC]] <- order_old
+    llike_vec[[iter_MCMC]] <- llike_old
   }
   # return results
   return(list(alpha_list_1 = alpha_list_1[-seq_len(burn_in)], alpha_list_2 = alpha_list_2[-seq_len(burn_in)], 
               A_list_1 = A_list_1[-seq_len(burn_in)], A_list_2 = A_list_2[-seq_len(burn_in)],
-              order_list = order_list[-seq_len(burn_in)]))
+              order_list = order_list[-seq_len(burn_in)], llike_vec = llike_vec[-seq_len(burn_in)]))
 }
 
 # # ## MCMC
