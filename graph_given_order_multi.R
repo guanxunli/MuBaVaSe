@@ -1,37 +1,37 @@
-# ## define parameters
-# p <- 100
-# n <- 75
-# p_c <- 100
-# p_1 <- 20
-# p_2 <- 20
-# sigma <- 1
-# sigma0 <- 0.6
-# A1 <- matrix(0, nrow = p, ncol = p)
-# A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(202108)
-# # Define the true graph given order
-# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
-# 
-# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
-# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
-# eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-# dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-# dta_2 <- t(dta_2)
-# 
-# dta_list <- list()
-# dta_list[[1]] <- dta_1
-# dta_list[[2]] <- dta_2
+## define parameters
+p <- 100
+n <- 75
+p_c <- 100
+p_1 <- 20
+p_2 <- 20
+sigma <- 1
+sigma0 <- 0.6
+A1 <- matrix(0, nrow = p, ncol = p)
+A2 <- matrix(0, nrow = p, ncol = p)
+set.seed(202108)
+# Define the true graph given order
+index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
+index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
+index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
+
+A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
+
+alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
+alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
+
+eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
+dta_1 <- t(dta_1)
+eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
+dta_2 <- t(dta_2)
+
+dta_list <- list()
+dta_list[[1]] <- dta_1
+dta_list[[2]] <- dta_2
 
 ## joint inference
 # dta_list are n x p data set
@@ -72,10 +72,23 @@ joint_graph_multi <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL, p
   sigma2_vec[1] <- var(unlist(Y_list))
   for (iter_K in seq_len(K)) {
     llike_mat[1, iter_K] <- sum(dnorm(dta_list[[iter_K]][, 1], mean = mean_list[[iter_K]], 
-                                 sd = sqrt(sigma2_vec[1]), log = TRUE))
+                                      sd = sqrt(sigma2_vec[1]), log = TRUE))
   }
   ## load variable selection function
   source("sum_single_effect_mult.R")
+  com_list <- list()
+  com_mat <- matrix(c(0, 1), ncol = 1)
+  for (iter in 2:K) {
+    com_mat_copy <- com_mat
+    com_mat <- cbind(1, com_mat)
+    com_mat_copy <- cbind(0, com_mat_copy)
+    com_mat <- rbind(com_mat_copy, com_mat)
+  }
+  com_mat <- com_mat[-1, ]
+  
+  for (iter_com in 1:nrow(com_mat)){
+    com_list[[iter_com]] = which(com_mat[iter_com, ] == 1)
+  }
   # begin iteration
   for (iter_p in seq_len(p - 1)) {
     dta_vs_list <- list()
@@ -87,7 +100,7 @@ joint_graph_multi <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL, p
     ## variable selection
     res_vs <- sum_single_effect_mult(dta_vs_list, sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
                                      tau = tau, prior_vec = prior_vec, L = min(iter_p, L_max), itermax = itermax, 
-                                     tol = tol, sigma0_low_bd = sigma0_low_bd,
+                                     tol = tol, sigma0_low_bd = sigma0_low_bd, com_mat = com_mat, com_list = com_list,
                                      residual_variance_lowerbound = residual_variance_lowerbound)
     ## save needed list
     sigma2_vec[iter_p + 1] <- res_vs$sigma2
@@ -105,15 +118,15 @@ joint_graph_multi <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL, p
               llike_mat = llike_mat, sigma2_vec = sigma2_vec))
 }
 
-# ################## check results with two data sets ##################
-# time1 <- Sys.time()
-# res_multi <- joint_graph_multi(dta_list = dta_list, prior_vec = c(0.05, 0.05, 0.2))
-# Sys.time() - time1
-# 
-# source("Two_dataset/Graph_given_order_two.R")
-# time1 <- Sys.time()
-# res_two <- joint_graph_fun_two(dta_1, dta_2, r = 0.2, q = 0.05)
-# Sys.time() - time1
+################## check results with two data sets ##################
+time1 <- Sys.time()
+res_multi <- joint_graph_multi(dta_list = dta_list, prior_vec = c(0.05, 0.05, 0.2))
+Sys.time() - time1
+
+source("Two_dataset/Graph_given_order_two.R")
+time1 <- Sys.time()
+res_two <- joint_graph_fun_two(dta_1, dta_2, r = 0.2, q = 0.05)
+Sys.time() - time1
 # 
 # sum((res_two$alpha_res_1 - res_multi$alpha_list[[1]])^2)
 # sum((res_two$llike_2_vec - res_multi$llike_mat[, 2])^2)

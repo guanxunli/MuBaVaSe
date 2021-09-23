@@ -1,6 +1,6 @@
 #### Define functions
 ## get sigma0
-lBF_model_multi <- function(lsigma02, prior_pi, z2_list, s2_list, K, p, com_mat) {
+lBF_model_multi <- function(lsigma02, prior_pi, z2_list, s2_list, K, p, com_list) {
   sigma02 <- exp(lsigma02)
   # calculate the lBF
   tmp1 <- log(sqrt(s2_list / (sigma02 + s2_list)))
@@ -8,9 +8,12 @@ lBF_model_multi <- function(lsigma02, prior_pi, z2_list, s2_list, K, p, com_mat)
   lBF_list <- tmp1 + tmp2
   # combine
   lBF <- rep(0, (2 ^ K - 1) * p + 1)
-  for (iter_com in seq_len(nrow(com_mat))) {
-    lBF[(1 + p * (iter_com - 1)) : (p * iter_com)] <- 
-      rowSums(lBF_list[, which(com_mat[iter_com, ] == 1), drop = FALSE])
+  for (iter_com in seq_len(length(com_list))) {
+    if (length(com_list[[iter_com]]) == 1){
+      lBF[(1 + p * (iter_com - 1)) : (p * iter_com)] <- lBF_list[, com_list[[iter_com]] ]
+    }else{
+      lBF[(1 + p * (iter_com - 1)) : (p * iter_com)] <- rowSums(lBF_list[, com_list[[iter_com]], drop = FALSE])
+    }
   }
   maxlBF <- max(lBF)
   wBF <- exp(lBF - maxlBF)
@@ -18,12 +21,12 @@ lBF_model_multi <- function(lsigma02, prior_pi, z2_list, s2_list, K, p, com_mat)
   return(- maxlBF - log(wBF_sum))
 }
 
-sigma0_opt_multi <- function(lsigma02_int, prior_pi, z2_list, s2_list, b_hat_list, K, p, com_mat) {
-  tmp1 <- lBF_model_multi(lsigma02 = lsigma02_int, prior_pi, z2_list, s2_list, K, p, com_mat)
+sigma0_opt_multi <- function(lsigma02_int, prior_pi, z2_list, s2_list, b_hat_list, K, p, com_list) {
+  tmp1 <- lBF_model_multi(lsigma02 = lsigma02_int, prior_pi, z2_list, s2_list, K, p, com_list)
   lsigma02 <- optim(par = log(max(b_hat_list ^ 2 - s2_list, 1)), fn = lBF_model_multi, 
                     method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_list = z2_list, 
-                    s2_list = s2_list, K = K, p = p, com_mat = com_mat)$par
-  tmp2 <- lBF_model_multi(lsigma02 = lsigma02, prior_pi, z2_list, s2_list, K, p, com_mat)
+                    s2_list = s2_list, K = K, p = p, com_list = com_list)$par
+  tmp2 <- lBF_model_multi(lsigma02 = lsigma02, prior_pi, z2_list, s2_list, K, p, com_list)
   if (tmp2 < tmp1) {
     return(exp(lsigma02))
   } else{
@@ -54,5 +57,3 @@ ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
   var_sum <- sum(mu2_lmat - mu_lmat^2)
   return(res_tmp + var_sum)
 }
-
-

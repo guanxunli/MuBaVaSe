@@ -45,20 +45,29 @@
 # sigma0_low_bd is the threshold for select effect l
 sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NULL,
                                    tau = 1.5,  prior_vec = NULL, L = NULL, itermax = 100,
-                                   tol = 1e-4, sigma0_low_bd = 1e-8, residual_variance_lowerbound = NULL) {
+                                   tol = 1e-4, sigma0_low_bd = 1e-8, com_mat = NULL, com_list = NULL,
+                                   residual_variance_lowerbound = NULL) {
   ## Initialization
   K <- length(dta_list)
   p <- ncol(dta_list[[1]]$X)
   n <- nrow(dta_list[[1]]$X)
   # combinatorics matrix
-  com_mat <- matrix(c(0, 1), ncol = 1)
-  for (iter in 2:K) {
-    com_mat_copy <- com_mat
-    com_mat <- cbind(1, com_mat)
-    com_mat_copy <- cbind(0, com_mat_copy)
-    com_mat <- rbind(com_mat_copy, com_mat)
+  if (is.null(com_mat)) {
+    com_list <- list()
+    com_mat <- matrix(c(0, 1), ncol = 1)
+    for (iter in 2:K) {
+      com_mat_copy <- com_mat
+      com_mat <- cbind(1, com_mat)
+      com_mat_copy <- cbind(0, com_mat_copy)
+      com_mat <- rbind(com_mat_copy, com_mat)
+    }
+    com_mat <- com_mat[-1, ]
+    
+    for (iter_com in 1:nrow(com_mat)){
+      com_list[[iter_com]] = which(com_mat[iter_com, ] == 1)
+    }
   }
-  com_mat <- com_mat[-1, ]
+
   # initialize list
   if (is.null(L)) L <- min(10, p)
   Y_list <- list()
@@ -123,7 +132,7 @@ sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NU
       }
       # calculate sigma0 
       lsigma02_int <- max(log(sigma02_vec[l]), -30)
-      sigma02 <- sigma0_opt_multi(lsigma02_int, prior_pi, z2_list, s2_list, b_hat_list, K, p, com_mat)
+      sigma02 <- sigma0_opt_multi(lsigma02_int, prior_pi, z2_list, s2_list, b_hat_list, K, p, com_list)
       sigma02_vec[l] <- sigma02  
       ## Get Bayesian Factor
       tmp1 <- log(sqrt(s2_list / (sigma02 + s2_list))) 
@@ -131,9 +140,12 @@ sum_single_effect_mult <- function(dta_list, sigma02_int = NULL, sigma2_int = NU
       lBF_list <- tmp1 + tmp2
       # get bayesian factor
       lBF <- rep(0, (2 ^ K - 1) * p + 1)
-      for (iter_com in seq_len(nrow(com_mat))) {
-        lBF[(1 + p * (iter_com - 1)) : (p * iter_com)] <- 
-          rowSums(lBF_list[, which(com_mat[iter_com, ] == 1), drop = FALSE])
+      for (iter_com in seq_len(length(com_list))) {
+        if (length(com_list[[iter_com]]) == 1){
+          lBF[(1 + p * (iter_com - 1)) : (p * iter_com)] <- lBF_list[, com_list[[iter_com]] ]
+        }else{
+          lBF[(1 + p * (iter_com - 1)) : (p * iter_com)] <- rowSums(lBF_list[, com_list[[iter_com]], drop = FALSE])
+        }
       }
       maxlBF <- max(lBF)
       wBF <- exp(lBF - maxlBF)
