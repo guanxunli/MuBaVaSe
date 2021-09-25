@@ -57,13 +57,15 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   if(is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
   
   # data set 1
-  X_scale_1 <- scale(X_1)
+  X_scale_1 <- X_1
+  # X_scale_1 <- scale(X_1)
   X_scale2_1 <- X_scale_1 * X_scale_1
   X2_1 <- colSums(X_scale2_1)
   mean_Y_1 <- mean(Y_1)
   Y_1 <- Y_1 - mean_Y_1
   # data set 2
-  X_scale_2 <- scale(X_2)
+  X_scale_2 <- X_2
+  # X_scale_2 <- scale(X_2)
   X_scale2_2 <- X_scale_2 * X_scale_2
   X2_2 <- colSums(X_scale2_2)
   mean_Y_2 <- mean(Y_2)

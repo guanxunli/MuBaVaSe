@@ -50,7 +50,7 @@ dta_2 <- graph_sim$X[[1]][[2]]
 # order_int <- as.numeric(igraph::topo_sort(graph_i))
 
 out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
-                          q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 10000)
+                          q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
 
 #### analysis results
 out_res <- readRDS("simulation_DAG/out_res.rds")
@@ -58,18 +58,18 @@ alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
 A_mat_2 <- matrix(0, nrow = p, ncol = p)
-for (iter in seq_len(length(out_res$order_list))) {
-  order_tmp <- order(out_res$order_list[[iter]])
-  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter]][order_tmp, order_tmp]
-  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter]][order_tmp, order_tmp]
-  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter]][order_tmp, order_tmp]
-  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter]][order_tmp, order_tmp]
+for (iter in seq_len(10000)) {
+  order_tmp <- order(out_res$order_list[[iter + 9999]])
+  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter + 9999]][order_tmp, order_tmp]
+  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter + 9999]][order_tmp, order_tmp]
+  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter + 9999]][order_tmp, order_tmp]
+  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter + 9999]][order_tmp, order_tmp]
 }
 
-alpha_mat_1 <- alpha_mat_1 / length(out_res$order_list)
-alpha_mat_2 <- alpha_mat_2 / length(out_res$order_list)
-A_mat_1 <- A_mat_1 / length(out_res$order_list)
-A_mat_2 <- A_mat_2 / length(out_res$order_list)
+alpha_mat_1 <- alpha_mat_1 / 10000
+alpha_mat_2 <- alpha_mat_2 / 10000
+A_mat_1 <- A_mat_1 / 10000
+A_mat_2 <- A_mat_2 / 10000
 
 #### Calculate the error
 ## data set 1
@@ -77,11 +77,12 @@ adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
 adj_1 <- t(adj_1)
 g_1 <- as(getGraph(adj_1), "graphNEL")
 weight_1 <- t(A_mat_1)
+weight_1[which(adj_1 == 0)] <- 0
 # structural Hamming distance (SHD)
-shd(g_true1, g_1) # 157 ; 37
-check_edge(adj_1, adj_true1) # 108 ; 27
+shd(g_true1, g_1) 
+check_edge(adj_1, adj_true1) 
 # Mean square error for weight
-sum((weight_true1 - weight_1)^2) # 90.55781 ; 48.97791
+sum((weight_true1 - weight_1)^2) 
 # TPR & FPR
 TPrate_fun(adj_pre = adj_1, adj_act = adj_true1)
 FPrate_fun(adj_pre = adj_1, adj_act = adj_true1)
@@ -91,11 +92,13 @@ adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
 adj_2 <- t(adj_2)
 g_2 <- as(getGraph(adj_2), "graphNEL")
 weight_2 <- t(A_mat_2)
+weight_2[which(adj_2 == 0)] <- 0
 # structural Hamming distance (SHD)
-shd(g_true2, g_2) # 130 ; 29
-check_edge(adj_2, adj_true2) # 84 ; 25
+shd(g_true2, g_2) 
+check_edge(adj_2, adj_true2) 
 # Mean square error for weight
-sum((weight_true2 - weight_2)^2) # 56 ; 17
+sum((weight_true2 - weight_2)^2) 
 # TPR & FPR
 TPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
 FPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
+
