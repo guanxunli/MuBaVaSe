@@ -1,33 +1,33 @@
-## define parameters
-p <- 100
-n <- 300
-p_c <- 100
-p_1 <- 20
-p_2 <- 20
-sigma <- 1
-sigma0 <- 0.6
-A1 <- matrix(0, nrow = p, ncol = p)
-A2 <- matrix(0, nrow = p, ncol = p)
-set.seed(202108)
-# Define the true graph given order
-index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
-
-A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-
-alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-
-eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-dta_1 <- t(dta_1)
-eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
-dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-dta_2 <- t(dta_2)
+# ## define parameters
+# p <- 100
+# n <- 300
+# p_c <- 100
+# p_1 <- 20
+# p_2 <- 20
+# sigma <- 1
+# sigma0 <- 0.6
+# A1 <- matrix(0, nrow = p, ncol = p)
+# A2 <- matrix(0, nrow = p, ncol = p)
+# set.seed(202108)
+# # Define the true graph given order
+# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
+# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
+# 
+# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
+# 
+# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
+# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
+# 
+# eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
+# dta_1 <- t(dta_1)
+# eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
+# dta_2 <- t(dta_2)
 
 ## joint inference
 # dta_1 and dta_2 are n x p data set
@@ -99,55 +99,55 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
               sigma2_vec = sigma2_vec))
 }
 
-################## check results with GES ##################
-res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.2, q = 0.05, tau = 1.5) ## 22.7s
-library(pcalg)
-######## data set 1
-#### Define true
-adj_true_1 <- t(alpha_mat_1)
-g_true_1 <- as(adj_true_1, "graphNEL")
-weight_true_1 <- t(A1)
-#### our method
-adj_1 <- res_joint$alpha_res_1
-adj_1 <- t(ifelse(adj_1 > 0.5, 1, 0))
-g_1 <- as(adj_1, "graphNEL")
-weight_1 <- t(res_joint$A_res_1)
-#### GES method
-score1 <- new("GaussL0penObsScore", data = dta_1, intercept = FALSE) # lambda = sqrt(2 * log(p) / n)
-ges_fit1 <- ges(score1) #  2.2 mins
-ges_adj1 <- as(ges_fit1$repr, "matrix")
-ges_adj1 <- ifelse(ges_adj1 == TRUE, 1, 0)
-ges_graph1 <- as(ges_fit1$repr, "graphNEL")
-ges_weight1 <- ges_fit1$repr$weight.mat()
-#### check results
-# structural Hamming distance (SHD)
-shd(g_true_1, ges_graph1)
-shd(g_true_1, g_1)
-# Mean square error for weight
-sum((weight_true_1 - ges_weight1)^2)
-sum((weight_true_1 - weight_1)^2)
-
-######## data set 2
-#### Define true
-adj_true_2 <- t(alpha_mat_2)
-g_true_2 <- as(adj_true_2, "graphNEL")
-weight_true_2 <- t(A2)
-#### our method
-adj_2 <- res_joint$alpha_res_2
-adj_2 <- t(ifelse(adj_2 > 0.5, 1, 0))
-g_2 <- as(adj_2, "graphNEL")
-weight_2 <- t(res_joint$A_res_2)
-#### GES method
-score2 <- new("GaussL0penObsScore", data = dta_2, intercept = FALSE)
-ges_fit2 <- ges(score2)
-ges_adj2 <- as(ges_fit2$repr, "matrix")
-ges_adj2 <- ifelse(ges_adj2 == TRUE, 1, 0)
-ges_graph2 <- as(ges_fit2$repr, "graphNEL")
-ges_weight2 <- ges_fit2$repr$weight.mat()
-#### check results
-# structural Hamming distance (SHD)
-shd(g_true_2, ges_graph2)
-shd(g_true_2, g_2)
-# Mean square error for weight
-sum((weight_true_2 - ges_weight2)^2)
-sum((weight_true_2 - weight_2)^2)
+# ################## check results with GES ##################
+# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.2, q = 0.05, tau = 1.5) ## 22.7s
+# library(pcalg)
+# ######## data set 1
+# #### Define true
+# adj_true_1 <- t(alpha_mat_1)
+# g_true_1 <- as(adj_true_1, "graphNEL")
+# weight_true_1 <- t(A1)
+# #### our method
+# adj_1 <- res_joint$alpha_res_1
+# adj_1 <- t(ifelse(adj_1 > 0.5, 1, 0))
+# g_1 <- as(adj_1, "graphNEL")
+# weight_1 <- t(res_joint$A_res_1)
+# #### GES method
+# score1 <- new("GaussL0penObsScore", data = dta_1, intercept = FALSE) # lambda = sqrt(2 * log(p) / n)
+# ges_fit1 <- ges(score1) #  2.2 mins
+# ges_adj1 <- as(ges_fit1$repr, "matrix")
+# ges_adj1 <- ifelse(ges_adj1 == TRUE, 1, 0)
+# ges_graph1 <- as(ges_fit1$repr, "graphNEL")
+# ges_weight1 <- ges_fit1$repr$weight.mat()
+# #### check results
+# # structural Hamming distance (SHD)
+# shd(g_true_1, ges_graph1)
+# shd(g_true_1, g_1)
+# # Mean square error for weight
+# sum((weight_true_1 - ges_weight1)^2)
+# sum((weight_true_1 - weight_1)^2)
+# 
+# ######## data set 2
+# #### Define true
+# adj_true_2 <- t(alpha_mat_2)
+# g_true_2 <- as(adj_true_2, "graphNEL")
+# weight_true_2 <- t(A2)
+# #### our method
+# adj_2 <- res_joint$alpha_res_2
+# adj_2 <- t(ifelse(adj_2 > 0.5, 1, 0))
+# g_2 <- as(adj_2, "graphNEL")
+# weight_2 <- t(res_joint$A_res_2)
+# #### GES method
+# score2 <- new("GaussL0penObsScore", data = dta_2, intercept = FALSE)
+# ges_fit2 <- ges(score2)
+# ges_adj2 <- as(ges_fit2$repr, "matrix")
+# ges_adj2 <- ifelse(ges_adj2 == TRUE, 1, 0)
+# ges_graph2 <- as(ges_fit2$repr, "graphNEL")
+# ges_weight2 <- ges_fit2$repr$weight.mat()
+# #### check results
+# # structural Hamming distance (SHD)
+# shd(g_true_2, ges_graph2)
+# shd(g_true_2, g_2)
+# # Mean square error for weight
+# sum((weight_true_2 - ges_weight2)^2)
+# sum((weight_true_2 - weight_2)^2)

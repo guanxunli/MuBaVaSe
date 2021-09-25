@@ -78,10 +78,10 @@ adj_1 <- t(adj_1)
 g_1 <- as(getGraph(adj_1), "graphNEL")
 weight_1 <- t(A_mat_1)
 # structural Hamming distance (SHD)
-shd(g_true1, g_1) # 132 ; 22
-check_edge(adj_1, adj_true1) # 84 ; 19
+shd(g_true1, g_1) # 157 ; 37
+check_edge(adj_1, adj_true1) # 108 ; 27
 # Mean square error for weight
-sum((weight_true1 - weight_1)^2) # 56 ; 8.52
+sum((weight_true1 - weight_1)^2) # 90.55781 ; 48.97791
 # TPR & FPR
 TPrate_fun(adj_pre = adj_1, adj_act = adj_true1)
 FPrate_fun(adj_pre = adj_1, adj_act = adj_true1)
