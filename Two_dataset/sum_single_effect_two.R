@@ -42,6 +42,7 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
+source("Two_dataset/utility_two.R")
 sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, 
                                  r = 0.2, q = 0.05, tau = 1.5, L = NULL, itermax = 100, 
                                  tol = 1e-4, sigma0_low_bd = 1e-8, residual_variance_lowerbound = NULL) {
@@ -88,7 +89,6 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
   
   # Begin iteration
-  source("Two_dataset/utility_two.R")
   for (iter in seq_len(itermax)) {
     res_1 <- Y_1 - X_scale_1 %*% rowSums(b_mat_1)
     res_2 <- Y_2 - X_scale_2 %*% rowSums(b_mat_2)

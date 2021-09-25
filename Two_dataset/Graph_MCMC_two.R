@@ -43,6 +43,8 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
+source("Two_dataset/sum_single_effect_two.R")
+source("Two_dataset/Graph_given_order_two.R")
 Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2, 
                            q = 0.05, tau = 1.5, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000, 
                            residual_variance_lowerbound = NULL) {
@@ -59,7 +61,6 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   dta_1_old <- dta_1[, order_old]
   dta_2_old <- dta_2[, order_old]
   ## load the main function
-  source("Two_dataset/Graph_given_order_two.R")
   res_old <- joint_graph_fun_two(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int, r = r, 
                                  q = q, tau = tau, itermax = itermax, L_max = L_max, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                  residual_variance_lowerbound = residual_variance_lowerbound)
@@ -82,7 +83,6 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   A_list_2 <- list()
   order_list <- list()
   ## load the function
-  source("Two_dataset/sum_single_effect_two.R")
   for (iter_MCMC in seq_len(iter_max)) {
     if (iter_MCMC %% 100 == 0) print(iter_MCMC)
     ## Initialize proposal
@@ -112,14 +112,14 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     } else {
       res_pos <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
                                        X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
-                                       sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
+                                       sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], 
                                        r = r, q = q, tau = tau, L = min(pos_change - 1, L_max), 
                                        itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                        residual_variance_lowerbound = residual_variance_lowerbound)
     }
     res_pos1 <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
                                       X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
-                                      sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
+                                      sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], 
                                       r = r, q = q, tau = tau, L = min(pos_change, L_max), 
                                       itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                       residual_variance_lowerbound = residual_variance_lowerbound)
@@ -144,6 +144,11 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     }
     # update 
     if (accept) {
+      # change matrix order
+      alpha_res_1_old[, c(pos_change, pos_change + 1)] <- alpha_res_1_old[, c(pos_change + 1, pos_change)]
+      alpha_res_2_old[, c(pos_change, pos_change + 1)] <- alpha_res_2_old[, c(pos_change + 1, pos_change)]
+      A_res_1_old[, c(pos_change, pos_change + 1)] <- A_res_1_old[, c(pos_change + 1, pos_change)]
+      A_res_2_old[, c(pos_change, pos_change + 1)] <- A_res_2_old[, c(pos_change + 1, pos_change)]
       # proposed matrix
       alpha_res_1_old[c(pos_change, pos_change + 1), ] <- 0
       alpha_res_2_old[c(pos_change, pos_change + 1), ] <- 0
