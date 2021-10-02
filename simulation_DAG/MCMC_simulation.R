@@ -1,5 +1,6 @@
 library(pcalg)
 source("simulation_DAG/graph_generation.R")
+init = FALSE
 p <- 100
 n_tol <- 600
 K <- 2
@@ -37,7 +38,8 @@ g_true2 <- as(getGraph(adj_true2), "graphNEL")
 weight_true2 <- t(graph_sim$A[[1]][[2]])
 
 #### our method
-source("Two_dataset/Graph_MCMC_two.R")
+# source("Two_dataset/Graph_MCMC_two.R")
+source("Two_dataset_new/Graph_MCMC_two.R")
 dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
 ## get initialized order
@@ -48,28 +50,32 @@ dta_2 <- graph_sim$X[[1]][[2]]
 # ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
 # graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
 # order_int <- as.numeric(igraph::topo_sort(graph_i))
-
-out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, r = 0.2,
-                          q = 0.05, tau = 1.5, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
+if (init) {
+  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = seq_len(p), iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
+                            prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
+} else {
+  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = seq_len(p), iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
+                            prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
+}
 
 #### analysis results
-out_res <- readRDS("simulation_DAG/out_res.rds")
+# out_res <- readRDS("simulation_DAG/out_res.rds")
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
 A_mat_2 <- matrix(0, nrow = p, ncol = p)
-for (iter in seq_len(10000)) {
-  order_tmp <- order(out_res$order_list[[iter + 9999]])
-  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter + 9999]][order_tmp, order_tmp]
-  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter + 9999]][order_tmp, order_tmp]
-  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter + 9999]][order_tmp, order_tmp]
-  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter + 9999]][order_tmp, order_tmp]
+for (iter in seq_len(5000)) {
+  order_tmp <- order(out_res$order_list[[iter + 14999]])
+  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter + 14999]][order_tmp, order_tmp]
+  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter + 14999]][order_tmp, order_tmp]
+  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter + 14999]][order_tmp, order_tmp]
+  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter + 14999]][order_tmp, order_tmp]
 }
 
-alpha_mat_1 <- alpha_mat_1 / 10000
-alpha_mat_2 <- alpha_mat_2 / 10000
-A_mat_1 <- A_mat_1 / 10000
-A_mat_2 <- A_mat_2 / 10000
+alpha_mat_1 <- alpha_mat_1 / 5000
+alpha_mat_2 <- alpha_mat_2 / 5000
+A_mat_1 <- A_mat_1 / 5000
+A_mat_2 <- A_mat_2 / 5000
 
 #### Calculate the error
 ## data set 1
@@ -102,3 +108,17 @@ sum((weight_true2 - weight_2)^2)
 TPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
 FPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
 
+#### plot log-likelihood
+png(paste0("llikehood_", init, "_", p, ".pnd"), width = 10, height = 6.18)
+par(mfrow = c(2,1))
+plot(out_res$llike_vec, type = "l", main = "ALL")
+plot(out_res$llike_vec[-seq_len(14999)], type = "l", main = "Zoom")
+dev.off()
+
+out_res$alpha_list_1 = out_res$alpha_list_1[-seq_len(14999)]
+out_res$alpha_list_2 = out_res$alpha_list_2[-seq_len(14999)] 
+out_res$A_list_1 = out_res$A_list_1[-seq_len(14999)]
+out_res$A_list_2 = out_res$A_list_2[-seq_len(14999)]
+out_res$order_list = out_res$order_list[-seq_len(14999)]
+out_res$llike_vec = out_res$llike_vec[-seq_len(14999)]
+saveRDS(out_res, paste0("out_res_", init, "_", p, ".rds"))
