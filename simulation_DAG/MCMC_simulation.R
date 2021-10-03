@@ -29,7 +29,7 @@ check_edge <- function(adj_pre, adj_act) {
 }
 
 #### generate graph
-set.seed(2021)
+set.seed(202110)
 graph_sim <- graph_generation(K = K, n_graph = n_graph, p = p, n_tol = n_tol)
 adj_true1 <- t(graph_sim$G[[1]][[1]])
 g_true1 <- as(getGraph(adj_true1), "graphNEL")
