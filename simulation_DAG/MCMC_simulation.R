@@ -1,7 +1,8 @@
 library(pcalg)
 source("simulation_DAG/graph_generation.R")
-init = FALSE
-p <- 100
+args <- commandArgs()
+init = args[6]
+p <- as.numeric(args[7])
 n_tol <- 600
 K <- 2
 n <- n_tol / K
@@ -50,7 +51,7 @@ dta_2 <- graph_sim$X[[1]][[2]]
 # ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
 # graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
 # order_int <- as.numeric(igraph::topo_sort(graph_i))
-if (init) {
+if (init == "init") {
   out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = seq_len(p), iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
                             prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
 } else {
