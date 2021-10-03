@@ -54,6 +54,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   ## define prior vector
   if (is.null(prior_vec)) {
     prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p ^ 1.5))
+    lprior_vec <- c(-log(6) - 1.5 * log(p), log(2/3) - 1.5 * log(p))
   }
   # Initialize order
   if (is.null(order_int)) {
@@ -123,7 +124,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
                                        prior_vec = prior_vec, L = min(pos_change - 1, L_max), 
                                        itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                        residual_variance_lowerbound = residual_variance_lowerbound)
-      llike_penalty_vec_pro[pos_change] <- sum(-1.5 * res_pos$alpha * c(rep(prior_vec[1], 2 * (pos_change - 1)), rep(prior_vec[2], pos_change - 1)))
+      llike_penalty_vec_pro[pos_change] <- sum(res_pos$alpha * c(rep(lprior_vec[1], 2 * (pos_change - 1)), rep(lprior_vec[2], (pos_change - 1))))
     }
     res_pos1 <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
                                       X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
@@ -131,7 +132,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
                                       prior_vec = prior_vec, L = min(pos_change, L_max), 
                                       itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
                                       residual_variance_lowerbound = residual_variance_lowerbound)
-    llike_penalty_vec_pro[pos_change + 1] <- sum(-1.5 * res_pos1$alpha * c(rep(prior_vec[1], 2 * pos_change), rep(prior_vec[2], pos_change)))
+    llike_penalty_vec_pro[pos_change + 1] <- sum(res_pos1$alpha * c(rep(lprior_vec[1], 2 * pos_change), rep(lprior_vec[2], pos_change)))
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
     llike_1_vec_pro[pos_change] <- sum(dnorm(x = dta_1_pro[, pos_change], mean = res_pos$Xb_1, sd = sqrt(res_pos$sigma2), log = TRUE))

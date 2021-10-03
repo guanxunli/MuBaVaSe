@@ -42,16 +42,8 @@
 
 ## load variable selection function
 source("Two_dataset_new/sum_single_effect_two.R")
-sigma02_int = NULL
-sigma2_int = NULL
-prior_vec <- NULL
-itermax = 100
-L_max = 10
-tol = 1e-4
-sigma0_low_bd = 1e-8
-residual_variance_lowerbound = NULL
 joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL, 
-                                itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
+                                lprior_vec = NULL, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
                                 residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
@@ -59,6 +51,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
   ## define prior vector
   if (is.null(prior_vec)) {
     prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p ^ 1.5))
+    lprior_vec <- c(-log(6) - 1.5 * log(p), log(2/3) - 1.5 * log(p))
   }
   ## save matrix
   # probability of the edge exists
@@ -104,7 +97,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
     Xb_mat_2[, iter_p + 1] <- res$Xb_2
     llike_1_vec[iter_p + 1] <- sum(dnorm(x = Y_1, mean = res$Xb_1, sd = sqrt(res$sigma2), log = TRUE))
     llike_2_vec[iter_p + 1] <- sum(dnorm(x = Y_2, mean = res$Xb_2, sd = sqrt(res$sigma2), log = TRUE))
-    llike_penalty_vec[iter_p + 1] <- sum(-1.5 * res$alpha * c(rep(prior_vec[1], 2 * iter_p), rep(prior_vec[2], iter_p)))
+    llike_penalty_vec[iter_p + 1] <- sum(res$alpha * c(rep(lprior_vec[1], 2 * iter_p), rep(lprior_vec[2], iter_p)))
   }
   ## return results
   return(list(alpha_res_1 = alpha_res_1, alpha_res_2 = alpha_res_2, A_res_1 = A_res_1, A_res_2 = A_res_2, 
