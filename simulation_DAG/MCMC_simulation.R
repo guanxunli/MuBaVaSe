@@ -110,10 +110,17 @@ TPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
 FPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
 
 #### plot log-likelihood
-png(paste0("llikehood_", init, "_", p, ".pnd"), width = 10, height = 6.18)
-par(mfrow = c(2,1))
-plot(out_res$llike_vec, type = "l", main = "ALL")
-plot(out_res$llike_vec[-seq_len(14999)], type = "l", main = "Zoom")
+library(ggplot2)
+library(gridExtra)
+g1 <- ggplot() +
+  geom_line(aes(x = seq_len(length(out_res$llike_vec)), y = out_res$llike_vec)) +
+  xlab("steps") + ylab("log-likelihood") + labs(title = "ALL log-likelihood")
+g2 <- ggplot() +
+  geom_line(aes(x = seq_len(length(out_res$llike_vec[-seq_len(14999)])), y = out_res$llike_vec[-seq_len(14999)])) +
+  xlab("steps") + ylab("log-likelihood") + labs(title = "Zoom log-likelihood")
+layout_matrix <- matrix(c(1, 2), nrow = 2)
+pdf(paste0("llikehood_", init, "_", p, ".pdf"), width = 10, height = 6.18)
+grid.arrange(g1, g2, layout_matrix = layout_matrix)
 dev.off()
 
 out_res$alpha_list_1 = out_res$alpha_list_1[-seq_len(14999)]
