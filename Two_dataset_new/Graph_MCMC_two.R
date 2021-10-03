@@ -67,8 +67,8 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   dta_2_old <- dta_2[, order_old]
   ## load the main function
   res_old <- joint_graph_fun_two(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int,
-                                 prior_vec = prior_vec, itermax = itermax, L_max = L_max, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                                 residual_variance_lowerbound = residual_variance_lowerbound)
+                                 prior_vec = prior_vec, lprior_vec = lprior_vec, itermax = itermax, L_max = L_max, 
+                                 tol = tol, sigma0_low_bd = sigma0_low_bd, residual_variance_lowerbound = residual_variance_lowerbound)
   # variable selection
   alpha_res_1_old <- res_old$alpha_res_1
   alpha_res_2_old <- res_old$alpha_res_2
@@ -144,13 +144,18 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
+      print(accept)
     } else {
       U <- runif(1)
       thres <- exp(llike_pro - llike_old)
       if (U < thres) {
         accept <- TRUE
+        print(thres)
+        print(accept)
       } else {
         accept <- FALSE
+        print(thres)
+        print(accept)
       }
     }
     # update 
