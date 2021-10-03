@@ -55,7 +55,7 @@ if (init == "init") {
   out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = seq_len(p), iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
                             prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
 } else {
-  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = seq_len(p), iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
+  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
                             prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
 }
 
@@ -114,10 +114,12 @@ library(ggplot2)
 library(gridExtra)
 g1 <- ggplot() +
   geom_line(aes(x = seq_len(length(out_res$llike_vec)), y = out_res$llike_vec)) +
-  xlab("steps") + ylab("log-likelihood") + labs(title = "ALL log-likelihood")
+  xlab("steps") + ylab("log-likelihood") + labs(title = "ALL log-likelihood") +
+  ylim(c(range(out_res$llike_vec) + c(-5, 5)))
 g2 <- ggplot() +
   geom_line(aes(x = seq_len(length(out_res$llike_vec[-seq_len(14999)])), y = out_res$llike_vec[-seq_len(14999)])) +
-  xlab("steps") + ylab("log-likelihood") + labs(title = "Zoom log-likelihood")
+  xlab("steps") + ylab("log-likelihood") + labs(title = "Zoom log-likelihood") +
+  ylim(c(range(out_res$llike_vec[-seq_len(14999)]) + c(-5, 5)))
 layout_matrix <- matrix(c(1, 2), nrow = 2)
 pdf(paste0("llikehood_", init, "_", p, ".pdf"), width = 10, height = 6.18)
 grid.arrange(g1, g2, layout_matrix = layout_matrix)
