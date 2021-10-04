@@ -1,7 +1,7 @@
 library(pcalg)
 source("simulation_DAG/graph_generation.R")
 p <- 100
-n_tol <- 600
+n_tol <- 2000
 K <- 2
 n <- n_tol / K
 n_graph <- 1
@@ -62,8 +62,8 @@ shd(g_true1, g_1)
 check_edge(adj_true1, ges_adj1) 
 check_edge(adj_true1, adj_1) 
 # Mean square error for weight
-sum((weight_true1 - ges_weight1)^2) 
-sum((weight_true1 - weight_1)^2) 
+round(sum((weight_true1 - ges_weight1)^2), 4)
+round(sum((weight_true1 - weight_1)^2), 4)
 # TPR & FPR
 TPrate_fun(adj_pre = ges_adj1, adj_act = adj_true1)
 TPrate_fun(adj_pre = adj_1, adj_act = adj_true1)
@@ -92,8 +92,8 @@ shd(g_true2, g_2)
 check_edge(adj_true2, ges_adj2) 
 check_edge(adj_true2, adj_2) 
 # Mean square error for weight
-sum((weight_true2 - ges_weight2)^2) 
-sum((weight_true2 - weight_2)^2) 
+round(sum((weight_true2 - ges_weight2)^2), 4)
+round(sum((weight_true2 - weight_2)^2), 4)
 # TPR & FPR
 TPrate_fun(adj_pre = ges_adj2, adj_act = adj_true2)
 TPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
