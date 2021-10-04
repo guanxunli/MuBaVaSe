@@ -90,7 +90,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   order_list <- list()
   ## load the function
   for (iter_MCMC in seq_len(iter_max)) {
-    if (iter_MCMC %% 100 == 0) print(iter_MCMC)
+    if (iter_MCMC %% 1000 == 0) print(iter_MCMC)
     ## Initialize proposal
     dta_1_pro <- dta_1_old
     dta_2_pro <- dta_2_old
@@ -144,18 +144,13 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
-      print(accept)
     } else {
       U <- runif(1)
       thres <- exp(llike_pro - llike_old)
       if (U < thres) {
         accept <- TRUE
-        print(thres)
-        print(accept)
       } else {
         accept <- FALSE
-        print(thres)
-        print(accept)
       }
     }
     # update 

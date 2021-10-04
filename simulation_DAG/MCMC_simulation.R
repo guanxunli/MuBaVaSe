@@ -3,7 +3,7 @@ source("simulation_DAG/graph_generation.R")
 args <- commandArgs()
 init = args[6]
 p <- as.numeric(args[7])
-n_tol <- 600
+n_tol <- as.numeric(args[8])
 K <- 2
 n <- n_tol / K
 n_graph <- 1
@@ -51,11 +51,12 @@ dta_2 <- graph_sim$X[[1]][[2]]
 # ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
 # graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
 # order_int <- as.numeric(igraph::topo_sort(graph_i))
+iter_max <- 50000
 if (init == "init") {
-  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = seq_len(p), iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
+  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = seq_len(p), iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL, 
                             prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
 } else {
-  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL, 
+  out_res <- Graph_MCMC_two(dta_1, dta_2, order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL, 
                             prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1)
 }
 
@@ -66,11 +67,11 @@ alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
 A_mat_2 <- matrix(0, nrow = p, ncol = p)
 for (iter in seq_len(5000)) {
-  order_tmp <- order(out_res$order_list[[iter + 14999]])
-  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter + 14999]][order_tmp, order_tmp]
-  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter + 14999]][order_tmp, order_tmp]
-  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter + 14999]][order_tmp, order_tmp]
-  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter + 14999]][order_tmp, order_tmp]
+  order_tmp <- order(out_res$order_list[[iter + iter_max - 5001]])
+  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter + iter_max - 5001]][order_tmp, order_tmp]
+  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter + iter_max - 5001]][order_tmp, order_tmp]
+  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter + iter_max - 5001]][order_tmp, order_tmp]
+  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter + iter_max - 5001]][order_tmp, order_tmp]
 }
 
 alpha_mat_1 <- alpha_mat_1 / 5000
@@ -117,18 +118,18 @@ g1 <- ggplot() +
   xlab("steps") + ylab("log-likelihood") + labs(title = "ALL log-likelihood") +
   ylim(c(range(out_res$llike_vec) + c(-5, 5)))
 g2 <- ggplot() +
-  geom_line(aes(x = seq_len(length(out_res$llike_vec[-seq_len(14999)])), y = out_res$llike_vec[-seq_len(14999)])) +
+  geom_line(aes(x = seq_len(length(out_res$llike_vec[-seq_len(iter_max - 5001)])), y = out_res$llike_vec[-seq_len(iter_max - 5001)])) +
   xlab("steps") + ylab("log-likelihood") + labs(title = "Zoom log-likelihood") +
-  ylim(c(range(out_res$llike_vec[-seq_len(14999)]) + c(-5, 5)))
+  ylim(c(range(out_res$llike_vec[-seq_len(iter_max - 5001)]) + c(-5, 5)))
 layout_matrix <- matrix(c(1, 2), nrow = 2)
-pdf(paste0("llikehood_", init, "_", p, ".pdf"), width = 10, height = 6.18)
+pdf(paste0("llikehood_", init, "_", p, "_", n_tol, ".pdf"), width = 10, height = 6.18)
 grid.arrange(g1, g2, layout_matrix = layout_matrix)
 dev.off()
 
-out_res$alpha_list_1 = out_res$alpha_list_1[-seq_len(14999)]
-out_res$alpha_list_2 = out_res$alpha_list_2[-seq_len(14999)] 
-out_res$A_list_1 = out_res$A_list_1[-seq_len(14999)]
-out_res$A_list_2 = out_res$A_list_2[-seq_len(14999)]
-out_res$order_list = out_res$order_list[-seq_len(14999)]
-out_res$llike_vec = out_res$llike_vec[-seq_len(14999)]
-saveRDS(out_res, paste0("out_res_", init, "_", p, ".rds"))
+out_res$alpha_list_1 = out_res$alpha_list_1[-seq_len(iter_max - 5001)]
+out_res$alpha_list_2 = out_res$alpha_list_2[-seq_len(iter_max - 5001)] 
+out_res$A_list_1 = out_res$A_list_1[-seq_len(iter_max - 5001)]
+out_res$A_list_2 = out_res$A_list_2[-seq_len(iter_max - 5001)]
+out_res$order_list = out_res$order_list[-seq_len(iter_max - 5001)]
+out_res$llike_vec = out_res$llike_vec[-seq_len(iter_max - 5001)]
+saveRDS(out_res, paste0("out_res_", init, "_", p, "_", n_tol, ".rds"))
