@@ -1,9 +1,12 @@
 library(pcalg)
 source("simulation_DAG/graph_generation.R")
 args <- commandArgs()
-init = args[6]
-p <- as.numeric(args[7])
-n_tol <- as.numeric(args[8])
+# init = args[6]
+# p <- as.numeric(args[7])
+# n_tol <- as.numeric(args[8])
+init <- "noinit"
+p <- 50
+n_tol <- 600
 K <- 2
 n <- n_tol / K
 n_graph <- 1
@@ -26,6 +29,18 @@ check_edge <- function(adj_pre, adj_act) {
   adj_pre <- ceiling((adj_pre + t(adj_pre)) / 2)
   adj_act <- ceiling((adj_act + t(adj_act)) / 2)
   return(sum(abs(adj_pre - adj_act)) / 2)
+}
+
+check_weight_l2 <- function(weight_pre, weight_act) {
+  weight_pre <- weight_pre + t(weight_pre)
+  weight_act <- weight_act + t(weight_act)
+  return(sum((weight_pre - weight_act)^2) / 2)
+}
+
+check_weight_l1 <- function(weight_pre, weight_act) {
+  weight_pre <- weight_pre + t(weight_pre)
+  weight_act <- weight_act + t(weight_act)
+  return(sum(abs(weight_pre - weight_act)) / 2)
 }
 
 #### generate graph
@@ -61,7 +76,8 @@ if (init == "init") {
 }
 
 #### analysis results
-# out_res <- readRDS("simulation_DAG/out_res.rds")
+# out_res <- readRDS( paste0("out_res_", init, "_", p, "_", n_tol, ".rds"))
+out_res <- readRDS(paste0("simulation_DAG/results/out_res_", init, "_", p, "_", n_tol, ".rds"))
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
@@ -87,14 +103,14 @@ adj_1 <- t(adj_1)
 g_1 <- as(getGraph(adj_1), "graphNEL")
 weight_1 <- t(A_mat_1)
 weight_1[which(adj_1 == 0)] <- 0
-# structural Hamming distance (SHD)
-shd(g_true1, g_1) 
-check_edge(adj_1, adj_true1) 
+# structural Hamming distance (SHD) and undirected edge
+print(c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)))
 # Mean square error for weight
-sum((weight_true1 - weight_1)^2) 
+print(c(round(sum((weight_true1 - weight_1)^2), 2), round(check_weight_l2(weight_1, weight_true1), 2))) 
+# l1 error
+print(c(round(sum(abs(weight_true1 - weight_1)), 2), round(check_weight_l1(weight_1, weight_true1), 2))) 
 # TPR & FPR
-TPrate_fun(adj_pre = adj_1, adj_act = adj_true1)
-FPrate_fun(adj_pre = adj_1, adj_act = adj_true1)
+print(c(round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4), round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4)))
 
 ## data set 2
 adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
@@ -102,14 +118,22 @@ adj_2 <- t(adj_2)
 g_2 <- as(getGraph(adj_2), "graphNEL")
 weight_2 <- t(A_mat_2)
 weight_2[which(adj_2 == 0)] <- 0
-# structural Hamming distance (SHD)
-shd(g_true2, g_2) 
-check_edge(adj_2, adj_true2) 
+# structural Hamming distance (SHD) and undirected edge
+print(c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)))
 # Mean square error for weight
-sum((weight_true2 - weight_2)^2) 
+print(c(round(sum((weight_true2 - weight_2)^2), 2), round(check_weight_l2(weight_2, weight_true2), 2))) 
+# l1 error
+print(c(round(sum(abs(weight_true2 - weight_2)), 2), round(check_weight_l1(weight_2, weight_true2), 2))) 
 # TPR & FPR
-TPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
-FPrate_fun(adj_pre = adj_2, adj_act = adj_true2)
+print(c(round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4), round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4)))
+
+## output results
+cat("MCMC", "&", shd(g_true1, g_1), "&", check_edge(adj_true1, adj_1), "&", 
+    shd(g_true2, g_2), "&",  check_edge(adj_true2, adj_2), "&",
+    round(sum((weight_true1 - weight_1)^2), 2), "&", round(check_weight_l2(weight_1, weight_true1), 2), "&",
+    round(sum(abs(weight_true1 - weight_1)), 2), "&", round(check_weight_l1(weight_1, weight_true1), 2), "&",
+    round(sum((weight_true2 - weight_2)^2), 2), "&", round(check_weight_l2(weight_2, weight_true2), 2), "&",
+    round(sum(abs(weight_true2 - weight_2)), 2), "&", round(check_weight_l1(weight_2, weight_true2), 2),"\\\\\n")
 
 #### plot log-likelihood
 library(ggplot2)
@@ -127,10 +151,24 @@ pdf(paste0("llikehood_", init, "_", p, "_", n_tol, ".pdf"), width = 10, height =
 grid.arrange(g1, g2, layout_matrix = layout_matrix)
 dev.off()
 
-out_res$alpha_list_1 = out_res$alpha_list_1[-seq_len(iter_max - 5000)]
-out_res$alpha_list_2 = out_res$alpha_list_2[-seq_len(iter_max - 5000)] 
-out_res$A_list_1 = out_res$A_list_1[-seq_len(iter_max - 5000)]
-out_res$A_list_2 = out_res$A_list_2[-seq_len(iter_max - 5000)]
-out_res$order_list = out_res$order_list[-seq_len(iter_max - 5000)]
-out_res$llike_vec = out_res$llike_vec[-seq_len(iter_max - 5000)]
-saveRDS(out_res, paste0("out_res_", init, "_", p, "_", n_tol, ".rds"))
+# out_res$alpha_list_1 = out_res$alpha_list_1[-seq_len(iter_max - 5000)]
+# out_res$alpha_list_2 = out_res$alpha_list_2[-seq_len(iter_max - 5000)] 
+# out_res$A_list_1 = out_res$A_list_1[-seq_len(iter_max - 5000)]
+# out_res$A_list_2 = out_res$A_list_2[-seq_len(iter_max - 5000)]
+# out_res$order_list = out_res$order_list[-seq_len(iter_max - 5000)]
+# out_res$llike_vec = out_res$llike_vec[-seq_len(iter_max - 5000)]
+# saveRDS(out_res, paste0("out_res_", init, "_", p, "_", n_tol, ".rds"))
+
+cat(round(sum((weight_1 - weight_true1)^2), 2), round(sum((ges_weight1 - weight_true1)^2), 2), "\n")
+
+cat(round(sum(((weight_1 - weight_true1)[intersect(which(adj_1 == 1), which(adj_1 == adj_true1))])^2), 2),
+    round(sum(((ges_weight1 - weight_true1)[intersect(which(ges_adj1 == 1), which(ges_adj1 == adj_true1))])^2), 2), "\n")
+
+cat(round(mean(((weight_1 - weight_true1)[intersect(which(adj_1 == 1), which(adj_1 == adj_true1))])^2), 4),
+    round(mean(((ges_weight1 - weight_true1)[intersect(which(ges_adj1 == 1), which(ges_adj1 == adj_true1))])^2), 4), "\n")
+
+cat(round(sum(((weight_1 - weight_true1)[adj_1 != adj_true1])^2), 2),
+    round(sum(((ges_weight1 - weight_true1)[ges_adj1 != adj_true1])^2), 2), "\n")
+
+cat(round(mean(((weight_1 - weight_true1)[adj_1 != adj_true1])^2), 2),
+    round(mean(((ges_weight1 - weight_true1)[ges_adj1 != adj_true1])^2), 2), "\n")
