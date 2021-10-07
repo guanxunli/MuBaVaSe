@@ -54,8 +54,8 @@ out_res <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2)
 #### GES method
 ## data set 1
 # score1 <- new("GaussL0penObsScore", data = t(graph_sim$X[[1]][[1]]), intercept = FALSE,
-#               lambda = (cons * log(p) / n)) 
-score1 <- new("GaussL0penObsScore", data = graph_sim$X[[1]][[1]], intercept = FALSE) 
+#               lambda = (cons * log(p) / n))
+score1 <- new("GaussL0penObsScore", data = graph_sim$X[[1]][[1]], intercept = FALSE)
 ges_fit1 <- ges(score1)
 ges_adj1 <- as(ges_fit1$repr, "matrix")
 ges_adj1 <- ifelse(ges_adj1 == TRUE, 1, 0)
@@ -71,24 +71,24 @@ weight_1[which(adj_1 == 0)] <- 0
 print(c(shd(g_true1, ges_graph1), check_edge(adj_true1, ges_adj1)))
 print(c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)))
 # Mean square error for weight
-print(c(round(sum((weight_true1 - ges_weight1)^2), 2),round(check_weight_l2(ges_weight1, weight_true1), 2)))
-print(c(round(sum((weight_true1 - weight_1)^2), 2), round(check_weight_l2(weight_1, weight_true1), 2))) 
+print(c(round(sum((weight_true1 - ges_weight1)^2), 2), round(check_weight_l2(ges_weight1, weight_true1), 2)))
+print(c(round(sum((weight_true1 - weight_1)^2), 2), round(check_weight_l2(weight_1, weight_true1), 2)))
 # l1 error
-print(c(round(sum(abs(weight_true1 - ges_weight1)), 2),round(check_weight_l1(ges_weight1, weight_true1), 2)))
-print(c(round(sum(abs(weight_true1 - weight_1)), 2), round(check_weight_l1(weight_1, weight_true1), 2))) 
+print(c(round(sum(abs(weight_true1 - ges_weight1)), 2), round(check_weight_l1(ges_weight1, weight_true1), 2)))
+print(c(round(sum(abs(weight_true1 - weight_1)), 2), round(check_weight_l1(weight_1, weight_true1), 2)))
 # TPR & FPR
 print(c(round(TPrate_fun(adj_pre = ges_adj1, adj_act = adj_true1), 4), round(FPrate_fun(adj_pre = ges_adj1, adj_act = adj_true1), 4)))
 print(c(round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4), round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4)))
 
 ## data set 2
 ## our method
-adj_2<- out_res$alpha_res_2
+adj_2 <- out_res$alpha_res_2
 adj_2 <- t(ifelse(adj_2 > 0.5, 1, 0))
 g_2 <- as(adj_2, "graphNEL")
 weight_2 <- t(out_res$A_res_2)
 weight_2[which(adj_2 == 0)] <- 0
 # score2 <- new("GaussL0penObsScore", data = t(graph_sim$X[[1]][[2]]), intercept = FALSE,
-#               lambda = (cons * log(p) / n)) 
+#               lambda = (cons * log(p) / n))
 score2 <- new("GaussL0penObsScore", data = graph_sim$X[[1]][[2]], intercept = FALSE)
 ges_fit2 <- ges(score2)
 ges_adj2 <- as(ges_fit2$repr, "matrix")
@@ -99,26 +99,30 @@ ges_weight2 <- ges_fit2$repr$weight.mat()
 print(c(shd(g_true2, ges_graph2), check_edge(adj_true2, ges_adj2)))
 print(c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)))
 # Mean square error for weight
-print(c(round(sum((weight_true2 - ges_weight2)^2), 2),round(check_weight_l2(ges_weight2, weight_true2), 2)))
-print(c(round(sum((weight_true2 - weight_2)^2), 2), round(check_weight_l2(weight_2, weight_true2), 2))) 
+print(c(round(sum((weight_true2 - ges_weight2)^2), 2), round(check_weight_l2(ges_weight2, weight_true2), 2)))
+print(c(round(sum((weight_true2 - weight_2)^2), 2), round(check_weight_l2(weight_2, weight_true2), 2)))
 # l1 error
-print(c(round(sum(abs(weight_true2 - ges_weight2)), 2),round(check_weight_l1(ges_weight2, weight_true2), 2)))
-print(c(round(sum(abs(weight_true2 - weight_2)), 2), round(check_weight_l1(weight_2, weight_true2), 2))) 
+print(c(round(sum(abs(weight_true2 - ges_weight2)), 2), round(check_weight_l1(ges_weight2, weight_true2), 2)))
+print(c(round(sum(abs(weight_true2 - weight_2)), 2), round(check_weight_l1(weight_2, weight_true2), 2)))
 # TPR & FPR
 print(c(round(TPrate_fun(adj_pre = ges_adj2, adj_act = adj_true2), 4), round(FPrate_fun(adj_pre = ges_adj2, adj_act = adj_true2), 4)))
 print(c(round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4), round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4)))
 
 #### output results
-cat("GES", "&", shd(g_true1, ges_graph1), "&", check_edge(adj_true1, ges_adj1), "&", 
-    shd(g_true2, ges_graph2), "&",  check_edge(adj_true2, ges_adj2), "&",
-    round(sum((weight_true1 - ges_weight1)^2), 2), "&", round(check_weight_l2(ges_weight1, weight_true1), 2), "&",
-    round(sum(abs(weight_true1 - ges_weight1)), 2), "&", round(check_weight_l1(ges_weight1, weight_true1), 2), "&",
-    round(sum((weight_true2 - ges_weight2)^2), 2), "&", round(check_weight_l2(ges_weight2, weight_true2), 2), "&",
-    round(sum(abs(weight_true2 - ges_weight2)), 2), "&", round(check_weight_l1(ges_weight2, weight_true2), 2),"\\\\\n")
+cat(
+  "GES", "&", shd(g_true1, ges_graph1), "&", check_edge(adj_true1, ges_adj1), "&",
+  shd(g_true2, ges_graph2), "&", check_edge(adj_true2, ges_adj2), "&",
+  round(sum((weight_true1 - ges_weight1)^2), 2), "&", round(check_weight_l2(ges_weight1, weight_true1), 2), "&",
+  round(sum(abs(weight_true1 - ges_weight1)), 2), "&", round(check_weight_l1(ges_weight1, weight_true1), 2), "&",
+  round(sum((weight_true2 - ges_weight2)^2), 2), "&", round(check_weight_l2(ges_weight2, weight_true2), 2), "&",
+  round(sum(abs(weight_true2 - ges_weight2)), 2), "&", round(check_weight_l1(ges_weight2, weight_true2), 2), "\\\\\n"
+)
 
-cat("MCMC", "&", shd(g_true1, g_1), "&", check_edge(adj_true1, adj_1), "&", 
-    shd(g_true2, g_2), "&",  check_edge(adj_true2, adj_2), "&",
-    round(sum((weight_true1 - weight_1)^2), 2), "&", round(check_weight_l2(weight_1, weight_true1), 2), "&",
-    round(sum(abs(weight_true1 - weight_1)), 2), "&", round(check_weight_l1(weight_1, weight_true1), 2), "&",
-    round(sum((weight_true2 - weight_2)^2), 2), "&", round(check_weight_l2(weight_2, weight_true2), 2), "&",
-    round(sum(abs(weight_true2 - weight_2)), 2), "&", round(check_weight_l1(weight_2, weight_true2), 2),"\\\\\n")
+cat(
+  "MCMC", "&", shd(g_true1, g_1), "&", check_edge(adj_true1, adj_1), "&",
+  shd(g_true2, g_2), "&", check_edge(adj_true2, adj_2), "&",
+  round(sum((weight_true1 - weight_1)^2), 2), "&", round(check_weight_l2(weight_1, weight_true1), 2), "&",
+  round(sum(abs(weight_true1 - weight_1)), 2), "&", round(check_weight_l1(weight_1, weight_true1), 2), "&",
+  round(sum((weight_true2 - weight_2)^2), 2), "&", round(check_weight_l2(weight_2, weight_true2), 2), "&",
+  round(sum(abs(weight_true2 - weight_2)), 2), "&", round(check_weight_l1(weight_2, weight_true2), 2), "\\\\\n"
+)
