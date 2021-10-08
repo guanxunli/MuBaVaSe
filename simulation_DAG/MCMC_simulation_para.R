@@ -58,28 +58,20 @@ dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
 
 ## DO parallel
-library(parallel)
-library(foreach)
-library(doParallel)
-library(doRNG)
-cl <- makeCluster(10)
-registerDoParallel(cl)
-set.seed(2021)
-out_res <- foreach(i = 1:10) %dorng% {
-  Graph_MCMC_two(dta_1, dta_2,
-                 order_int = NULL, iter_max = 100000, sigma02_int = NULL, sigma2_int = NULL,
-                 prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 95000
-  )
+res <- list()
+for (i in seq_len(5)) {
+  res[[i]] <- Graph_MCMC_two(dta_1, dta_2,
+                             order_int = NULL, iter_max = 100000, sigma02_int = NULL, sigma2_int = NULL,
+                             prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 95000)
 }
-stopCluster(cl)  
 
 #### analysis results
-for (i in seq_len(10)) {
+for (i in seq_len(5)) {
   alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
   alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
   A_mat_1 <- matrix(0, nrow = p, ncol = p)
   A_mat_2 <- matrix(0, nrow = p, ncol = p)
-  res <- out_res[[i]]
+  out_res <- res[[i]]
   for (iter in seq_len(5000)) {
     order_tmp <- order(out_res$order_list[[iter]])
     alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter]][order_tmp, order_tmp]

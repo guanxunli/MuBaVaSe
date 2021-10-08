@@ -1,7 +1,7 @@
 library(pcalg)
 source("simulation_DAG/graph_generation.R")
 args <- commandArgs()
-init = args[6]
+init <- args[6]
 p <- as.numeric(args[7])
 n_tol <- as.numeric(args[8])
 # init <- "noinit"
@@ -168,31 +168,31 @@ pdf(paste0("llikehood_", init, "_", p, "_", n_tol, ".pdf"), width = 10, height =
 grid.arrange(g1, g2, layout_matrix = layout_matrix)
 dev.off()
 
-out_res$alpha_list_1 = out_res$alpha_list_1[-seq_len(iter_max - 5000)]
-out_res$alpha_list_2 = out_res$alpha_list_2[-seq_len(iter_max - 5000)]
-out_res$A_list_1 = out_res$A_list_1[-seq_len(iter_max - 5000)]
-out_res$A_list_2 = out_res$A_list_2[-seq_len(iter_max - 5000)]
-out_res$order_list = out_res$order_list[-seq_len(iter_max - 5000)]
-out_res$llike_vec = out_res$llike_vec[-seq_len(iter_max - 5000)]
+out_res$alpha_list_1 <- out_res$alpha_list_1[-seq_len(iter_max - 5000)]
+out_res$alpha_list_2 <- out_res$alpha_list_2[-seq_len(iter_max - 5000)]
+out_res$A_list_1 <- out_res$A_list_1[-seq_len(iter_max - 5000)]
+out_res$A_list_2 <- out_res$A_list_2[-seq_len(iter_max - 5000)]
+out_res$order_list <- out_res$order_list[-seq_len(iter_max - 5000)]
+out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5000)]
 saveRDS(out_res, paste0("out_res_", init, "_", p, "_", n_tol, ".rds"))
 
 # cat(round(sum((weight_1 - weight_true1)^2), 2), round(sum((ges_weight1 - weight_true1)^2), 2), "\n")
-# 
+#
 # cat(
 #   round(sum(((weight_1 - weight_true1)[intersect(which(adj_1 == 1), which(adj_1 == adj_true1))])^2), 2),
 #   round(sum(((ges_weight1 - weight_true1)[intersect(which(ges_adj1 == 1), which(ges_adj1 == adj_true1))])^2), 2), "\n"
 # )
-# 
+#
 # cat(
 #   round(mean(((weight_1 - weight_true1)[intersect(which(adj_1 == 1), which(adj_1 == adj_true1))])^2), 4),
 #   round(mean(((ges_weight1 - weight_true1)[intersect(which(ges_adj1 == 1), which(ges_adj1 == adj_true1))])^2), 4), "\n"
 # )
-# 
+#
 # cat(
 #   round(sum(((weight_1 - weight_true1)[adj_1 != adj_true1])^2), 2),
 #   round(sum(((ges_weight1 - weight_true1)[ges_adj1 != adj_true1])^2), 2), "\n"
 # )
-# 
+#
 # cat(
 #   round(mean(((weight_1 - weight_true1)[adj_1 != adj_true1])^2), 2),
 #   round(mean(((ges_weight1 - weight_true1)[ges_adj1 != adj_true1])^2), 2), "\n"
