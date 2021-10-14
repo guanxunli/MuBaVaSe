@@ -13,15 +13,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_1), size = p_2, replace = FALSE)
-# 
+
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
+
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
+
 # eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -31,6 +31,8 @@
 
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
+# scale : scale the data
+# intercept: calculate the mean of Y
 # order_int is the initialized order for nodes
 # iter_max is the maximun mcmc step
 # sigma02_int is initialization for signal prior variance
@@ -45,17 +47,19 @@
 
 source("Two_dataset_new/sum_single_effect_two.R")
 source("Two_dataset_new/Graph_given_order_two.R")
-Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sigma02_int = NULL, sigma2_int = NULL, 
-                           prior_vec = NULL, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 5000, 
-                           residual_variance_lowerbound = NULL) {
+Graph_MCMC_two <- function(dta_1, dta_2, scale = FALSE, intercept = FALSE,
+                           order_int = NULL, iter_max = 50000,
+                           sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
+                           itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
+                           burn_in = 5000, residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
   n <- nrow(dta_1)
   ## define prior vector
   if (is.null(prior_vec)) {
-    prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p ^ 1.5))
-    lprior_vec <- c(-log(6) - 1.5 * log(p), log(2/3) - 1.5 * log(p))
+    prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p^1.5))
   }
+  lprior_vec <- log(prior_vec)
   # Initialize order
   if (is.null(order_int)) {
     order_old <- sample(seq_len(p), p)
@@ -66,9 +70,13 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
   dta_1_old <- dta_1[, order_old]
   dta_2_old <- dta_2[, order_old]
   ## load the main function
-  res_old <- joint_graph_fun_two(dta_1 = dta_1_old, dta_2 = dta_2_old, sigma02_int = sigma02_int, sigma2_int = sigma2_int,
-                                 prior_vec = prior_vec, lprior_vec = lprior_vec, itermax = itermax, L_max = L_max, 
-                                 tol = tol, sigma0_low_bd = sigma0_low_bd, residual_variance_lowerbound = residual_variance_lowerbound)
+  res_old <- joint_graph_fun_two(
+    dta_1 = dta_1_old, dta_2 = dta_2_old, scale = scale, intercept = intercept,
+    sigma02_int = sigma02_int, sigma2_int = sigma2_int,
+    prior_vec = prior_vec, itermax = itermax,
+    L_max = L_max, tol = tol, sigma0_low_bd = sigma0_low_bd,
+    residual_variance_lowerbound = residual_variance_lowerbound
+  )
   # variable selection
   alpha_res_1_old <- res_old$alpha_res_1
   alpha_res_2_old <- res_old$alpha_res_2
@@ -102,7 +110,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     llike_penalty_vec_pro <- llike_penalty_vec_old
     ## propose the new order
     pos_change <- sample(seq_len(p - 1), 1)
-    llike_pro <- llike_old - sum(llike_1_vec_old[c(pos_change, pos_change + 1)]) - sum(llike_2_vec_old[c(pos_change, pos_change + 1)]) - 
+    llike_pro <- llike_old - sum(llike_1_vec_old[c(pos_change, pos_change + 1)]) - sum(llike_2_vec_old[c(pos_change, pos_change + 1)]) -
       sum(llike_penalty_vec_old[c(pos_change, pos_change + 1)])
     dta_1_pro[, c(pos_change, pos_change + 1)] <- dta_1_old[, c(pos_change + 1, pos_change)]
     dta_2_pro[, c(pos_change, pos_change + 1)] <- dta_2_old[, c(pos_change + 1, pos_change)]
@@ -113,25 +121,36 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
       res_pos$sigma2 <- var(c(dta_1_pro[, 1], dta_2_pro[, 1]))
       res_pos$alpha_1 <- rep(0, p)
       res_pos$post_mean1 <- rep(0, p)
-      res_pos$Xb_1 <- rep(mean(dta_1_pro[, 1]), n)
       res_pos$alpha_2 <- rep(0, p)
       res_pos$post_mean2 <- rep(0, p)
-      res_pos$Xb_2 <- rep(mean(dta_2_pro[, 1]), n)
+      if (intercept) {
+        res_pos$Xb_1 <- rep(mean(dta_1_pro[, 1]), n)
+        res_pos$Xb_2 <- rep(mean(dta_2_pro[, 1]), n)
+      } else {
+        res_pos$Xb_1 <- rep(0, n)
+        res_pos$Xb_2 <- rep(0, n)
+      }
     } else {
-      res_pos <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
-                                       X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
-                                       sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
-                                       prior_vec = prior_vec, L = min(pos_change - 1, L_max), 
-                                       itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                                       residual_variance_lowerbound = residual_variance_lowerbound)
+      res_pos <- sum_single_effect_two(
+        X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
+        X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
+        scale = scale, intercept = intercept,
+        sigma02_int = sigma02_int, sigma2_int = sigma2_int,
+        prior_vec = prior_vec, L = min(pos_change - 1, L_max),
+        itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+        residual_variance_lowerbound = residual_variance_lowerbound
+      )
       llike_penalty_vec_pro[pos_change] <- sum(res_pos$alpha * c(rep(lprior_vec[1], 2 * (pos_change - 1)), rep(lprior_vec[2], (pos_change - 1))))
     }
-    res_pos1 <- sum_single_effect_two(X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
-                                      X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
-                                      sigma02_int = sigma02_int, sigma2_int = sigma2_int, 
-                                      prior_vec = prior_vec, L = min(pos_change, L_max), 
-                                      itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
-                                      residual_variance_lowerbound = residual_variance_lowerbound)
+    res_pos1 <- sum_single_effect_two(
+      X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
+      X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
+      scale = scale, intercept = intercept,
+      sigma02_int = sigma02_int, sigma2_int = sigma2_int,
+      prior_vec = prior_vec, L = min(pos_change, L_max),
+      itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+      residual_variance_lowerbound = residual_variance_lowerbound
+    )
     llike_penalty_vec_pro[pos_change + 1] <- sum(res_pos1$alpha * c(rep(lprior_vec[1], 2 * pos_change), rep(lprior_vec[2], pos_change)))
     # likelihood
     sigma2_vec_pro[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
@@ -153,7 +172,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
         accept <- FALSE
       }
     }
-    # update 
+    # update
     if (accept) {
       # change matrix order
       alpha_res_1_old[, c(pos_change, pos_change + 1)] <- alpha_res_1_old[, c(pos_change + 1, pos_change)]
@@ -194,12 +213,14 @@ Graph_MCMC_two <- function(dta_1, dta_2, order_int = NULL, iter_max = 10000, sig
     llike_vec[[iter_MCMC]] <- llike_old
   }
   # return results
-  return(list(alpha_list_1 = alpha_list_1[-seq_len(burn_in)], alpha_list_2 = alpha_list_2[-seq_len(burn_in)], 
-              A_list_1 = A_list_1[-seq_len(burn_in)], A_list_2 = A_list_2[-seq_len(burn_in)],
-              order_list = order_list[-seq_len(burn_in)], llike_vec = llike_vec[-seq_len(burn_in)]))
+  return(list(
+    alpha_list_1 = alpha_list_1[-seq_len(burn_in)], alpha_list_2 = alpha_list_2[-seq_len(burn_in)],
+    A_list_1 = A_list_1[-seq_len(burn_in)], A_list_2 = A_list_2[-seq_len(burn_in)],
+    order_list = order_list[-seq_len(burn_in)], llike_vec = llike_vec[-seq_len(burn_in)]
+  ))
 }
 
-# # ## MCMC
+# # # ## MCMC
 # time1 <- Sys.time()
 # res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10000, burn_in = 5000)
 # Sys.time() - time1 # 2.11 mins for 500 and 37.7 mins for 10000

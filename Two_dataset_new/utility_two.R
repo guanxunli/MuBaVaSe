@@ -15,33 +15,39 @@ lBF_model_two <- function(lsigma02, prior_pi, z2_1, s2_1, z2_2, s2_2) {
   maxlBF <- max(lBF)
   wBF <- exp(lBF - maxlBF)
   wBF_sum <- sum(prior_pi * wBF)
-  return(- maxlBF - log(wBF_sum))
+  return(-maxlBF - log(wBF_sum))
 }
 
 sigma0_opt_two <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2) {
-  tmp1 <- lBF_model_two(lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1, 
-                               s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)
-  lsigma02 <- optim(par = log(max(c(b_hat_1^2 - s2_1, 1, b_hat_2^2 - s2_2))), fn = lBF_model_two, 
-                    method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1, 
-                    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)$par
-  tmp2 <- lBF_model_two(lsigma02 = lsigma02, prior_pi = prior_pi, z2_1 = z2_1, 
-                               s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2)
+  tmp1 <- lBF_model_two(
+    lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1,
+    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
+  )
+  lsigma02 <- optim(
+    par = log(max(c(b_hat_1^2 - s2_1, 1, b_hat_2^2 - s2_2))), fn = lBF_model_two,
+    method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1,
+    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
+  )$par
+  tmp2 <- lBF_model_two(
+    lsigma02 = lsigma02, prior_pi = prior_pi, z2_1 = z2_1,
+    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
+  )
   if (tmp2 < tmp1) {
     return(exp(lsigma02))
-  } else{
+  } else {
     return(exp(lsigma02_int))
   }
 }
 
 ## Calculate the KL divergence
 KL_fun_two <- function(X_scale_1, X_scale2_1, Y_1, X_scale_2, Y_2, X_scale2_2,
-                         sigma2, b_1, b2_1, b_2, b2_2, lBF) {
+                       sigma2, b_1, b2_1, b_2, b2_2, lBF) {
   n <- length(Y_1)
   tmp1_1 <- sum(dnorm(Y_1, mean = 0, sd = sqrt(sigma2), log = TRUE))
   tmp1_2 <- sum(dnorm(Y_2, mean = 0, sd = sqrt(sigma2), log = TRUE))
   tmp3 <- n * log(2 * pi * sigma2)
-  tmp4_1 <- 1 / (2 * sigma2) * (crossprod(Y_1) - 2 * crossprod(Y_1, X_scale_1%*% b_1) + sum(X_scale2_1 %*% b2_1))
-  tmp4_2 <- 1 / (2 * sigma2) * (crossprod(Y_2) - 2 * crossprod(Y_2, X_scale_2%*% b_2) + sum(X_scale2_2 %*% b2_2))
+  tmp4_1 <- 1 / (2 * sigma2) * (crossprod(Y_1) - 2 * crossprod(Y_1, X_scale_1 %*% b_1) + sum(X_scale2_1 %*% b2_1))
+  tmp4_2 <- 1 / (2 * sigma2) * (crossprod(Y_2) - 2 * crossprod(Y_2, X_scale_2 %*% b_2) + sum(X_scale2_2 %*% b2_2))
   return(tmp1_1 + tmp1_2 + lBF + tmp3 + tmp4_1 + tmp4_2)
 }
 

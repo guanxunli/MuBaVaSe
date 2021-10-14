@@ -13,15 +13,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
-# 
+
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
+
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
+
 # eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -31,6 +31,8 @@
 
 ## joint inference
 # dta_1 and dta_2 are n x p data set
+# scale : scale the data
+# intercept: calculate the mean of Y
 # sigma02_int is initialization for signal prior variance
 # sigma2_int is initialization for error variance
 # prior_vecr is prior for common part and for single part
@@ -42,17 +44,18 @@
 
 ## load variable selection function
 source("Two_dataset_new/sum_single_effect_two.R")
-joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL, 
-                                lprior_vec = NULL, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
+joint_graph_fun_two <- function(dta_1, dta_2, scale = FALSE, intercept = FALSE,
+                                sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
+                                itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
                                 residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
   n <- nrow(dta_1)
   ## define prior vector
   if (is.null(prior_vec)) {
-    prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p ^ 1.5))
-    lprior_vec <- c(-log(6) - 1.5 * log(p), log(2/3) - 1.5 * log(p))
+    prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p^1.5))
   }
+  lprior_vec <- log(prior_vec)
   ## save matrix
   # probability of the edge exists
   alpha_res_1 <- matrix(0, nrow = p, ncol = p)
@@ -63,13 +66,18 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
   # predicted value
   Xb_mat_1 <- matrix(NA, nrow = n, ncol = p)
   Xb_mat_2 <- matrix(NA, nrow = n, ncol = p)
-  # log likelihood  
+  # log likelihood
   llike_1_vec <- rep(NA, p)
   llike_2_vec <- rep(NA, p)
   llike_penalty_vec <- rep(0, p)
   sigma2_vec <- rep(NA, p)
-  mean_1 <- mean(dta_1[, 1])
-  mean_2 <- mean(dta_2[, 1])
+  if (intercept) {
+    mean_1 <- mean(dta_1[, 1])
+    mean_2 <- mean(dta_2[, 1])
+  } else {
+    mean_1 <- 0
+    mean_2 <- 0
+  }
   Xb_mat_1[, 1] <- rep(mean_1, n)
   Xb_mat_2[, 1] <- rep(mean_2, n)
   sigma2_vec[1] <- var(c(dta_1[, 1], dta_2[, 1]))
@@ -82,10 +90,13 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
     X_2 <- dta_2[, seq_len(iter_p), drop = FALSE]
     Y_2 <- dta_2[, iter_p + 1]
     ## variable selection
-    res <- sum_single_effect_two(X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2, sigma02_int = sigma02_int,
-                                 sigma2_int = sigma2_int, prior_vec = prior_vec, L = min(iter_p, L_max), 
-                                 itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd, 
-                                 residual_variance_lowerbound = residual_variance_lowerbound)
+    res <- sum_single_effect_two(
+      X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2,
+      scale = scale, intercept = intercept, sigma02_int = sigma02_int,
+      sigma2_int = sigma2_int, prior_vec = prior_vec, L = min(iter_p, L_max),
+      itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
+      residual_variance_lowerbound = residual_variance_lowerbound
+    )
     # save the matrix we want
     alpha_res_1[iter_p + 1, seq_len(iter_p)] <- res$alpha_1
     alpha_res_2[iter_p + 1, seq_len(iter_p)] <- res$alpha_2
@@ -100,13 +111,15 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
     llike_penalty_vec[iter_p + 1] <- sum(res$alpha * c(rep(lprior_vec[1], 2 * iter_p), rep(lprior_vec[2], iter_p)))
   }
   ## return results
-  return(list(alpha_res_1 = alpha_res_1, alpha_res_2 = alpha_res_2, A_res_1 = A_res_1, A_res_2 = A_res_2, 
-              llike_1_vec = llike_1_vec, llike_2_vec = llike_2_vec, llike_penalty_vec = llike_penalty_vec,
-              Xb_mat_1 = Xb_mat_1, Xb_mat_2 = Xb_mat_2, sigma2_vec = sigma2_vec))
+  return(list(
+    alpha_res_1 = alpha_res_1, alpha_res_2 = alpha_res_2, A_res_1 = A_res_1, A_res_2 = A_res_2,
+    llike_1_vec = llike_1_vec, llike_2_vec = llike_2_vec, llike_penalty_vec = llike_penalty_vec,
+    Xb_mat_1 = Xb_mat_1, Xb_mat_2 = Xb_mat_2, sigma2_vec = sigma2_vec
+  ))
 }
 
 # ################## check results with GES ##################
-# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, r = 0.2, q = 0.05, tau = 1.5)
+# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2)
 # ## remove order edge
 # check_edge <- function(adj_pre, adj_act) {
 #   adj_pre <- ceiling((adj_pre + t(adj_pre)) / 2)
@@ -141,7 +154,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, sigma02_int = NULL, sigma2_int = N
 # # Mean square error for weight
 # sum((weight_true_1 - ges_weight1)^2)
 # sum((weight_true_1 - weight_1)^2)
-# 
+
 # ######## data set 2
 # #### Define true
 # adj_true_2 <- t(alpha_mat_2)

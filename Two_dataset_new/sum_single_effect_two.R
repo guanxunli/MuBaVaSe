@@ -11,19 +11,19 @@
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
-# 
+
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
 # # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
-# 
+
 # alpha_1 <- rep(0, p)
 # alpha_1[c(index_c, index_1)] <- 1
 # alpha_2 <- rep(0, p)
 # alpha_2[c(index_c, index_2)] <- 1
-# 
+
 # X_1 <- matrix(rnorm(p * n), nrow = n, ncol = p)
 # X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n, sd = sigma)
@@ -32,6 +32,8 @@
 ## main function with null model
 # X_1 and X_2 are regressors, n x p matrix, each column is one feature
 # Y_1 and Y_2 are response, n x 1 vector
+# scale : scale the data
+# intercept: calculate the mean of Y
 # sigma02_int is initialization for signal prior variance
 # sigma2_int is initialization for error variance
 # prior_vecr is prior for common part and for single part
@@ -42,8 +44,10 @@
 # residual_variance_lowerbound is the lower bound for sigma2
 
 source("Two_dataset_new//utility_two.R")
-sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL, 
-                                  L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, residual_variance_lowerbound = NULL) {
+sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale = TRUE, intercept = TRUE,
+                                  sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
+                                  L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                                  residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(X_1)
   n <- nrow(X_1)
@@ -52,27 +56,38 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
-  if(is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
+  if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
   
-  # data set 1
-  X_scale_1 <- X_1
-  # X_scale_1 <- scale(X_1)
+  ## data preprocess
+  if (scale) {
+    X_scale_1 <- scale(X_1)
+    X_scale_2 <- scale(X_2)
+  } else {
+    X_scale_1 <- X_1
+    X_scale_2 <- X_2
+  }
+  
+  if (intercept) {
+    mean_Y_1 <- mean(Y_1)
+    mean_Y_2 <- mean(Y_2)
+  } else {
+    mean_Y_1 <- 0
+    mean_Y_2 <- 0
+  }
+  
+  ## data set 1
   X_scale2_1 <- X_scale_1 * X_scale_1
   X2_1 <- colSums(X_scale2_1)
-  mean_Y_1 <- mean(Y_1)
   Y_1 <- Y_1 - mean_Y_1
   # data set 2
-  X_scale_2 <- X_2
-  # X_scale_2 <- scale(X_2)
   X_scale2_2 <- X_scale_2 * X_scale_2
   X2_2 <- colSums(X_scale2_2)
-  mean_Y_2 <- mean(Y_2)
   Y_2 <- Y_2 - mean_Y_2
   
   # Initialize prior
   if (is.null(prior_vec)) {
-    prior_pi <- c(rep(1/(6 * p^1.5), 2 * p), rep(2/(3 * p^1.5), p), 1 - 1/p^1.5)
-  } else{
+    prior_pi <- c(rep(1 / (6 * p^1.5), 2 * p), rep(2 / (3 * p^1.5), p), 1 - 1 / p^1.5)
+  } else {
     prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
     prior_pi <- c(prior_pi, 1 - sum(prior_pi))
   }
@@ -118,11 +133,11 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
       sigma02_vec[l] <- sigma02
       ## Get Bayesian Factor
       # data set 1
-      tmp1_1 <- log(sqrt(s2_1 / (sigma02 + s2_1))) 
+      tmp1_1 <- log(sqrt(s2_1 / (sigma02 + s2_1)))
       tmp2_1 <- z2_1 / 2 * sigma02 / (sigma02 + s2_1)
       lBF_1 <- tmp1_1 + tmp2_1
       # data set 2
-      tmp1_2 <- log(sqrt(s2_2 / (sigma02 + s2_2))) 
+      tmp1_2 <- log(sqrt(s2_2 / (sigma02 + s2_2)))
       tmp2_2 <- z2_2 / 2 * sigma02 / (sigma02 + s2_2)
       lBF_2 <- tmp1_2 + tmp2_2
       # get bayesian factor
@@ -135,25 +150,27 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
       post_alpha <- prior_pi * wBF / wBF_sum
       alpha_mat[, l] <- post_alpha[-length(post_alpha)]
       # data set 1
-      post_sigma2_1 <- 1 / (1/s2_1 + 1/sigma02)
+      post_sigma2_1 <- 1 / (1 / s2_1 + 1 / sigma02)
       post_mu_1 <- post_sigma2_1 / s2_1 * b_hat_1
       # data set 2
-      post_sigma2_2 <- 1 / (1/s2_2 + 1/sigma02)
+      post_sigma2_2 <- 1 / (1 / s2_2 + 1 / sigma02)
       post_mu_2 <- post_sigma2_2 / s2_2 * b_hat_2
       ## Calculate posterior mean
       # data set 1
-      alpha_mat_1[, l] <- post_alpha[1 : p] + post_alpha[(2 * p + 1) : (3 * p)]
-      alpha_mat_2[, l] <- post_alpha[(p + 1) : (2 * p)] + post_alpha[(2 * p + 1) : (3 * p)]
-      b_mat_1[, l] <-  alpha_mat_1[, l] * post_mu_1
+      alpha_mat_1[, l] <- post_alpha[1:p] + post_alpha[(2 * p + 1):(3 * p)]
+      alpha_mat_2[, l] <- post_alpha[(p + 1):(2 * p)] + post_alpha[(2 * p + 1):(3 * p)]
+      b_mat_1[, l] <- alpha_mat_1[, l] * post_mu_1
       b2_mat_1[, l] <- alpha_mat_1[, l] * (post_mu_1^2 + post_sigma2_1)
       # data set 2
       b_mat_2[, l] <- alpha_mat_2[, l] * post_mu_2
       b2_mat_2[, l] <- alpha_mat_2[, l] * (post_mu_2^2 + post_sigma2_2)
       ## calculate the KL divergence
-      KL_div <- KL_div + KL_fun_two(X_scale_1 = X_scale_1, Y_1 = res_tmp_1, X_scale_2 = X_scale_2, Y_2 = res_tmp_2, 
-                                    X_scale2_1 = X_scale2_1, X_scale2_2 = X_scale2_2,sigma2 = sigma2, 
-                                    b_1 = b_mat_1[, l], b2_1 = b2_mat_1[, l], b_2 = b_mat_2[, l], 
-                                    b2_2 = b2_mat_2[, l], lBF = lBF_model)
+      KL_div <- KL_div + KL_fun_two(
+        X_scale_1 = X_scale_1, Y_1 = res_tmp_1, X_scale_2 = X_scale_2, Y_2 = res_tmp_2,
+        X_scale2_1 = X_scale2_1, X_scale2_2 = X_scale2_2, sigma2 = sigma2,
+        b_1 = b_mat_1[, l], b2_1 = b2_mat_1[, l], b_2 = b_mat_2[, l],
+        b2_2 = b2_mat_2[, l], lBF = lBF_model
+      )
       res_1 <- res_tmp_1 - X_scale_1 %*% b_mat_1[, l]
       res_2 <- res_tmp_2 - X_scale_2 %*% b_mat_2[, l]
     }
@@ -161,10 +178,10 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
     ERSS_1 <- ERSS_fun_single(X_scale = X_scale_1, X_scale2 = X_scale2_1, Y = Y_1, b_mat = b_mat_1, b2_mat = b2_mat_1)
     ERSS_2 <- ERSS_fun_single(X_scale = X_scale_2, X_scale2 = X_scale2_2, Y = Y_2, b_mat = b_mat_2, b2_mat = b2_mat_2)
     ERSS <- ERSS_1 + ERSS_2
-    ELBO[iter + 1] <- - n * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
+    ELBO[iter + 1] <- -n * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
     # estimate sigma2
     sigma2 <- max(ERSS / (2 * n), residual_variance_lowerbound)
-    if (ELBO[iter + 1] -   ELBO[iter] < 1e-4) break
+    if (ELBO[iter + 1] - ELBO[iter] < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
   # select effect index
@@ -174,7 +191,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   res$ELBO <- ELBO
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
-  res$alpha <-  1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
+  res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
   
   if (length(index_L) > 0) {
     # data set 1
@@ -185,7 +202,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
     res$alpha_2 <- 1 - matrixStats::rowProds(1 - alpha_mat_2[, index_L, drop = FALSE])
     res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
     res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
-  } else{
+  } else {
     # data set 1
     res$alpha_1 <- rep(0, p)
     res$post_mean1 <- rep(0, p)
@@ -199,5 +216,5 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2
   return(res)
 }
 
-# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL, 
-#                              L = p_c + p_1 + p_2, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8)
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2,
+#                              L = p_c + p_1 + p_2)
