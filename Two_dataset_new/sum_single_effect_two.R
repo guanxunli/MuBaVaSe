@@ -32,7 +32,7 @@
 ## main function with null model
 # X_1 and X_2 are regressors, n x p matrix, each column is one feature
 # Y_1 and Y_2 are response, n x 1 vector
-# scale : scale the data
+# scale_x : scale the data
 # intercept: calculate the mean of Y
 # sigma02_int is initialization for signal prior variance
 # sigma2_int is initialization for error variance
@@ -44,7 +44,7 @@
 # residual_variance_lowerbound is the lower bound for sigma2
 
 source("Two_dataset_new//utility_two.R")
-sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale = TRUE, intercept = TRUE,
+sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept = TRUE,
                                   sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                   L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                                   residual_variance_lowerbound = NULL) {
@@ -59,7 +59,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale = TRUE, intercept = 
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
   
   ## data preprocess
-  if (scale) {
+  if (scale_x) {
     X_scale_1 <- scale(X_1)
     X_scale_2 <- scale(X_2)
   } else {
@@ -86,11 +86,11 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale = TRUE, intercept = 
   
   # Initialize prior
   if (is.null(prior_vec)) {
-    prior_pi <- c(rep(1 / (6 * p^1.5), 2 * p), rep(2 / (3 * p^1.5), p), 1 - 1 / p^1.5)
+    prior_pi <- c(rep(1 / (6 * p^1.5), 2 * p), rep(2 / (3 * p^1.5), p))
   } else {
     prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
-    prior_pi <- c(prior_pi, 1 - sum(prior_pi))
   }
+  prior_pi <- c(prior_pi, 1 - sum(prior_pi))
   
   # initialize ELBO
   ELBO <- rep(NA, itermax + 1)
@@ -191,7 +191,6 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale = TRUE, intercept = 
   res$ELBO <- ELBO
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
-  res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
   
   if (length(index_L) > 0) {
     # data set 1
@@ -202,6 +201,8 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale = TRUE, intercept = 
     res$alpha_2 <- 1 - matrixStats::rowProds(1 - alpha_mat_2[, index_L, drop = FALSE])
     res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
     res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
+    # all alpha
+    res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
   } else {
     # data set 1
     res$alpha_1 <- rep(0, p)
@@ -211,6 +212,8 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale = TRUE, intercept = 
     res$alpha_2 <- rep(0, p)
     res$post_mean2 <- rep(0, p)
     res$Xb_2 <- rep(mean_Y_2, n)
+    # all alpha
+    res$alpha <- rep(0, 3 * p)
   }
   # return results
   return(res)

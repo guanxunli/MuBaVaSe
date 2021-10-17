@@ -13,15 +13,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_1), size = p_2, replace = FALSE)
-
+# 
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-
+# 
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-
+# 
 # eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -31,7 +31,7 @@
 
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
-# scale : scale the data
+# scale_x : scale the data
 # intercept: calculate the mean of Y
 # order_int is the initialized order for nodes
 # iter_max is the maximun mcmc step
@@ -47,7 +47,7 @@
 
 source("Two_dataset_new/sum_single_effect_two.R")
 source("Two_dataset_new/Graph_given_order_two.R")
-Graph_MCMC_two <- function(dta_1, dta_2, scale = FALSE, intercept = FALSE,
+Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                            order_int = NULL, iter_max = 50000,
                            sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                            itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
@@ -71,7 +71,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale = FALSE, intercept = FALSE,
   dta_2_old <- dta_2[, order_old]
   ## load the main function
   res_old <- joint_graph_fun_two(
-    dta_1 = dta_1_old, dta_2 = dta_2_old, scale = scale, intercept = intercept,
+    dta_1 = dta_1_old, dta_2 = dta_2_old, scale_x = scale_x, intercept = intercept,
     sigma02_int = sigma02_int, sigma2_int = sigma2_int,
     prior_vec = prior_vec, itermax = itermax,
     L_max = L_max, tol = tol, sigma0_low_bd = sigma0_low_bd,
@@ -134,8 +134,8 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale = FALSE, intercept = FALSE,
       res_pos <- sum_single_effect_two(
         X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
         X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
-        scale = scale, intercept = intercept,
-        sigma02_int = sigma02_int, sigma2_int = sigma2_int,
+        scale_x = scale_x, intercept = intercept,
+        sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1],
         prior_vec = prior_vec, L = min(pos_change - 1, L_max),
         itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
         residual_variance_lowerbound = residual_variance_lowerbound
@@ -145,8 +145,8 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale = FALSE, intercept = FALSE,
     res_pos1 <- sum_single_effect_two(
       X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
       X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
-      scale = scale, intercept = intercept,
-      sigma02_int = sigma02_int, sigma2_int = sigma2_int,
+      scale_x = scale_x, intercept = intercept,
+      sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change],
       prior_vec = prior_vec, L = min(pos_change, L_max),
       itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
       residual_variance_lowerbound = residual_variance_lowerbound
@@ -220,7 +220,9 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale = FALSE, intercept = FALSE,
   ))
 }
 
-# # # ## MCMC
+# #### MCMC
 # time1 <- Sys.time()
-# res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10000, burn_in = 5000)
-# Sys.time() - time1 # 2.11 mins for 500 and 37.7 mins for 10000
+# set.seed(2021)
+# res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10, burn_in = 5,
+#                       prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))
+# Sys.time() - time1 
