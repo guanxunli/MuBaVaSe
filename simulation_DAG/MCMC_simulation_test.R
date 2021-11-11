@@ -50,8 +50,10 @@ for (iter in seq_len(4)) {
   
   #### generate graph
   set.seed(2021)
-  graph_sim <- graph_generation(K = K, n_graph = n_graph, p = p, 
-                                n_tol = n_tol, e_com = e_com, e_pri = e_pri)
+  graph_sim <- graph_generation(
+    K = K, n_graph = n_graph, p = p,
+    n_tol = n_tol, e_com = e_com, e_pri = e_pri
+  )
   adj_true1 <- t(graph_sim$G[[1]][[1]])
   g_true1 <- as(getGraph(adj_true1), "graphNEL")
   weight_true1 <- t(graph_sim$A[[1]][[1]])
@@ -82,7 +84,8 @@ for (iter in seq_len(4)) {
   ## our method
   out_res <- Graph_MCMC_two(dta_1, dta_2,
                             order_int = NULL, iter_max = 100000, sigma02_int = NULL, sigma2_int = NULL,
-                            prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 95000)
+                            prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 95000
+  )
   #### analysis results
   alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
   alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
@@ -124,7 +127,8 @@ for (iter in seq_len(4)) {
     round(sum((weight_true1 - weight_1)^2), 2), "&", round(check_weight_l2(weight_1, weight_true1), 2), "&",
     round(sum(abs(weight_true1 - weight_1)), 2), "&", round(check_weight_l1(weight_1, weight_true1), 2), "&",
     round(sum((weight_true2 - weight_2)^2), 2), "&", round(check_weight_l2(weight_2, weight_true2), 2), "&",
-    round(sum(abs(weight_true2 - weight_2)), 2), "&", round(check_weight_l1(weight_2, weight_true2), 2), "\\\\\n")
+    round(sum(abs(weight_true2 - weight_2)), 2), "&", round(check_weight_l1(weight_2, weight_true2), 2), "\\\\\n"
+  )
   
   cat(
     "GES", "&", shd(g_true1, ges_graph1), "&", check_edge(adj_true1, ges_adj1), "&",

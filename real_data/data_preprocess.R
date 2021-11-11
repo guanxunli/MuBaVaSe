@@ -7,13 +7,16 @@ dta_group <- merge(dta_group1, dta_group2, by = c("AOCSID", "Primary.Site", "Typ
 head(dta_group)
 dta_group <- dta_group[-which(dta_group$group == "NC"), ]
 table(dta_group$group)
+# generate data frame
+df_group <- as.data.frame(matrix(NA, nrow = nrow(dta_group), ncol = ncol(dta_group)))
+colnames(df_group) <- colnames(dta_group)
+df_group[, 1:8] <- apply(dta_group, 2, as.character)
 
 ## load raw data 
 dta_raw <- readRDS("raw_data/dta_raw.rds")
 dta_raw <- t(dta_raw)
 colnames(dta_raw) <- dta_raw[1, ]
 dta_raw <- dta_raw[-1, ]
-colnames(dta_raw)[1:6] <- c("AOCSID", "Primary.Site", "Type", "Subtype", "StageCode", "Consolidated.Grade")
 # remove ":"
 for (iter in 2:6) {
   tmp <- dta_raw[, iter]
@@ -26,8 +29,16 @@ for (iter in 2:6) {
   dta_raw[, iter] <- tmp_tmp
 }
 
+# generate data frame
+df_raw <- as.data.frame(matrix(NA, nrow = nrow(dta_raw), ncol = ncol(dta_raw)))
+df_raw[, 8:ncol(dta_raw)] <- apply(dta_raw[, 8:ncol(dta_raw)], 2, as.numeric)
+df_raw[, 1:7] <- apply(dta_raw[, 1:7], 2, as.character)
+colnames(df_raw)[1:6] <- c("AOCSID", "Primary.Site", "Type", "Subtype", "StageCode", "Consolidated.Grade")
+colnames(df_raw)[7:ncol(df_raw)] <- colnames(dta_raw)[7:ncol(dta_raw)]
+rm(dta_raw)
 ## merge data with group
-dta <- merge(dta_group, dta_raw, by = c("AOCSID", "Primary.Site", "Type", "Subtype"))
+dta <- merge(df_group, df_raw, by = c("AOCSID", "Primary.Site", "Type", "Subtype"))
+rownames(dta) <- dta$AOCSID
 
 ## select genes
 KEGG <- fgsea::gmtPathways('https://amp.pharm.mssm.edu/Enrichr/geneSetLibrary?mode=text&libraryName=KEGG_2019_Human')
@@ -48,8 +59,16 @@ colnames(gene_use) <- "SYMBOL"
 gene_use <- merge(gene_merge, gene_use, by = "SYMBOL")
 
 ## dta used
-dta_use <- dta[, gene_use$PROBEID]
-colnames(dta_use) <- gene_use$SYMBOL
+gene_name <- unique(gene_use$SYMBOL)
+n_gene <- length(gene_name)
+dta_use <- matrix(NA, nrow = nrow(dta), ncol = n_gene)
+rownames(dta_use) <- rownames(dta)
+for (i in seq_len(n_gene)) {
+  gene_tmp <- gene_name[1]
+  index <- which(gene_use$SYMBOL == gene_tmp)
+  probeid_tmp <- gene_use$PROBEID[index]
+  dta_tmp <- matrix(as.numeric(dta[, probeid_tmp]), nrow = nrow(dta))
+  dta_use[, i] <- rowSums(dta_tmp)
+}
+colnames(dta_use) <- gene_name
 saveRDS(dta_use, "dta_use.rds")
-
-
