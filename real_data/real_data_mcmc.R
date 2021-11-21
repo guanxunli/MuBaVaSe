@@ -51,13 +51,13 @@ A_mat_2 <- A_mat_2 / iter_max
 ## data set 1
 adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
 adj_1 <- t(adj_1)
-sum(adj_1)
+sum(adj_1) # 22
 ## data set 2
 adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
 adj_2 <- t(adj_2)
-sum(adj_2)
+sum(adj_2) # 22
 ## check results
-length(intersect(which(adj_1 == 1), which(adj_2 == 1)))
+length(intersect(which(adj_1 == 1), which(adj_2 == 1))) # 22
 
 #### check centers
 ## get center

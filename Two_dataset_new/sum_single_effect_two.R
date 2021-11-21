@@ -1,33 +1,33 @@
-# ## Define parameters
-# n <- 500
-# p <- 1000
-# p_c <- 25
-# p_1 <- 5
-# p_2 <- 5
-# sigma <- 1
-# sigma0 <- 0.6
-# set.seed(2021)
-# ## Generate data
-# index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
-# index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
+## Define parameters
+n <- 500
+p <- 1000
+p_c <- 25
+p_1 <- 5
+p_2 <- 5
+sigma <- 1
+sigma0 <- 0.6
+set.seed(2021)
+## Generate data
+index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
+index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
+index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
 
-# b_1 <- rep(0, p)
-# b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
-# b_2 <- rep(0, p)
-# b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
+b_1 <- rep(0, p)
+b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
+# b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
+b_2 <- rep(0, p)
+b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
+# b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
 
-# alpha_1 <- rep(0, p)
-# alpha_1[c(index_c, index_1)] <- 1
-# alpha_2 <- rep(0, p)
-# alpha_2[c(index_c, index_2)] <- 1
+alpha_1 <- rep(0, p)
+alpha_1[c(index_c, index_1)] <- 1
+alpha_2 <- rep(0, p)
+alpha_2[c(index_c, index_2)] <- 1
 
-# X_1 <- matrix(rnorm(p * n), nrow = n, ncol = p)
-# X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
-# Y_1 <- X_1 %*% b_1 + rnorm(n, sd = sigma)
-# Y_2 <- X_2 %*% b_2 + rnorm(n, sd = sigma)
+X_1 <- matrix(rnorm(p * n), nrow = n, ncol = p)
+X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
+Y_1 <- X_1 %*% b_1 + rnorm(n, sd = sigma)
+Y_2 <- X_2 %*% b_2 + rnorm(n, sd = sigma)
 
 ## main function with null model
 # X_1 and X_2 are regressors, n x p matrix, each column is one feature
@@ -43,7 +43,7 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("Two_dataset_new//utility_two.R")
+source("Two_dataset_new/utility_two.R")
 sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept = TRUE,
                                   sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                   L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,

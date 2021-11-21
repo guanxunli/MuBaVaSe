@@ -1,9 +1,9 @@
-n <- 100
+n <- 500
 p <- 1000
-sigma <- 0.1
+sigma <- 1
 sigma0 <- 0.6
 L <- 20
-set.seed(202107)
+set.seed(2021)
 ## Generate data
 index_t <- sample(seq_len(p), size = L, replace = FALSE)
 b <- rep(0, p)
@@ -11,31 +11,10 @@ b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
 Y <- X %*% b + rnorm(n, sd = sigma)
 
-y = Y
-scaled_prior_variance = 0.2
-residual_variance = NULL
-prior_weights = NULL
-null_weight = NULL
-standardize = TRUE
-intercept = TRUE
-estimate_residual_variance = TRUE
-estimate_prior_variance = TRUE
-estimate_prior_method = c("optim", "EM", "simple")
-check_null_threshold = 0
-prior_tol = 1e-9
-residual_variance_upperbound = Inf
-s_init = NULL
-coverage = 0.95
-min_abs_corr = 0.5
-compute_univariate_zscore = FALSE
-na.rm = FALSE
-max_iter = 100
-tol = 1e-3
-verbose = FALSE
-track_fit = FALSE
-residual_variance_lowerbound = var(drop(y))/1e4
-refine = FALSE
-
+source("single_dataset/original code/initialization.R")
+source("single_dataset/original code/single_effect.R")
+source("single_dataset/original code/update_effect.R")
+source("single_dataset/original code/elbo.R")
 susie = function (X,y,L = min(10,ncol(X)),
                   scaled_prior_variance = 0.2,
                   residual_variance = NULL,
@@ -190,9 +169,15 @@ susie = function (X,y,L = min(10,ncol(X)),
   return(s)
 }
 
-res <- susie(X = X, y = Y)
 #### check results
+## package
 res <- susieR::susie(X = X, y = Y, L = L)
-res1 <- which(abs(round(colSums(res$alpha * res$mu), 4)) > 0)
+res$elbo
+res1 <- as.numeric(res$sets$cs)
 length(intersect(res1, index_t)) / L
 length(intersect(res1, index_t)) / length(res1)
+sum((colSums(res$alpha * res$mu) - b)^2)
+
+## My code
+res <- susie(X = X, y = Y, L = L)
+res$elbo
