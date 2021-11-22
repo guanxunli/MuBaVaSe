@@ -1,14 +1,14 @@
 n <- 500
 p <- 1000
-sigma <- 2
+sigma <- 1
 sigma0 <- 0.6
-L <- 15
+L <- 20
 set.seed(2021)
 ## Generate data
 index_t <- sample(seq_len(p), size = L, replace = FALSE)
 b <- rep(0, p)
-# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-b[index_t] <- 100
+b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# b[index_t] <- 100
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
 Y <- X %*% b + rnorm(n, sd = sigma)
 
@@ -39,7 +39,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(Y))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
-  if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
+  if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
   
   ## data preprocess
   # scale
@@ -80,7 +80,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   # Begin iteration
   for (iter in seq_len(itermax)) {
     res <- Y - X_scale %*% rowSums(b_mat)
-    KL_div <- 0
+    KL_div_vec <- rep(0, L)
     for (l in seq_len(L)) {
       # residuals
       res_tmp <- res + X_scale %*% b_mat[, l]
@@ -110,8 +110,8 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
       ## Calculate posterior mean
       b_mat[, l] <- alpha_mat[, l] * post_mu
       b2_mat[, l] <- alpha_mat[, l] * (post_mu^2 + post_sigma2)
-      ## calculate the KL divergence
-      KL_div <- KL_div + KL_fun_single(
+      ## calculate the minus KL divergence
+      KL_div_vec[l] <- KL_fun_single(
         X_scale = X_scale, Y = res_tmp, X_scale2 = X_scale2, sigma2 = sigma2,
         b = b_mat[, l], b2 = b2_mat[, l], lBF = lBF_model
       )
@@ -119,7 +119,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
     }
     # calculate ELBO
     ERSS <- ERSS_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
-    ELBO[iter + 1] <- -n / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
+    ELBO[iter + 1] <- -n / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + sum(KL_div_vec)
     # estimate sigma2
     sigma2 <- max(ERSS / n, residual_variance_lowerbound)
     if (ELBO[iter + 1] - ELBO[iter] < 1e-4) break
@@ -134,6 +134,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   res$sigma02_vec <- sigma02_vec
   res$alpha_null <- alpha_null
   res$index_L <- index_L
+  res$KL_div_vec <- -KL_div_vec
   
   if (length(index_L) > 0) {
     res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
@@ -155,6 +156,7 @@ res$ELBO
 res$sigma2
 res$sigma02_vec
 res$alpha_null
+res$KL_div_vec
 ## check with true
 res1 <- which(res$alpha > 0.5)
 length(intersect(res1, index_t)) / L

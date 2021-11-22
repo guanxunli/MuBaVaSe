@@ -2,13 +2,13 @@ n <- 500
 p <- 1000
 sigma <- 1
 sigma0 <- 0.6
-L <- 15
+L <- 20
 set.seed(2021)
 ## Generate data
 index_t <- sample(seq_len(p), size = L, replace = FALSE)
 b <- rep(0, p)
-# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-b[index_t] <- 100
+b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# b[index_t] <- 100
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
 Y <- X %*% b + rnorm(n, sd = sigma)
 
