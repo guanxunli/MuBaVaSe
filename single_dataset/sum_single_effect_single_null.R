@@ -1,14 +1,14 @@
 n <- 500
 p <- 1000
-sigma <- 1
+sigma <- 2
 sigma0 <- 0.6
-L <- 20
+L <- 15
 set.seed(2021)
 ## Generate data
 index_t <- sample(seq_len(p), size = L, replace = FALSE)
 b <- rep(0, p)
-b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-# b[index_t] <- 100
+# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+b[index_t] <- 100
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
 Y <- X %*% b + rnorm(n, sd = sigma)
 
@@ -27,7 +27,7 @@ Y <- X %*% b + rnorm(n, sd = sigma)
 # residual_variance_lowerbound is the lower bound for sigma2
 
 source("single_dataset/utility_single.R")
-sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
+sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE,
                                   sigma02_int = NULL, sigma2_int = NULL, prior_null = NULL,
                                   L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                                   residual_variance_lowerbound = NULL) {
@@ -46,7 +46,7 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
   if (scale_x) {
     X_scale <- scale(X)
   } else {
-    X_scale <- X_1
+    X_scale <- X
   }
   # intercept
   if (intercept) {
@@ -61,7 +61,7 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
 
   # Initialize prior
   if (is.null(prior_null)) {
-    prior_null <- 1 - 1 / (p ^ 1.5)
+    prior_null <- 1 - 1 / (p ^ 0.5)
   } 
   prior_pi <- c(rep((1 - prior_null) / p, p), prior_null)
   
@@ -81,12 +81,6 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
   for (iter in seq_len(itermax)) {
     res <- Y - X_scale %*% rowSums(b_mat)
     KL_div <- 0
-    # # keep old results
-    # sigma02_vec_old <- sigma02_vec
-    # sigma2_old <- sigma2
-    # alpha_null_old <- alpha_null
-    # alpha_mat_old <- alpha_mat
-    # b_mat_old <- b_mat
     for (l in seq_len(L)) {
       # residuals
       res_tmp <- res + X_scale %*% b_mat[, l]
@@ -127,17 +121,10 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
     ERSS <- ERSS_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
     ELBO[iter + 1] <- -n / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
     # estimate sigma2
-    sigma2 <- max(ERSS / (2 * n), residual_variance_lowerbound)
+    sigma2 <- max(ERSS / n, residual_variance_lowerbound)
     if (ELBO[iter + 1] - ELBO[iter] < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
-  # if (ELBO[length(ELBO)] < ELBO[length(ELBO) - 1]) {
-  #   sigma02_vec <- sigma02_vec_old
-  #   sigma2 <- sigma2_old
-  #   alpha_null <- alpha_null_old
-  #   alpha_mat <- alpha_mat_old
-  #   b_mat <- b_mat_old
-  # }
   # select effect index
   index_L <- which(sigma02_vec > sigma0_low_bd)
   ## return results
@@ -163,8 +150,12 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
 }
 
 ## check results
-res <- sum_single_effect_single(X = X, Y = Y, L = L)
+res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = FALSE)
 res$ELBO
+res$sigma2
+res$sigma02_vec
+res$alpha_null
+## check with true
 res1 <- which(res$alpha > 0.5)
 length(intersect(res1, index_t)) / L
 length(intersect(res1, index_t)) / length(res1)

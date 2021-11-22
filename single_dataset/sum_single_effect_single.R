@@ -2,13 +2,13 @@ n <- 500
 p <- 1000
 sigma <- 1
 sigma0 <- 0.6
-L <- 20
+L <- 15
 set.seed(2021)
 ## Generate data
 index_t <- sample(seq_len(p), size = L, replace = FALSE)
 b <- rep(0, p)
-b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-# b[index_t] <- 100
+# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+b[index_t] <- 100
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
 Y <- X %*% b + rnorm(n, sd = sigma)
 
@@ -76,15 +76,27 @@ effset_fun <- function(index_L, alpha_mat, Xcor, cor_low_bd = 0.5, sigma0_low_bd
 }
 
 ## Main functions
-sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL, prior_pi = NULL, 
-                                     L = NULL, itermax = 100, tol = 1e-4, cor_low_bd = 0.5, sigma0_low_bd = 1e-8) {
+sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE, 
+                                     sigma2_int = NULL, sigma02_int = NULL, prior_pi = NULL, 
+                                     L = NULL, itermax = 100, tol = 1e-4, cor_low_bd = 0.5, 
+                                     sigma0_low_bd = 1e-8) {
   # Initialization
   p <- ncol(X)
   n <- nrow(X)
-  mean_Y <- mean(Y)
-  Y <- Y - mean_Y
-  X_scale <- scale(X)
-  # X_scale <- X
+  ## data preprocess
+  # scale
+  if (scale_x) {
+    X_scale <- scale(X)
+  } else {
+    X_scale <- X
+  }
+  # intercept
+  if (intercept) {
+    mean_Y <- mean(Y)
+  } else {
+    mean_Y <- 0
+  }
+  Y <- Y- mean_Y
   Xcor <- cor(X)
   diag(Xcor) <- 0
   X2 <- colSums(X_scale * X_scale)
@@ -149,6 +161,8 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
   # return results
   res <- list()
   res$ELBO <- ELBO
+  res$sigma02_vec <- sigma02_vec
+  res$sigma2 <- sigma2
   res$index_eff <- index_eff
   res$post_mean <- rowSums(b_mat[, index_L])
   return(res)
@@ -164,8 +178,11 @@ sum_single_effect_single <- function(X, Y, sigma2_int = NULL, sigma02_int = NULL
 # sum((colSums(res$alpha * res$mu) - b)^2)
 # 
 ## My code
-res <- sum_single_effect_single(X = X, Y = Y, L = L)
+res <- sum_single_effect_single(X = X, Y = Y, L = L + 5, scale_x = FALSE)
 res$ELBO
+res$sigma2
+res$sigma02_vec
+## check with true
 res1 <- res$index_eff
 length(intersect(res1, index_t)) / L
 length(intersect(res1, index_t)) / length(res1)

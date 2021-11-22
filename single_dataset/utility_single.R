@@ -23,12 +23,12 @@ sigma0_opt_single <- function(lsigma02_int, prior_pi, z2, s2, b_hat) {
   }
 }
 
-## Calculate the KL divergence
+## Calculate the minus KL divergence
 KL_fun_single <- function(X_scale, X_scale2, Y, sigma2, b, b2, lBF) {
   n <- length(Y)
   tmp1 <- sum(dnorm(Y, mean = 0, sd = sqrt(sigma2), log = TRUE))
   tmp3 <- n / 2 * log(2 * pi * sigma2)
-  tmp4 <- 1 / (2 * sigma2) * (crossprod(Y) - 2 * crossprod(Y, X_scale%*% b) + sum(X_scale2 %*% b2))
+  tmp4 <- 1 / (2 * sigma2) * (crossprod(Y) - 2 * crossprod(Y, X_scale %*% b) + sum(X_scale2 %*% b2))
   return(tmp1 + lBF + tmp3 + tmp4)
 }
 
