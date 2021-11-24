@@ -46,8 +46,8 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("sum_single_effect_two.R")
-source("Graph_given_order_two.R")
+source("real_data/method_code/sum_single_effect_two.R")
+source("real_data/method_code/Graph_given_order_two.R")
 Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                            order_int = NULL, iter_max = 50000,
                            sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,

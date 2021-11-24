@@ -47,7 +47,7 @@ adj_true2 <- t(graph_sim$G[[1]][[2]])
 g_true2 <- as(getGraph(adj_true2), "graphNEL")
 weight_true2 <- t(graph_sim$A[[1]][[2]])
 #### Given order method
-source("Two_dataset/Graph_given_order_two.R")
+source("two_dataset_new/Graph_given_order_two.R")
 dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
 out_res <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2)
