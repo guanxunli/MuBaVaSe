@@ -1,15 +1,18 @@
 ## load data
-dta <- readRDS("dta_use.rds")
-dta_group <- read.csv("raw_data/dta.csv")
-dta_group <- dta_group[, -1]
-rownames(dta_group) <- dta_group$AOCSID
-sample_group <- dta_group[rownames(dta), 8]
-sample_group <- ifelse(sample_group == "1", 1, 0)
-dta_1 <- dta[which(sample_group == 1), ]
-dta_2 <- dta[which(sample_group == 0), ]
+# dta <- readRDS("dta_use.rds")
+# dta_group <- read.csv("raw_data/dta.csv")
+# dta_group <- dta_group[, -1]
+# rownames(dta_group) <- dta_group$AOCSID
+# sample_group <- dta_group[rownames(dta), 8]
+# sample_group <- ifelse(sample_group == "1", 1, 0)
+# dta_1 <- dta[which(sample_group == 1), ]
+# dta_2 <- dta[which(sample_group == 0), ]
+load("real_data/ovarian.rda")
+dta_1 <- data[[1]]
+dta_2 <- data[[2]]
 
 ## generate graph
-source("method_code/Graph_MCMC_two.R")
+source("real_data/method_code/Graph_MCMC_two.R")
 ## get order
 dta <- rbind(dta_1, dta_2)
 library(pcalg)
