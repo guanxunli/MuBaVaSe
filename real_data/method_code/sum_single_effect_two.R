@@ -44,7 +44,7 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("utility_two.R")
+source("real_data/method_code/utility_two.R")
 sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept = TRUE,
                                   sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                   L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
