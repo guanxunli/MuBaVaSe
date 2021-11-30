@@ -3,4 +3,5 @@
 .RData
 .Ruserdata
 real_data/raw_data
+real_data/results
 simulation_DAG/results

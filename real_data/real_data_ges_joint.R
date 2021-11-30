@@ -1,25 +1,25 @@
 # # load data
 load("real_data/ovarian.rda")
+p <- ncol(data[[1]])
 
 ## GES method
 library(pcalg)
 library(stabs)
 
 #### joint GSE method
-cutoff <- 0.6
 source("real_data/method_code/newclass.R")
 
 set.seed(2021)
 ## learn causal networks
-stabs_ges <- function(x, y, q, ...){
+stabs_ges <- function(x, y, q, ...) {
   sample_data <- function(sing_dt) {
     totcol <- nrow(sing_dt)
-    sing_dt[sample(1:totcol, as.integer(0.9 * totcol), replace=FALSE), ]
+    sing_dt[sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
   }
-  #Y is the label of the classes, X is the input matrix
+  # Y is the label of the classes, X is the input matrix
   dt <- lapply(data, sample_data)
-  lambdas <- c(2,3,4,5)
-  model_lambda <- function(lambda){
+  lambdas <- c(2, 3, 4, 5)
+  model_lambda <- function(lambda) {
     l0score <- new("MultiGaussL0pen", data = dt, lambda = lambda * log(ncol(dt[[1]])), intercept = TRUE, use.cpp = FALSE)
     ges_fit <- ges(l0score)
     dag <- as(ges_fit$essgraph, "matrix")
@@ -31,17 +31,21 @@ stabs_ges <- function(x, y, q, ...){
 }
 
 ## joint GES the first step
-#construct x
+# construct x
 x <- do.call(rbind, data)
-x <- cbind(x, matrix(0, nrow=nrow(x), ncol=p * (p-1)))
-#construct y
+x <- cbind(x, matrix(0, nrow = nrow(x), ncol = p * (p - 1)))
+# construct y
 y <- c()
-for(i in 1:length(data)){
+for (i in 1:length(data)) {
   y <- c(y, rep(i, nrow(data[[i]])))
 }
 ## stable joint GES
+cutoff <- 0.75
 stab_result <- stabsel(x = x, y = y, fitfun = stabs_ges, cutoff = cutoff, PFER = 1)
-p <- ncol(data[[1]])
+saveRDS(stab_result, "out_ges_joint.rds")
+
+# stab_result <- readRDS("real_data/results/out_ges_joint.rds")
+cutoff <- 0.6
 dag <- matrix(as.vector(stab_result$max > cutoff), nrow = p, ncol = p)
 
 ## Joint GES the second step
