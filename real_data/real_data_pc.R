@@ -20,7 +20,8 @@ stabs_pc <- function(x, y, q, ...) {
   # Y is the label of the classes, X is the input matrix
   idx <- y[1]
   totcol <- nrow(data[[idx]])
-  dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
+  # dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
+  dt <- data[[idx]]
   p <- ncol(dt)
   
   # train the model
@@ -46,10 +47,10 @@ gesdag_list <- lapply(
   stab_input_list,
   function(stab_input) stabsel(x = stab_input$x, y = stab_input$y, fitfun = stabs_pc, cutoff = cutoff, PFER = 1)
 )
-saveRDS(gesdag_list, "out_pc.rds")
+saveRDS(gesdag_list, "real_data/results/out_pc.rds")
 
 #### check results
-# gesdag_list <- readRDS("real_data/results/out_pc.rds")
+gesdag_list <- readRDS("real_data/results/out_pc.rds")
 cutoff <- 0.5
 ## data set 1 results
 ges_adj1 <- matrix(as.vector(gesdag_list[[1]]$max > cutoff), nrow = p, ncol = p)
@@ -63,6 +64,7 @@ sum(ges_adj2) / 2
 
 ## intersections
 ges_adj <- ges_adj1 & ges_adj2
-sum(ges_adj)
+sum(ges_adj) / 2
 
-# 49 81 38
+# cut off 0.5 55 92 22
+# cut off 0.75 36 63 18

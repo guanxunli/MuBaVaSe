@@ -5,6 +5,7 @@ p <- ncol(data[[1]])
 ## GES method
 library(pcalg)
 library(stabs)
+library(parallel)
 
 set.seed(2021)
 #### GES method
@@ -21,7 +22,8 @@ stab_ges <- function(x, y, q, ...) {
   # Y is the label of the classes, X is the input matrix
   idx <- y[1]
   totcol <- nrow(data[[idx]])
-  dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
+  # dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
+  dt <- data[[idx]]
   
   # train the model
   lambdas <- c(1, 2, 3, 4, 5)
@@ -43,10 +45,10 @@ gesdag_list <- lapply(
   stab_input_list,
   function(stab_input) stabsel(x = stab_input$x, y = stab_input$y, fitfun = stab_ges, cutoff = cutoff, PFER = 1)
 )
-saveRDS(gesdag_list, "out_ges.rds")
+saveRDS(gesdag_list, "real_data/results/out_ges.rds")
 
 #### check results
-# gesdag_list <- readRDS("real_data/results/out_ges.rds")
+gesdag_list <- readRDS("real_data/results/out_ges.rds")
 cutoff <- 0.75
 ## data set 1 results
 ges_adj1 <- matrix(as.vector(gesdag_list[[1]]$max > cutoff), nrow = p, ncol = p)
@@ -60,4 +62,6 @@ sum(ges_adj2) / 2
 
 ## intersections
 ges_adj <- ges_adj1 & ges_adj2
-sum(ges_adj)
+sum(ges_adj) / 2
+
+## 66 102 32
