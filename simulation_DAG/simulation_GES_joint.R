@@ -5,7 +5,7 @@ source("simulation_DAG/graph_generation.R")
 # p <- as.numeric(args[6])
 # n_tol <- as.numeric(args[7])
 p <- 100
-n_tol <- 2000
+n_tol <- 600
 K <- 2
 n <- n_tol / K
 n_graph <- 1
@@ -41,40 +41,25 @@ g_true2 <- as(getGraph(adj_true2), "graphNEL")
 weight_true2 <- t(graph_sim$A[[1]][[2]])
 data <- graph_sim$X[[1]]
 
-## learn causal networks
-stabs_ges <- function(x, y, q, ...){
-  sample_data <- function(sing_dt) {
-    totcol <- nrow(sing_dt)
-    sing_dt[sample(1:totcol, as.integer(0.9 * totcol), replace=FALSE), ]
-  }
-  #Y is the label of the classes, X is the input matrix
-  dt <- lapply(data, sample_data)
-  lambdas <- c(2,3,4,5)
-  model_lambda <- function(lambda){
-    l0score <- new("MultiGaussL0pen", data = dt, lambda = lambda * log(ncol(dt[[1]])), intercept = TRUE, use.cpp = FALSE)
+#### joint GES method the first step
+ges_joint_fun <- function(data, lambdas = c(2, 3, 4, 5)) {
+  source("simulation_DAG/newclass.R")
+  p <- ncol(data[[1]])
+  dag_list <- list()
+  for (iter_lambda in seq_len(length(lambdas))) {
+    lambda <- lambdas[iter_lambda]
+    l0score <- new("MultiGaussL0pen",
+                   data = data, lambda = lambda * log(p),
+                   intercept = TRUE, use.cpp = FALSE
+    )
     ges_fit <- ges(l0score)
     dag <- as(ges_fit$essgraph, "matrix")
-    as.vector(dag != 0)
+    dag_list[[iter_lambda]] <- ifelse(dag == TRUE, 1, 0)
   }
-  path <- sapply(lambdas, model_lambda)
-  selected <- rowSums(path) != 0
-  return(list(selected = selected, path = path))
+  return(dag_list)
 }
 
-## joint GES the first step
-cutoff <- 0.6
-#construct x
-x <- do.call(rbind, data)
-x <- cbind(x, matrix(0, nrow=nrow(x), ncol=p * (p-1)))
-#construct y
-y <- c()
-for(i in 1:length(data)){
-  y <- c(y, rep(i, nrow(data[[i]])))
-}
-## stable joint GES
-stab_result <- stabsel(x = x, y = y, fitfun = stabs_ges, cutoff = cutoff, PFER = 1)
-p <- ncol(data[[1]])
-dag <- matrix(as.vector(stab_result$max > cutoff), nrow = p, ncol = p)
+dag_list <- ges_joint_fun(data)
 
 ## Joint GES the second step
 subset <- function(y, x, data) {
@@ -90,37 +75,45 @@ subset <- function(y, x, data) {
 }
 
 # do joint estimation given single data
-ges_alg <- function(data, dag) {
-  in_mat <- as(pdag2dag(dag)$graph, "matrix")
-  joint_mat <- lapply(data, function(dt) sapply(seq_len(ncol(dt)), function(i) subset(i, which(in_mat[, i] != 0), dt)))
-  return(lapply(joint_mat, function(sing_mat) dag2cpdag(as(sing_mat, "graphNEL"))))
+ges_alg <- function(dag_list, dta) {
+  adj_list <- list()
+  for (iter in seq_len(length(dag_list))) {
+    in_mat <- dag_list[[iter]]
+    joint_mat <- sapply(seq_len(ncol(dta)), function(i) subset(i, which(in_mat[, i] != 0), dta))
+    adj_list[[iter]] <- joint_mat
+  }
+  return(adj_list)
 }
 
-gesdag <- ges_alg(data, dag)
+dag_list1 <- ges_alg(dag_list, data[[1]])
+dag_list2 <- ges_alg(dag_list, data[[2]])
 
-#### Calculate the error
+#### check results
+eval_fun <- function(dag_list, g_true, adj_true, lambdas = c(2, 3, 4, 5)) {
+  for (iter in seq_len(length(dag_list))) {
+    adj <- dag_list[[iter]]
+    g <- as(adj, "graphNEL")
+    cat(
+      "lambda = ", lambdas[iter], c(shd(g_true, g), check_edge(adj_true, adj),
+                                    round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+                                    round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4)
+      ), "\n"
+    )
+  }
+}
+
 ## data set 1
-adj_1 <- gesdag[[1]]
-adj_1 <- ifelse(adj_1 == TRUE, 1, 0)
-g_1 <- as(getGraph(ges_adj1), "graphNEL")
-# structural Hamming distance (SHD) and undirected edge
-print(c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)))
-# TPR & FPR
-print(c(round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4), 
-        round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4)))
+eval_fun(dag_list1, g_true = g_true1, adj_true = adj_true1)
+
+# lambda =  2 37 16 0.8769 0.0027 
+# lambda =  3 35 15 0.9 0.0025 
+# lambda =  4 38 16 0.8615 0.0025 
+# lambda =  5 44 21 0.8077 0.0027 
 
 ## data set 2
-adj_2 <- gesdag[[2]]
-adj_3 <- ifelse(adj_3 == TRUE, 1, 0)
-g_2 <- as(getGraph(adj_2), "graphNEL")
-# structural Hamming distance (SHD) and undirected edge
-print(c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)))
-# TPR & FPR
-print(c(round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4), 
-        round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4)))
+eval_fun(dag_list2, g_true = g_true2, adj_true = adj_true2)
 
-## output results
-cat(
-  "GES", "&", shd(g_true1, g_1), "&", check_edge(adj_true1, adj_1), "&",
-  shd(g_true2, g_2), "&", check_edge(adj_true2, adj_2), "&", "\\\\\n"
-)
+# lambda =  2 49 25 0.8615 0.0041 
+# lambda =  3 32 10 0.9077 0.0025 
+# lambda =  4 49 23 0.8462 0.0039 
+# lambda =  5 52 23 0.7846 0.0039

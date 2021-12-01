@@ -7,8 +7,9 @@ set.seed(2021)
 ## Generate data
 index_t <- sample(seq_len(p), size = L, replace = FALSE)
 b <- rep(0, p)
-b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
 # b[index_t] <- 100
+b[index_t] <- c(1e4, 1e4, rep(1, 18))
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
 Y <- X %*% b + rnorm(n, sd = sigma)
 

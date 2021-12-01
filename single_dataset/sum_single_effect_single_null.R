@@ -7,9 +7,11 @@ set.seed(2021)
 ## Generate data
 index_t <- sample(seq_len(p), size = L, replace = FALSE)
 b <- rep(0, p)
-b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
 # b[index_t] <- 100
+b[index_t] <- c(1e4, 1e4, rep(1, 18))
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+X_scale <- scale(X)
 Y <- X %*% b + rnorm(n, sd = sigma)
 
 ## main function with null model
@@ -151,7 +153,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
 }
 
 ## check results
-res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = FALSE)
+res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
 res$ELBO
 res$sigma2
 res$sigma02_vec

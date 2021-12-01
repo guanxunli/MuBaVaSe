@@ -1,11 +1,12 @@
 library(pcalg)
 library(stabs)
+library(parallel)
 source("simulation_DAG/graph_generation.R")
 # args <- commandArgs()
 # p <- as.numeric(args[6])
 # n_tol <- as.numeric(args[7])
 p <- 100
-n_tol <- 2000
+n_tol <- 600
 K <- 2
 n <- n_tol / K
 n_graph <- 1
@@ -42,63 +43,51 @@ weight_true2 <- t(graph_sim$A[[1]][[2]])
 data <- graph_sim$X[[1]]
 
 #### GES method
-## GES input
-stab_input <- function(i) {
-  p <- ncol(data[[i]])
-  dt <- cbind(as.matrix(data[[i]]), matrix(0, nrow=nrow(data[[i]]), ncol=p * (p-1)))
-  return(list(x=dt, y=rep(i, nrow(data[[i]]))))
-}
-stab_input_list <- lapply(seq_len(length(data)), stab_input)
-
-# stable GES function
-stab_ges <- function(x, y, q, ...) {
-  #Y is the label of the classes, X is the input matrix
-  idx <- y[1]
-  totcol <- nrow(data[[idx]])
-  dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace=FALSE), ]
-  
-  #train the model
-  lambdas <- c(1,2,3,4,5)
-  model_lambda <- function(lambda){
-    l0score <- new("GaussL0penObsScore", data = dt, lambda = lambda * log(ncol(dt)), intercept = FALSE)
+ges_fun <- function(dta,  lambdas = c(1, 2, 3, 4, 5)) {
+  p <- ncol(dta)
+  dag_list <- list()
+  for (iter_lambda in seq_len(length(lambdas))) {
+    lambda <- lambdas[iter_lambda]
+    l0score <- new("GaussL0penObsScore", data = dta, lambda = lambda * log(p), intercept = FALSE)
     ges_fit <- ges(l0score)
-    dag <- as(ges_fit$essgraph, "matrix")
-    as.vector(dag != 0)
+    dag <- as(ges_fit$repr, "matrix")
+    dag_list[[iter_lambda]] <- ifelse(dag == TRUE, 1, 0)
   }
+  return(dag_list)
   
-  #get the path and selected variables
-  path <- sapply(lambdas, model_lambda)
-  selected <- rowSums(path) != 0
-  return(list(selected = selected, path = path))
 }
 
-cutoff <- 0.75
-gesdag_list <- lapply(stab_input_list, 
-                      function(stab_input) stabsel(x = stab_input$x, y = stab_input$y, fitfun = stab_ges, cutoff = cutoff, PFER = 1))
+dag_list1 <- ges_fun(data[[1]])
+dag_list2 <- ges_fun(data[[2]])
 
-#### Calculate the error
+#### check results
+eval_fun <- function(dag_list, g_true, adj_true, lambdas = c(1, 2, 3, 4, 5)) {
+  for (iter in seq_len(length(dag_list))) {
+    adj <- dag_list[[iter]]
+    g <- as(adj, "graphNEL")
+    cat(
+      "lambda = ", lambdas[iter], c(shd(g_true, g), check_edge(adj_true, adj),
+                                    round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+                                    round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4)
+                                    ), "\n"
+    )
+  }
+}
+
 ## data set 1
-adj_1 <- matrix(as.vector(gesdag_list[[1]]$max > cutoff), nrow = p, ncol = p)
-adj_1 <- ifelse(adj_1 == TRUE, 1, 0)
-g_1 <- as(getGraph(ges_adj1), "graphNEL")
-# structural Hamming distance (SHD) and undirected edge
-print(c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)))
-# TPR & FPR
-print(c(round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4), 
-        round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4)))
+eval_fun(dag_list1, g_true = g_true1, adj_true = adj_true1)
+
+# lambda =  1 48 39 0.8385 0.0036 
+# lambda =  2 21 19 0.8538 4e-04 
+# lambda =  3 26 25 0.8077 2e-04 
+# lambda =  4 31 30 0.7615 1e-04 
+# lambda =  5 40 39 0.6923 1e-04 
 
 ## data set 2
-adj_2 <- matrix(as.vector(gesdag_list[[2]]$max > cutoff), nrow = p, ncol = p)
-adj_3 <- ifelse(adj_3 == TRUE, 1, 0)
-g_2 <- as(getGraph(adj_2), "graphNEL")
-# structural Hamming distance (SHD) and undirected edge
-print(c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)))
-# TPR & FPR
-print(c(round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4), 
-        round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4)))
+eval_fun(dag_list2, g_true = g_true2, adj_true = adj_true2)
 
-## output results
-cat(
-  "GES", "&", shd(g_true1, g_1), "&", check_edge(adj_true1, adj_1), "&",
-  shd(g_true2, g_2), "&", check_edge(adj_true2, adj_2), "&", "\\\\\n"
-)
+# lambda =  1 37 29 0.8846 0.003 
+# lambda =  2 20 17 0.8615 5e-04 
+# lambda =  3 21 19 0.8462 3e-04 
+# lambda =  4 24 22 0.8231 3e-04 
+# lambda =  5 28 25 0.7923 4e-04 
