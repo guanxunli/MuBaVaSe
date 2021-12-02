@@ -66,5 +66,6 @@ sum(ges_adj2) / 2
 ges_adj <- ges_adj1 & ges_adj2
 sum(ges_adj) / 2
 
-# cut off 0.5 55 92 22
-# cut off 0.75 36 63 18
+# 55 94 20
+
+# 55 94 20

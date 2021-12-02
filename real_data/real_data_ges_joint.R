@@ -12,13 +12,13 @@ source("real_data/method_code/newclass.R")
 set.seed(2021)
 ## learn causal networks
 stabs_ges <- function(x, y, q, ...) {
-  # sample_data <- function(sing_dt) {
-  #   totcol <- nrow(sing_dt)
-  #   sing_dt[sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
-  # }
-  # # Y is the label of the classes, X is the input matrix
-  # dt <- lapply(data, sample_data)
-  dt <- data
+  sample_data <- function(sing_dt) {
+    totcol <- nrow(sing_dt)
+    sing_dt[sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
+  }
+  # Y is the label of the classes, X is the input matrix
+  dt <- lapply(data, sample_data)
+  # dt <- data
   lambdas <- c(2, 3, 4, 5)
   model_lambda <- function(lambda) {
     l0score <- new("MultiGaussL0pen", data = dt, lambda = lambda * log(ncol(dt[[1]])), intercept = TRUE, use.cpp = FALSE)
@@ -37,7 +37,7 @@ x <- do.call(rbind, data)
 x <- cbind(x, matrix(0, nrow = nrow(x), ncol = p * (p - 1)))
 # construct y
 y <- c()
-for (i in 1:length(data)) {
+for (i in seq_len(length(data))) {
   y <- c(y, rep(i, nrow(data[[i]])))
 }
 ## stable joint GES
@@ -90,3 +90,4 @@ ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
 sum(ges_joint_graph) / 2
 
 ## 51 52 48
+## 55 59 49

@@ -9,18 +9,18 @@ source("real_data/method_code/Graph_MCMC_two.R")
 ## get order
 dta <- rbind(dta_1, dta_2)
 set.seed(2021)
-# library(pcalg)
-# score_ges <- new("GaussL0penObsScore", data = dta, intercept = TRUE)
-# ges_fit <- ges(score_ges)
-# ges_adj <- as(ges_fit$repr, "matrix")
-# ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
-# graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
-# order_int <- as.numeric(igraph::topo_sort(graph_i))
+library(pcalg)
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = TRUE)
+ges_fit <- ges(score_ges)
+ges_adj <- as(ges_fit$repr, "matrix")
+ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
+graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
+order_int <- as.numeric(igraph::topo_sort(graph_i))
 ## Do MCMC
 out_res <- Graph_MCMC_two(dta_1, dta_2,
                           scale_x = FALSE, intercept = FALSE,
-                          order_int = NULL, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1
+                          order_int = order_int, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
+                          prior_vec = rep(1 / (3 * p^1.5), 2), itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1
 )
 
 library(ggplot2)
@@ -30,21 +30,21 @@ p1 <- ggplot() +
 p2 <- ggplot() +
   geom_line(aes(x = seq_len(5000), y = out_res$llike_vec[(length(out_res[[1]]) - 4999):length(out_res[[1]])]))
 layout_matrix <- matrix(c(1, 2), nrow = 2)
-pdf(file = "llikehoold.pdf")
+pdf(file = "real_data/llikehoold.pdf")
 grid.arrange(p1, p2)
 dev.off()
 
 ## save results
-iter_max <- length(out_res)
+iter_max <- length(out_res[[1]])
 out_res$alpha_list_1 <- out_res$alpha_list_1[-seq_len(iter_max - 5000)]
 out_res$alpha_list_2 <- out_res$alpha_list_2[-seq_len(iter_max - 5000)]
 out_res$A_list_1 <- out_res$A_list_1[-seq_len(iter_max - 5000)]
 out_res$A_list_2 <- out_res$A_list_2[-seq_len(iter_max - 5000)]
 out_res$order_list <- out_res$order_list[-seq_len(iter_max - 5000)]
 out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5000)]
-saveRDS(out_res, "out_mcmc.rds")
+saveRDS(out_res, "real_data/results/out_mcmc.rds")
 ## check results
-out_res <- readRDS("out_mcmc.rds")
+out_res <- readRDS("real_data/results/out_mcmc.rds")
 p <- ncol(dta)
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
