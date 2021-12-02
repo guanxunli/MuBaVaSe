@@ -66,38 +66,27 @@ dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
 
 #### If we know the order
-out_res <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, scale_x = TRUE)
+out_res <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, prior_vec = c(1 / (3 * p ^ 1.5), 1 / (2 * p ^ 1.5)))
 ## Calculate the error
 ## data set 1
 adj_1 <- ifelse(out_res$alpha_res_1 > 0.5, 1, 0)
 adj_1 <- t(adj_1)
 eval_fun(adj_1, adj_true1, g_true1)
-# 6 6 0.9769 3e-04
+# 6 6 0.9538 0
 
 ## data set 2
 adj_2 <- ifelse(out_res$alpha_res_2 > 0.5, 1, 0)
 adj_2 <- t(adj_2)
 eval_fun(adj_2, adj_true2, g_true2)
-# 8 8 0.9615 3e-04
+# 8 8 0.9538 2e-04
 
-#### Do order MCMC
+#### Do MCMC
 iter_max <- 50000
-## with GES Initialization
-# get order
-set.seed(2021)
-dta <- rbind(dta_1, dta_2)
-score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
-ges_fit <- ges(score_ges)
-ges_adj <- as(ges_fit$repr, "matrix")
-ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
-graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
-order_int <- as.numeric(igraph::topo_sort(graph_i))
 
-# Do MCMC
-set.seed(2021)
+##### without GES initialization
 out_res <- Graph_MCMC_two(dta_1, dta_2,
-                          order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                          order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
+                          prior_vec = c(1 / (3 * p ^ 1.5), 1 / (2 * p ^ 1.5)), itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                           burn_in = iter_max - 5000
 )
 
@@ -106,7 +95,6 @@ alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
 A_mat_2 <- matrix(0, nrow = p, ncol = p)
-iter_max <- length(out_res[[1]])
 for (iter in seq_len(5000)) {
   order_tmp <- order(out_res$order_list[[iter]])
   alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter]][order_tmp, order_tmp]
@@ -131,11 +119,23 @@ adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
 adj_2 <- t(adj_2)
 eval_fun(adj_2, adj_true2, g_true2)
 
-##### without GES initialization
+## with GES Initialization
+# get order
+set.seed(2021)
+dta <- rbind(dta_1, dta_2)
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
+ges_fit <- ges(score_ges)
+ges_adj <- as(ges_fit$repr, "matrix")
+ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
+graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
+order_int <- as.numeric(igraph::topo_sort(graph_i))
+
+# Do MCMC
+set.seed(2021)
 out_res <- Graph_MCMC_two(dta_1, dta_2,
-                          order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
-                          burn_in = iter_max - 5000
+                          order_int = order_int, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL,
+                          prior_vec = c(1 / (3 * p ^ 1.5), 1 / (2 * p ^ 1.5)), itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                          burn_in = 15000
 )
 
 # analysis
@@ -143,7 +143,6 @@ alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
 A_mat_2 <- matrix(0, nrow = p, ncol = p)
-iter_max <- length(out_res[[1]])
 for (iter in seq_len(5000)) {
   order_tmp <- order(out_res$order_list[[iter]])
   alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter]][order_tmp, order_tmp]

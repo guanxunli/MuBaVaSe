@@ -1,18 +1,19 @@
 # ## define parameters
 # p <- 100
-# n <- 300
+# n1 <- 300
+# n2 <- 400
 # p_c <- 100
-# p_1 <- 20
-# p_2 <- 20
+# p_1 <- 30
+# p_2 <- 25
 # sigma <- 1
 # sigma0 <- 0.6
 # A1 <- matrix(0, nrow = p, ncol = p)
 # A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(202108)
+# set.seed(2021)
 # # Define the true graph given order
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
 # 
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
@@ -22,10 +23,10 @@
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
 # 
-# eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
 # dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
 # dta_2 <- t(dta_2)
 
@@ -35,7 +36,7 @@
 # intercept: calculate the mean of Y
 # sigma02_int is initialization for signal prior variance
 # sigma2_int is initialization for error variance
-# prior_vecr is prior for common part and for single part
+# prior_vec is prior for common part and for single part
 # itermax is the maximum iteration
 # L_max is the largest number of parents
 # tol is the threshold for ELBO
@@ -50,10 +51,12 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE
                                 residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
-  n <- nrow(dta_1)
+  if (p != ncol(dta_2)) stop("The number of features should be same!")
+  n1 <- nrow(dta_1)
+  n2 <- nrow(dta_2)
   ## define prior vector
   if (is.null(prior_vec)) {
-    prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p^1.5))
+    prior_vec <- c(1 / (2 * p^1.5), 1 / (p ^ 2))
   }
   lprior_vec <- log(prior_vec)
   ## save matrix
@@ -64,8 +67,8 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE
   A_res_1 <- matrix(0, nrow = p, ncol = p)
   A_res_2 <- matrix(0, nrow = p, ncol = p)
   # predicted value
-  Xb_mat_1 <- matrix(NA, nrow = n, ncol = p)
-  Xb_mat_2 <- matrix(NA, nrow = n, ncol = p)
+  Xb_mat_1 <- matrix(NA, nrow = n1, ncol = p)
+  Xb_mat_2 <- matrix(NA, nrow = n2, ncol = p)
   # log likelihood
   llike_1_vec <- rep(NA, p)
   llike_2_vec <- rep(NA, p)
@@ -78,8 +81,8 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE
     mean_1 <- 0
     mean_2 <- 0
   }
-  Xb_mat_1[, 1] <- rep(mean_1, n)
-  Xb_mat_2[, 1] <- rep(mean_2, n)
+  Xb_mat_1[, 1] <- rep(mean_1, n1)
+  Xb_mat_2[, 1] <- rep(mean_2, n2)
   sigma2_vec[1] <- var(c(dta_1[, 1], dta_2[, 1]))
   llike_1_vec[1] <- sum(dnorm(dta_1[, 1], mean = mean_1, sd = sqrt(sigma2_vec[1]), log = TRUE))
   llike_2_vec[1] <- sum(dnorm(dta_2[, 1], mean = mean_2, sd = sqrt(sigma2_vec[1]), log = TRUE))
@@ -138,7 +141,8 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE
 # g_1 <- as(adj_1, "graphNEL")
 # weight_1 <- t(res_joint$A_res_1)
 # #### GES method
-# score1 <- new("GaussL0penObsScore", data = dta_1, intercept = FALSE) # lambda = sqrt(2 * log(p) / n)
+# # default lambda = sqrt(2 * log(p) / n)
+# score1 <- new("GaussL0penObsScore", data = dta_1, intercept = FALSE, lambda = 2 * log(p))
 # ges_fit1 <- ges(score1) #  2.2 mins
 # ges_adj1 <- as(ges_fit1$repr, "matrix")
 # ges_adj1 <- ifelse(ges_adj1 == TRUE, 1, 0)
@@ -154,7 +158,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE
 # # Mean square error for weight
 # sum((weight_true_1 - ges_weight1)^2)
 # sum((weight_true_1 - weight_1)^2)
-
+# 
 # ######## data set 2
 # #### Define true
 # adj_true_2 <- t(alpha_mat_2)
@@ -166,7 +170,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE
 # g_2 <- as(adj_2, "graphNEL")
 # weight_2 <- t(res_joint$A_res_2)
 # #### GES method
-# score2 <- new("GaussL0penObsScore", data = dta_2, intercept = FALSE)
+# score2 <- new("GaussL0penObsScore", data = dta_2, intercept = FALSE, lambda = 2 * log(p))
 # ges_fit2 <- ges(score2)
 # ges_adj2 <- as(ges_fit2$repr, "matrix")
 # ges_adj2 <- ifelse(ges_adj2 == TRUE, 1, 0)

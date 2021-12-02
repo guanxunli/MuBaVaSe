@@ -7,7 +7,7 @@ library(pcalg)
 library(stabs)
 
 #### joint GSE method
-source("real_data/method_code/newclass.R")
+source("real_data/newclass.R")
 
 set.seed(2021)
 ## learn causal networks
@@ -89,5 +89,4 @@ sum(ges_joint_graph2) / 2
 ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
 sum(ges_joint_graph) / 2
 
-## 51 52 48
-## 55 59 49
+## 53 55 50

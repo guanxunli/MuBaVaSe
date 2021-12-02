@@ -22,8 +22,8 @@ stab_ges <- function(x, y, q, ...) {
   # Y is the label of the classes, X is the input matrix
   idx <- y[1]
   totcol <- nrow(data[[idx]])
-  # dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
-  dt <- data[[idx]]
+  dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
+  # dt <- data[[idx]]
   
   # train the model
   lambdas <- c(1, 2, 3, 4, 5)
@@ -63,7 +63,5 @@ sum(ges_adj2) / 2
 ## intersections
 ges_adj <- ges_adj1 & ges_adj2
 sum(ges_adj) / 2
-
-# 68 102 34
 
 ## 0.9: 68 102 34

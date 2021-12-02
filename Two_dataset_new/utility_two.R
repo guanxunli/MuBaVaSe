@@ -39,16 +39,18 @@ sigma0_opt_two <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat
   }
 }
 
-## Calculate the KL divergence
+## Calculate the -KL divergence
 KL_fun_two <- function(X_scale_1, X_scale2_1, Y_1, X_scale_2, Y_2, X_scale2_2,
                        sigma2, b_1, b2_1, b_2, b2_2, lBF) {
-  n <- length(Y_1)
+  n1 <- length(Y_1)
+  n2 <- length(Y_2)
   tmp1_1 <- sum(dnorm(Y_1, mean = 0, sd = sqrt(sigma2), log = TRUE))
   tmp1_2 <- sum(dnorm(Y_2, mean = 0, sd = sqrt(sigma2), log = TRUE))
-  tmp3 <- n * log(2 * pi * sigma2)
+  tmp3_1 <- n1 / 2 * log(2 * pi * sigma2)
+  tmp3_2 <- n2 / 2 * log(2 * pi * sigma2)
   tmp4_1 <- 1 / (2 * sigma2) * (crossprod(Y_1) - 2 * crossprod(Y_1, X_scale_1 %*% b_1) + sum(X_scale2_1 %*% b2_1))
   tmp4_2 <- 1 / (2 * sigma2) * (crossprod(Y_2) - 2 * crossprod(Y_2, X_scale_2 %*% b_2) + sum(X_scale2_2 %*% b2_2))
-  return(tmp1_1 + tmp1_2 + lBF + tmp3 + tmp4_1 + tmp4_2)
+  return(tmp1_1 + tmp1_2 + lBF + tmp3_1 + tmp3_2 + tmp4_1 + tmp4_2)
 }
 
 ## Calculate ERSS

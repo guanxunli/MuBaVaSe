@@ -1,33 +1,34 @@
-## Define parameters
-n <- 500
-p <- 1000
-p_c <- 25
-p_1 <- 5
-p_2 <- 5
-sigma <- 1
-sigma0 <- 0.6
-set.seed(2021)
-## Generate data
-index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
-index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
-index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
-
-b_1 <- rep(0, p)
-b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
-b_2 <- rep(0, p)
-b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
-
-alpha_1 <- rep(0, p)
-alpha_1[c(index_c, index_1)] <- 1
-alpha_2 <- rep(0, p)
-alpha_2[c(index_c, index_2)] <- 1
-
-X_1 <- matrix(rnorm(p * n), nrow = n, ncol = p)
-X_2 <- matrix(rnorm(p * n), nrow = n, ncol = p)
-Y_1 <- X_1 %*% b_1 + rnorm(n, sd = sigma)
-Y_2 <- X_2 %*% b_2 + rnorm(n, sd = sigma)
+# ## Define parameters
+# n1 <- 600
+# n2 <- 500
+# p <- 1000
+# p_c <- 25
+# p_1 <- 5
+# p_2 <- 6
+# sigma <- 1
+# sigma0 <- 0.6
+# set.seed(2021)
+# ## Generate data
+# index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
+# index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
+# 
+# b_1 <- rep(0, p)
+# b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
+# # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
+# b_2 <- rep(0, p)
+# b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
+# # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
+# 
+# alpha_1 <- rep(0, p)
+# alpha_1[c(index_c, index_1)] <- 1
+# alpha_2 <- rep(0, p)
+# alpha_2[c(index_c, index_2)] <- 1
+# 
+# X_1 <- matrix(rnorm(p * n1), nrow = n1, ncol = p)
+# X_2 <- matrix(rnorm(p * n2), nrow = n2, ncol = p)
+# Y_1 <- X_1 %*% b_1 + rnorm(n1, sd = sigma)
+# Y_2 <- X_2 %*% b_2 + rnorm(n2, sd = sigma)
 
 ## main function with null model
 # X_1 and X_2 are regressors, n x p matrix, each column is one feature
@@ -50,22 +51,19 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
                                   residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(X_1)
-  n <- nrow(X_1)
+  if (p != ncol(X_2)) stop("The number of features should be same!")
+  n1 <- nrow(X_1)
+  n2 <- nrow(X_2)
   
   # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
-  if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- sigma2_int / 1e4
+  if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
   
   ## data preprocess
-  if (scale_x) {
-    X_scale_1 <- scale(X_1)
-    X_scale_2 <- scale(X_2)
-  } else {
-    X_scale_1 <- X_1
-    X_scale_2 <- X_2
-  }
+  X_scale_1 <- scale(X_1, center = intercept, scale = scale_x)
+  X_scale_2 <- scale(X_2, center = intercept, scale = scale_x)
   
   if (intercept) {
     mean_Y_1 <- mean(Y_1)
@@ -74,22 +72,21 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
     mean_Y_1 <- 0
     mean_Y_2 <- 0
   }
+  Y_1 <- Y_1 - mean_Y_1
+  Y_2 <- Y_2 - mean_Y_2
   
   ## data set 1
   X_scale2_1 <- X_scale_1 * X_scale_1
   X2_1 <- colSums(X_scale2_1)
-  Y_1 <- Y_1 - mean_Y_1
   # data set 2
   X_scale2_2 <- X_scale_2 * X_scale_2
   X2_2 <- colSums(X_scale2_2)
-  Y_2 <- Y_2 - mean_Y_2
   
   # Initialize prior
   if (is.null(prior_vec)) {
-    prior_pi <- c(rep(1 / (6 * p^1.5), 2 * p), rep(2 / (3 * p^1.5), p))
-  } else {
-    prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
+    prior_vec <- c(1 / (2 * p^1.5), 1 / (p ^ 2))
   }
+  prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
   prior_pi <- c(prior_pi, 1 - sum(prior_pi))
   
   # initialize ELBO
@@ -158,13 +155,13 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
       ## Calculate posterior mean
       # data set 1
       alpha_mat_1[, l] <- post_alpha[1:p] + post_alpha[(2 * p + 1):(3 * p)]
-      alpha_mat_2[, l] <- post_alpha[(p + 1):(2 * p)] + post_alpha[(2 * p + 1):(3 * p)]
       b_mat_1[, l] <- alpha_mat_1[, l] * post_mu_1
       b2_mat_1[, l] <- alpha_mat_1[, l] * (post_mu_1^2 + post_sigma2_1)
       # data set 2
+      alpha_mat_2[, l] <- post_alpha[(p + 1):(2 * p)] + post_alpha[(2 * p + 1):(3 * p)]
       b_mat_2[, l] <- alpha_mat_2[, l] * post_mu_2
       b2_mat_2[, l] <- alpha_mat_2[, l] * (post_mu_2^2 + post_sigma2_2)
-      ## calculate the KL divergence
+      ## calculate the -KL divergence
       KL_div <- KL_div + KL_fun_two(
         X_scale_1 = X_scale_1, Y_1 = res_tmp_1, X_scale_2 = X_scale_2, Y_2 = res_tmp_2,
         X_scale2_1 = X_scale2_1, X_scale2_2 = X_scale2_2, sigma2 = sigma2,
@@ -178,9 +175,9 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
     ERSS_1 <- ERSS_fun_single(X_scale = X_scale_1, X_scale2 = X_scale2_1, Y = Y_1, b_mat = b_mat_1, b2_mat = b2_mat_1)
     ERSS_2 <- ERSS_fun_single(X_scale = X_scale_2, X_scale2 = X_scale2_2, Y = Y_2, b_mat = b_mat_2, b2_mat = b2_mat_2)
     ERSS <- ERSS_1 + ERSS_2
-    ELBO[iter + 1] <- -n * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
+    ELBO[iter + 1] <- - (n1 + n2) / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
     # estimate sigma2
-    sigma2 <- max(ERSS / (2 * n), residual_variance_lowerbound)
+    sigma2 <- max(ERSS / (n1 + n2), residual_variance_lowerbound)
     if (ELBO[iter + 1] - ELBO[iter] < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
@@ -207,11 +204,11 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
     # data set 1
     res$alpha_1 <- rep(0, p)
     res$post_mean1 <- rep(0, p)
-    res$Xb_1 <- rep(mean_Y_1, n)
+    res$Xb_1 <- rep(mean_Y_1, n1)
     # data set 2
     res$alpha_2 <- rep(0, p)
     res$post_mean2 <- rep(0, p)
-    res$Xb_2 <- rep(mean_Y_2, n)
+    res$Xb_2 <- rep(mean_Y_2, n2)
     # all alpha
     res$alpha <- rep(0, 3 * p)
   }
@@ -219,5 +216,52 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
   return(res)
 }
 
-# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2,
-#                              L = p_c + p_1 + p_2)
+# #### check results
+# ## joint method
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1, scale_x = FALSE, intercept = TRUE)
+# res$index1 <- which(res$alpha_1 > 0.5)
+# res$index2 <- which(res$alpha_2 > 0.5)
+# res_scale <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1, scale_x = TRUE, intercept = TRUE)
+# res_scale$index1 <- which(res_scale$alpha_1 > 0.5)
+# res_scale$index2 <- which(res_scale$alpha_2 > 0.5)
+# ## single metehod
+# # data set 1
+# res1 <- susieR::susie(X = X_1, y = Y_1, L = p_c + p_1 + 1, standardize = FALSE)
+# res1$index <- which(1 - apply(1 - res1$alpha, 2, prod) > 0.5)
+# res1_scale <- susieR::susie(X = X_1, y = Y_1, L = p_c + p_1 + 1, standardize = TRUE)
+# res1_scale$index <- which(1 - apply(1 - res1_scale$alpha, 2, prod) > 0.5)
+# # data set 2
+# res2 <- susieR::susie(X = X_2, y = Y_2, L = p_c + p_2 + 1, standardize = FALSE)
+# res2$index <- which(1 - apply(1 - res2$alpha, 2, prod) > 0.5)
+# res2_scale <- susieR::susie(X = X_2, y = Y_2, L = p_c + p_2 + 1, standardize = TRUE)
+# res2_scale$index <- which(1 - apply(1 - res2_scale$alpha, 2, prod) > 0.5)
+# 
+# ## data set 1
+# cat("Joint: ", round(length(intersect(res$index1, c(index_1, index_c))) / (p_1 + p_c), 4),
+#     round(length(intersect(res$index1, c(index_1, index_c))) / length(res$index1), 4),
+#     round(sum((res$post_mean1 - b_1)^2), 4), round(sum((X_1 %*% b_1 - res$Xb_1)^2), 4), "\n",
+#     "Single: ", round(length(intersect(res1$index, c(index_1, index_c))) / (p_1 + p_c), 4),
+#     round(length(intersect(res1$index, c(index_1, index_c))) / length(res1$index), 4),
+#     round(sum((colSums(res1$mu * res1$alpha) - b_1)^2), 4), round(sum((X_1 %*% b_1 - res1$Xr)^2), 4), "\n")
+# 
+# cat("Joint: ", round(length(intersect(res_scale$index1, c(index_1, index_c))) / (p_1 + p_c), 4),
+#     round(length(intersect(res_scale$index1, c(index_1, index_c))) / length(res_scale$index1), 4),
+#     round(sum((res_scale$post_mean1 - b_1)^2), 4), round(sum((X_1 %*% b_1 - res_scale$Xb_1)^2), 4), "\n",
+#     "Single: ", round(length(intersect(res1_scale$index, c(index_1, index_c))) / (p_1 + p_c), 4),
+#     round(length(intersect(res1_scale$index, c(index_1, index_c))) / length(res1_scale$index), 4),
+#     round(sum((colSums(res1_scale$mu * res1_scale$alpha) - b_1)^2), 4), round(sum((X_1 %*% b_1 - res1_scale$Xr)^2), 4), "\n")
+# 
+# ## data set 2
+# cat("Joint: ", round(length(intersect(res$index2, c(index_2, index_c))) / (p_2 + p_c), 4),
+#     round(length(intersect(res$index2, c(index_2, index_c))) / length(res$index2), 4),
+#     round(sum((res$post_mean2 - b_2)^2), 4), round(sum((X_2 %*% b_2 - res$Xb_2)^2), 4), "\n",
+#     "Single: ", round(length(intersect(res2$index, c(index_2, index_c))) / (p_2 + p_c), 4),
+#     round(length(intersect(res2$index, c(index_2, index_c))) / length(res2$index), 4),
+#     round(sum((colSums(res2$mu * res2$alpha) - b_2)^2), 4), round(sum((X_2 %*% b_2 - res2$Xr)^2), 4), "\n")
+# 
+# cat("Joint: ", round(length(intersect(res_scale$index2, c(index_2, index_c))) / (p_2 + p_c), 4),
+#     round(length(intersect(res_scale$index2, c(index_2, index_c))) / length(res_scale$index2), 4),
+#     round(sum((res_scale$post_mean2 - b_2)^2), 4), round(sum((X_2 %*% b_2 - res_scale$Xb_2)^2), 4), "\n",
+#     "Single: ", round(length(intersect(res2_scale$index, c(index_2, index_c))) / (p_2 + p_c), 4),
+#     round(length(intersect(res2_scale$index, c(index_2, index_c))) / length(res2_scale$index), 4),
+#     round(sum((colSums(res2_scale$mu * res2_scale$alpha) - b_2)^2), 4), round(sum((X_2 %*% b_2 - res2_scale$Xr)^2), 4), "\n")

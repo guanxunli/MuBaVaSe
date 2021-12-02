@@ -20,8 +20,8 @@ stabs_pc <- function(x, y, q, ...) {
   # Y is the label of the classes, X is the input matrix
   idx <- y[1]
   totcol <- nrow(data[[idx]])
-  # dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
-  dt <- data[[idx]]
+  dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
+  # dt <- data[[idx]]
   p <- ncol(dt)
   
   # train the model
@@ -66,6 +66,4 @@ sum(ges_adj2) / 2
 ges_adj <- ges_adj1 & ges_adj2
 sum(ges_adj) / 2
 
-# 55 94 20
-
-# 55 94 20
+# cut off 0.5 55 94 20

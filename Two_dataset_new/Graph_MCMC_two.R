@@ -1,9 +1,10 @@
 # ## define parameters
 # p <- 100
-# n <- 75
+# n1 <- 300
+# n2 <- 400
 # p_c <- 100
-# p_1 <- 20
-# p_2 <- 20
+# p_1 <- 30
+# p_2 <- 25
 # sigma <- 1
 # sigma0 <- 0.6
 # A1 <- matrix(0, nrow = p, ncol = p)
@@ -12,7 +13,7 @@
 # # Define the true graph given order
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_1), size = p_2, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
 # 
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
@@ -22,10 +23,10 @@
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
 # 
-# eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
 # dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
 # dta_2 <- t(dta_2)
 
@@ -47,6 +48,19 @@
 
 source("Two_dataset_new/sum_single_effect_two.R")
 source("Two_dataset_new/Graph_given_order_two.R")
+scale_x = FALSE
+intercept = FALSE
+order_int = NULL
+iter_max = 50000
+sigma02_int = NULL
+sigma2_int = NULL
+prior_vec = NULL
+itermax = 100
+L_max = 10
+tol = 1e-4
+sigma0_low_bd = 1e-8
+burn_in = 5000
+residual_variance_lowerbound = NULL
 Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                            order_int = NULL, iter_max = 50000,
                            sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
@@ -54,10 +68,12 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                            burn_in = 5000, residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
-  n <- nrow(dta_1)
+  if (p != ncol(dta_2)) stop("The number of features should be same!")
+  n1 <- nrow(dta_1)
+  n2 <- nrow(dta_2)
   ## define prior vector
   if (is.null(prior_vec)) {
-    prior_vec <- c(1 / (6 * p^1.5), 2 / (3 * p^1.5))
+    prior_vec <- c(1 / (2 * p^1.5), 1 / p ^ 2)
   }
   lprior_vec <- log(prior_vec)
   # Initialize order
