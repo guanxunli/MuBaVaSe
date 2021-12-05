@@ -11,7 +11,7 @@ source("real_data/Graph_MCMC_two.R")
 out_res <- Graph_MCMC_two(dta_1, dta_2,
                           scale_x = FALSE, intercept = FALSE,
                           order_int = order_int, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = c(1 / (2 * p^1.5), 1 / p ^ 2), 
+                          prior_vec = c(1 / (2 * p^1.5), 1 / p^2),
                           itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1
 )
 
@@ -22,7 +22,7 @@ p1 <- ggplot() +
 p2 <- ggplot() +
   geom_line(aes(x = seq_len(5000), y = out_res$llike_vec[(length(out_res[[1]]) - 4999):length(out_res[[1]])]))
 layout_matrix <- matrix(c(1, 2), nrow = 2)
-pdf(file = "real_data/llikehoold_without.pdf")
+pdf(file = "real_data/results/llikehoold_without.pdf")
 grid.arrange(p1, p2)
 dev.off()
 
@@ -82,7 +82,7 @@ order_int <- as.numeric(igraph::topo_sort(graph_i))
 out_res <- Graph_MCMC_two(dta_1, dta_2,
                           scale_x = FALSE, intercept = FALSE,
                           order_int = order_int, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = c(1 / (2 * p^1.5), 1 / p ^ 2), 
+                          prior_vec = c(1 / (2 * p^1.5), 1 / p^2),
                           itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1
 )
 
@@ -93,7 +93,7 @@ p1 <- ggplot() +
 p2 <- ggplot() +
   geom_line(aes(x = seq_len(5000), y = out_res$llike_vec[(length(out_res[[1]]) - 4999):length(out_res[[1]])]))
 layout_matrix <- matrix(c(1, 2), nrow = 2)
-pdf(file = "real_data/llikehoold.pdf")
+pdf(file = "real_data/results/llikehoold.pdf")
 grid.arrange(p1, p2)
 dev.off()
 

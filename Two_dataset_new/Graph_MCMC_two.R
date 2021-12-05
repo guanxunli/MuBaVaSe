@@ -14,15 +14,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-# 
+#
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
+#
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
+#
 # eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -48,19 +48,6 @@
 
 source("Two_dataset_new/sum_single_effect_two.R")
 source("Two_dataset_new/Graph_given_order_two.R")
-scale_x = FALSE
-intercept = FALSE
-order_int = NULL
-iter_max = 50000
-sigma02_int = NULL
-sigma2_int = NULL
-prior_vec = NULL
-itermax = 100
-L_max = 10
-tol = 1e-4
-sigma0_low_bd = 1e-8
-burn_in = 5000
-residual_variance_lowerbound = NULL
 Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                            order_int = NULL, iter_max = 50000,
                            sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
@@ -73,7 +60,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
   n2 <- nrow(dta_2)
   ## define prior vector
   if (is.null(prior_vec)) {
-    prior_vec <- c(1 / (2 * p^1.5), 1 / p ^ 2)
+    prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
   }
   lprior_vec <- log(prior_vec)
   # Initialize order
@@ -140,11 +127,11 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
       res_pos$alpha_2 <- rep(0, p)
       res_pos$post_mean2 <- rep(0, p)
       if (intercept) {
-        res_pos$Xb_1 <- rep(mean(dta_1_pro[, 1]), n)
-        res_pos$Xb_2 <- rep(mean(dta_2_pro[, 1]), n)
+        res_pos$Xb_1 <- rep(mean(dta_1_pro[, 1]), n1)
+        res_pos$Xb_2 <- rep(mean(dta_2_pro[, 1]), n2)
       } else {
-        res_pos$Xb_1 <- rep(0, n)
-        res_pos$Xb_2 <- rep(0, n)
+        res_pos$Xb_1 <- rep(0, n1)
+        res_pos$Xb_2 <- rep(0, n2)
       }
     } else {
       res_pos <- sum_single_effect_two(
@@ -241,4 +228,4 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
 # set.seed(2021)
 # res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10, burn_in = 5,
 #                       prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))
-# Sys.time() - time1 
+# Sys.time() - time1

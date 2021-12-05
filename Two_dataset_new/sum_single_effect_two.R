@@ -12,19 +12,19 @@
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
-# 
+#
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
 # # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
-# 
+#
 # alpha_1 <- rep(0, p)
 # alpha_1[c(index_c, index_1)] <- 1
 # alpha_2 <- rep(0, p)
 # alpha_2[c(index_c, index_2)] <- 1
-# 
+#
 # X_1 <- matrix(rnorm(p * n1), nrow = n1, ncol = p)
 # X_2 <- matrix(rnorm(p * n2), nrow = n2, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n1, sd = sigma)
@@ -84,7 +84,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
   
   # Initialize prior
   if (is.null(prior_vec)) {
-    prior_vec <- c(1 / (2 * p^1.5), 1 / (p ^ 2))
+    prior_vec <- c(1 / (2 * p^1.5), 1 / (p^2))
   }
   prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
   prior_pi <- c(prior_pi, 1 - sum(prior_pi))
@@ -175,7 +175,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
     ERSS_1 <- ERSS_fun_single(X_scale = X_scale_1, X_scale2 = X_scale2_1, Y = Y_1, b_mat = b_mat_1, b2_mat = b2_mat_1)
     ERSS_2 <- ERSS_fun_single(X_scale = X_scale_2, X_scale2 = X_scale2_2, Y = Y_2, b_mat = b_mat_2, b2_mat = b2_mat_2)
     ERSS <- ERSS_1 + ERSS_2
-    ELBO[iter + 1] <- - (n1 + n2) / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
+    ELBO[iter + 1] <- -(n1 + n2) / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
     # estimate sigma2
     sigma2 <- max(ERSS / (n1 + n2), residual_variance_lowerbound)
     if (ELBO[iter + 1] - ELBO[iter] < 1e-4) break
@@ -235,7 +235,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
 # res2$index <- which(1 - apply(1 - res2$alpha, 2, prod) > 0.5)
 # res2_scale <- susieR::susie(X = X_2, y = Y_2, L = p_c + p_2 + 1, standardize = TRUE)
 # res2_scale$index <- which(1 - apply(1 - res2_scale$alpha, 2, prod) > 0.5)
-# 
+#
 # ## data set 1
 # cat("Joint: ", round(length(intersect(res$index1, c(index_1, index_c))) / (p_1 + p_c), 4),
 #     round(length(intersect(res$index1, c(index_1, index_c))) / length(res$index1), 4),
@@ -243,14 +243,14 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
 #     "Single: ", round(length(intersect(res1$index, c(index_1, index_c))) / (p_1 + p_c), 4),
 #     round(length(intersect(res1$index, c(index_1, index_c))) / length(res1$index), 4),
 #     round(sum((colSums(res1$mu * res1$alpha) - b_1)^2), 4), round(sum((X_1 %*% b_1 - res1$Xr)^2), 4), "\n")
-# 
+#
 # cat("Joint: ", round(length(intersect(res_scale$index1, c(index_1, index_c))) / (p_1 + p_c), 4),
 #     round(length(intersect(res_scale$index1, c(index_1, index_c))) / length(res_scale$index1), 4),
 #     round(sum((res_scale$post_mean1 - b_1)^2), 4), round(sum((X_1 %*% b_1 - res_scale$Xb_1)^2), 4), "\n",
 #     "Single: ", round(length(intersect(res1_scale$index, c(index_1, index_c))) / (p_1 + p_c), 4),
 #     round(length(intersect(res1_scale$index, c(index_1, index_c))) / length(res1_scale$index), 4),
 #     round(sum((colSums(res1_scale$mu * res1_scale$alpha) - b_1)^2), 4), round(sum((X_1 %*% b_1 - res1_scale$Xr)^2), 4), "\n")
-# 
+#
 # ## data set 2
 # cat("Joint: ", round(length(intersect(res$index2, c(index_2, index_c))) / (p_2 + p_c), 4),
 #     round(length(intersect(res$index2, c(index_2, index_c))) / length(res$index2), 4),
@@ -258,7 +258,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
 #     "Single: ", round(length(intersect(res2$index, c(index_2, index_c))) / (p_2 + p_c), 4),
 #     round(length(intersect(res2$index, c(index_2, index_c))) / length(res2$index), 4),
 #     round(sum((colSums(res2$mu * res2$alpha) - b_2)^2), 4), round(sum((X_2 %*% b_2 - res2$Xr)^2), 4), "\n")
-# 
+#
 # cat("Joint: ", round(length(intersect(res_scale$index2, c(index_2, index_c))) / (p_2 + p_c), 4),
 #     round(length(intersect(res_scale$index2, c(index_2, index_c))) / length(res_scale$index2), 4),
 #     round(sum((res_scale$post_mean2 - b_2)^2), 4), round(sum((X_2 %*% b_2 - res_scale$Xb_2)^2), 4), "\n",

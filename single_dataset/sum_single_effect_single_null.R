@@ -105,12 +105,14 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
       lBF_model <- maxlBF + log(wBF_sum)
       ## Get posterior
       post_alpha <- prior_pi * wBF / wBF_sum
+      cat("Print alpha. l :", l, "alpha:", post_alpha)
       alpha_null[l] <- post_alpha[length(post_alpha)]
       alpha_mat[, l] <- post_alpha[-length(post_alpha)]
       post_sigma2 <- 1 / (1 / s2 + 1 / sigma02)
       post_mu <- post_sigma2 / s2 * b_hat
       ## Calculate posterior mean
       b_mat[, l] <- alpha_mat[, l] * post_mu
+      cat("Print posterior l :", l, "posterior:", b_mat[, l])
       b2_mat[, l] <- alpha_mat[, l] * (post_mu^2 + post_sigma2)
       ## calculate the minus KL divergence
       KL_div_vec[l] <- KL_fun_single(
