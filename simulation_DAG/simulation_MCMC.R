@@ -66,7 +66,7 @@ dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
 
 #### If we know the order
-out_res <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, prior_vec = c(1 / (3 * p ^ 1.5), 1 / (2 * p ^ 1.5)))
+out_res <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, prior_vec = c(1 / (3 * p^1.5), 1 / (2 * p^1.5)))
 ## Calculate the error
 ## data set 1
 adj_1 <- ifelse(out_res$alpha_res_1 > 0.5, 1, 0)
@@ -86,7 +86,7 @@ iter_max <- 50000
 ##### without GES initialization
 out_res <- Graph_MCMC_two(dta_1, dta_2,
                           order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = c(1 / (3 * p ^ 1.5), 1 / (2 * p ^ 1.5)), itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                          prior_vec = c(1 / (3 * p^1.5), 1 / (2 * p^1.5)), itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                           burn_in = iter_max - 5000
 )
 
@@ -134,7 +134,7 @@ order_int <- as.numeric(igraph::topo_sort(graph_i))
 set.seed(2021)
 out_res <- Graph_MCMC_two(dta_1, dta_2,
                           order_int = order_int, iter_max = 20000, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = c(1 / (3 * p ^ 1.5), 1 / (2 * p ^ 1.5)), itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                          prior_vec = c(1 / (3 * p^1.5), 1 / (2 * p^1.5)), itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                           burn_in = 15000
 )
 

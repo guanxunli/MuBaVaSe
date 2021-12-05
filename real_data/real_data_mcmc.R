@@ -10,7 +10,7 @@ source("Two_dataset_new//Graph_MCMC_two.R")
 ## Do MCMC without order
 out_res <- Graph_MCMC_two(dta_1, dta_2,
                           scale_x = FALSE, intercept = FALSE,
-                          order_int = order_int, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
+                          order_int = NULL, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
                           prior_vec = c(1 / (2 * p^1.5), 1 / p^2),
                           itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, burn_in = 1
 )
