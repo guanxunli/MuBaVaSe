@@ -5,7 +5,7 @@ dta_2 <- data[[2]]
 p <- ncol(data[[1]])
 
 ## generate graph
-source("real_data/Graph_MCMC_two.R")
+source("Two_dataset_new//Graph_MCMC_two.R")
 
 ## Do MCMC without order
 out_res <- Graph_MCMC_two(dta_1, dta_2,
@@ -37,7 +37,6 @@ out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5000)]
 saveRDS(out_res, "real_data/results/out_mcmc_without.rds")
 ## check results
 out_res <- readRDS("real_data/results/out_mcmc_without.rds")
-p <- ncol(dta)
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
@@ -108,7 +107,6 @@ out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5000)]
 saveRDS(out_res, "real_data/results/out_mcmc.rds")
 ## check results
 out_res <- readRDS("real_data/results/out_mcmc.rds")
-p <- ncol(dta)
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 A_mat_1 <- matrix(0, nrow = p, ncol = p)
