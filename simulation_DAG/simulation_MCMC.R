@@ -63,8 +63,8 @@ weight_true2 <- t(graph_sim$A[[1]][[2]])
 source("Two_dataset_new/Graph_MCMC_two.R")
 dta_1 <- graph_sim$X[[1]][[1]]
 dta_2 <- graph_sim$X[[1]][[2]]
-prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
-# prior_vec <- c(1 / p^1.5, 1 / p^1.5)
+# prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
+prior_vec <- c(1 / p^1.5, 1 / p^1.5)
 
 #### If we know the order
 out_res <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2, prior_vec = prior_vec)
@@ -81,20 +81,19 @@ g_2 <- as(getGraph(adj_2), "graphNEL")
 cat("prior:", prior_vec, "data2:", c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)), "\n")
 
 
-# prior: 5e-04 1e-04 data1: 12 12
-# prior: 5e-04 1e-04 data2: 9 9
+# prior: 5e-04 1e-04 data1: 12 12 
+# prior: 5e-04 1e-04 data2: 9 9 
 # prior: 0.001 0.001 data1: 6 6
 # prior: 0.001 0.001 data2: 7 7
 
 #### Do MCMC
 iter_max <- 50000
-lambda <- 2
 
 #### with GES Initialization
 # get order
 set.seed(2021)
 dta <- rbind(dta_1, dta_2)
-score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE, lambda = lambda * log(p))
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
 ges_fit <- ges(score_ges)
 ges_adj <- as(ges_fit$repr, "matrix")
 ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
@@ -135,6 +134,11 @@ adj_2 <- t(adj_2)
 g_2 <- as(getGraph(adj_2), "graphNEL")
 cat("prior:", prior_vec, "data2:", c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)), "\n")
 
+# prior: 5e-04 1e-04 data1: 32 19 
+# prior: 5e-04 1e-04 data2: 37 25 
+# prior: 0.001 0.001 data1: 30 17 
+# prior: 0.001 0.001 data2: 32 22 
+
 # ##### without GES initialization
 # out_res <- Graph_MCMC_two(dta_1, dta_2,
 #                           order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
@@ -174,11 +178,11 @@ cat("prior:", prior_vec, "data2:", c(shd(g_true2, g_2), check_edge(adj_true2, ad
 ########################### Do parallel ##################################
 #### generate graph
 set.seed(2021)
+source("Two_dataset_new/Graph_MCMC_two_para.R")
 n_graph <- 20
 graph_sim <- graph_generation(K = K, n_graph = n_graph, p = p, n_tol = n_tol)
-lambda <- 2
-prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
-# prior_vec <- c(1 / p^1.5, 1 / p^1.5)
+# prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
+prior_vec <- c(1 / p^1.5, 1 / p^1.5)
 iter_max <- 50000
 out_res <- list()
 
@@ -193,7 +197,7 @@ out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
   dta_2 <- graph_sim$X[[1]][[2]]
   # get order
   dta <- rbind(dta_1, dta_2)
-  score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE, lambda = lambda * log(p))
+  score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
   ges_fit <- ges(score_ges)
   ges_adj <- as(ges_fit$repr, "matrix")
   ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
