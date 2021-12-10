@@ -6,17 +6,21 @@ p <- ncol(data[[1]])
 
 ## generate graph
 source("Two_dataset_new//Graph_MCMC_two.R")
-prior_vec <- c(1 / (2 * p ^ 1.5), 1 / p ^ 2)
+prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
+scale_x <- FALSE
+intercept <- TRUE
 iter_max <- 50000
 
 ## Do MCMC without order
+set.seed(2021)
 out_res <- Graph_MCMC_two(dta_1, dta_2,
-                          scale_x = FALSE, intercept = FALSE,
+                          scale_x = scale_x, intercept = intercept,
                           order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, 
+                          prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                           burn_in = 1
 )
 
+## plot results
 library(ggplot2)
 library(gridExtra)
 p1 <- ggplot() +
@@ -36,6 +40,7 @@ out_res$A_list_2 <- out_res$A_list_2[-seq_len(iter_max - 5001)]
 out_res$order_list <- out_res$order_list[-seq_len(iter_max - 5001)]
 out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5001)]
 saveRDS(out_res, "real_data/results/out_mcmc_without.rds")
+
 ## check results
 out_res <- readRDS("real_data/results/out_mcmc_without.rds")
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
@@ -58,22 +63,21 @@ A_mat_2 <- A_mat_2 / 5000
 ## data set 1
 adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
 adj_1 <- t(adj_1)
-sum(adj_1) #
 ## data set 2
 adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
 adj_2 <- t(adj_2)
-sum(adj_2) #
 ## check results
-length(intersect(which(adj_1 == 1), which(adj_2 == 1)))
-
-## 73 73 73
+cat(
+  "scale_x:", scale_x, "intercept", intercept, "prior_vec", prior_vec, "\n",
+  sum(adj_1), sum(adj_2), length(intersect(which(adj_1 == 1), which(adj_2 == 1))), "\n"
+)
 
 #### Do MCMC with order
 ## get order
 dta <- rbind(dta_1, dta_2)
 set.seed(2021)
 library(pcalg)
-score_ges <- new("GaussL0penObsScore", data = dta, intercept = TRUE)
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = intercept)
 ges_fit <- ges(score_ges)
 ges_adj <- as(ges_fit$repr, "matrix")
 ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
@@ -81,12 +85,13 @@ graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag 
 order_int <- as.numeric(igraph::topo_sort(graph_i))
 ## Do MCMC
 out_res <- Graph_MCMC_two(dta_1, dta_2,
-                          scale_x = FALSE, intercept = FALSE,
+                          scale_x = scale_x, intercept = intercept,
                           order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8, 
+                          prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
                           burn_in = 1
 )
 
+## plot results
 library(ggplot2)
 library(gridExtra)
 p1 <- ggplot() +
@@ -106,6 +111,7 @@ out_res$A_list_2 <- out_res$A_list_2[-seq_len(iter_max - 5001)]
 out_res$order_list <- out_res$order_list[-seq_len(iter_max - 5001)]
 out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5001)]
 saveRDS(out_res, "real_data/results/out_mcmc.rds")
+
 ## check results
 out_res <- readRDS("real_data/results/out_mcmc.rds")
 alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
@@ -128,12 +134,11 @@ A_mat_2 <- A_mat_2 / 5000
 ## data set 1
 adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
 adj_1 <- t(adj_1)
-sum(adj_1) #
 ## data set 2
 adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
 adj_2 <- t(adj_2)
-sum(adj_2) #
 ## check results
-length(intersect(which(adj_1 == 1), which(adj_2 == 1)))
-
-## 74 74 74
+cat(
+  "scale_x:", scale_x, "intercept", intercept, "prior_vec", prior_vec, "\n",
+  sum(adj_1), sum(adj_2), length(intersect(which(adj_1 == 1), which(adj_2 == 1))), "\n"
+)

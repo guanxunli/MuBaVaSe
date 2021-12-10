@@ -1,51 +1,3 @@
-# ## define parameters
-# p <- 100
-# n1 <- 300
-# n2 <- 400
-# p_c <- 100
-# p_1 <- 30
-# p_2 <- 25
-# sigma <- 1
-# sigma0 <- 0.6
-# A1 <- matrix(0, nrow = p, ncol = p)
-# A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(2021)
-# # Define the true graph given order
-# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-#
-# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-#
-# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-#
-# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
-# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-# dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
-# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-# dta_2 <- t(dta_2)
-
-## MCMC method for Graph
-# dta_1 and dta_2 are p x n data set
-# scale_x : scale the data
-# intercept: calculate the mean of Y
-# order_int is the initialized order for nodes
-# iter_max is the maximun mcmc step
-# sigma02_int is initialization for signal prior variance
-# sigma2_int is initialization for error variance
-# r is for common part and q is for single part
-# tau is the prior power for null model 1 / (p^tau)
-# itermax is the maximum iteration
-# L_max is the largest number of parents
-# tol is the threshold for ELBO
-# sigma0_low_bd is the threshold for select effect l
-# residual_variance_lowerbound is the lower bound for sigma2
-
 source("Two_dataset_new/sum_single_effect_two.R")
 source("Two_dataset_new/Graph_given_order_two.R")
 Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
@@ -208,25 +160,19 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
       order_old <- order_pro
     }
     ## save lists
-    if (iter_MCMC > iter_max - left_size)
-    alpha_list_1[[iter_MCMC + left_size - iter_max]] <- alpha_res_1_old
-    alpha_list_2[[iter_MCMC + left_size - iter_max]] <- alpha_res_2_old
-    A_list_1[[iter_MCMC + left_size - iter_max]] <- A_res_1_old
-    A_list_2[[iter_MCMC + left_size - iter_max]] <- A_res_2_old
-    order_list[[iter_MCMC + left_size - iter_max]] <- order_old
-    llike_vec[[iter_MCMC + left_size - iter_max]] <- llike_old
+    if (iter_MCMC > iter_max - left_size) {
+      alpha_list_1[[iter_MCMC + left_size - iter_max]] <- alpha_res_1_old
+      alpha_list_2[[iter_MCMC + left_size - iter_max]] <- alpha_res_2_old
+      A_list_1[[iter_MCMC + left_size - iter_max]] <- A_res_1_old
+      A_list_2[[iter_MCMC + left_size - iter_max]] <- A_res_2_old
+      order_list[[iter_MCMC + left_size - iter_max]] <- order_old
+      llike_vec[[iter_MCMC + left_size - iter_max]] <- llike_old
+    }
   }
   # return results
   return(list(
-    alpha_list_1 = alpha_list_1[-seq_len(burn_in)], alpha_list_2 = alpha_list_2[-seq_len(burn_in)],
-    A_list_1 = A_list_1[-seq_len(burn_in)], A_list_2 = A_list_2[-seq_len(burn_in)],
-    order_list = order_list[-seq_len(burn_in)], llike_vec = llike_vec[-seq_len(burn_in)]
+    alpha_list_1 = alpha_list_1, alpha_list_2 = alpha_list_2,
+    A_list_1 = A_list_1, A_list_2 = A_list_2,
+    order_list = order_list, llike_vec = llike_vec
   ))
 }
-
-# #### MCMC
-# time1 <- Sys.time()
-# set.seed(2021)
-# res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10, burn_in = 5,
-#                       prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))
-# Sys.time() - time1
