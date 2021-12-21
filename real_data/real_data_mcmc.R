@@ -72,6 +72,8 @@ cat(
   sum(adj_1), sum(adj_2), length(intersect(which(adj_1 == 1), which(adj_2 == 1))), "\n"
 )
 
+# scale_x: FALSE intercept TRUE prior_vec 0.000754657 0.0001731302 40 93 40 
+
 #### Do MCMC with order
 ## get order
 dta <- rbind(dta_1, dta_2)
@@ -142,3 +144,5 @@ cat(
   "scale_x:", scale_x, "intercept", intercept, "prior_vec", prior_vec, "\n",
   sum(adj_1), sum(adj_2), length(intersect(which(adj_1 == 1), which(adj_2 == 1))), "\n"
 )
+
+# scale_x: FALSE intercept TRUE prior_vec 0.000754657 0.0001731302 39 97 39 

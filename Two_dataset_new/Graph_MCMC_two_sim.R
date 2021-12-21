@@ -1,10 +1,60 @@
+# ## define parameters
+# p <- 100
+# n1 <- 300
+# n2 <- 400
+# p_c <- 100
+# p_1 <- 30
+# p_2 <- 25
+# sigma <- 1
+# sigma0 <- 0.6
+# A1 <- matrix(0, nrow = p, ncol = p)
+# A2 <- matrix(0, nrow = p, ncol = p)
+# set.seed(2021)
+# # Define the true graph given order
+# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
+# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
+#
+# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
+#
+# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
+# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
+#
+# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
+# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
+# dta_1 <- t(dta_1)
+# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
+# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
+# dta_2 <- t(dta_2)
+
+## MCMC method for Graph
+# dta_1 and dta_2 are p x n data set
+# scale_x : scale the data
+# intercept: calculate the mean of Y
+# order_int is the initialized order for nodes
+# iter_max is the maximun mcmc step
+# sigma02_int is initialization for signal prior variance
+# sigma2_int is initialization for error variance
+# r is for common part and q is for single part
+# tau is the prior power for null model 1 / (p^tau)
+# itermax is the maximum iteration
+# L_max is the largest number of parents
+# tol is the threshold for ELBO
+# sigma0_low_bd is the threshold for select effect l
+# residual_variance_lowerbound is the lower bound for sigma2
+
 source("Two_dataset_new/sum_single_effect_two.R")
 source("Two_dataset_new/Graph_given_order_two.R")
-Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
-                           order_int = NULL, iter_max = 50000,
-                           sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
-                           itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
-                           left_size = 5000, residual_variance_lowerbound = NULL) {
+Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
+                               order_int = NULL, iter_max = 50000,
+                               sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
+                               itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
+                               burn_in = iter_max - 5000, 
+                               residual_variance_lowerbound = NULL,
+                               adj_true1 = NULL, adj_true2 = NULL) {
   ## Initialization
   p <- ncol(dta_1)
   if (p != ncol(dta_2)) stop("The number of features should be same!")
@@ -45,6 +95,8 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
   llike_penalty_vec_old <- res_old$llike_penalty_vec
   llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old) + sum(llike_penalty_vec_old)
   llike_vec <- rep(NA, iter_max)
+  error_mat1 <- matrix(NA, nrow = 2, ncol = iter_max) 
+  error_mat2 <- matrix(NA, nrow = 2, ncol = iter_max) 
   ## save lists
   alpha_list_1 <- list()
   alpha_list_2 <- list()
@@ -160,19 +212,49 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
       order_old <- order_pro
     }
     ## save lists
-    if (iter_MCMC > iter_max - left_size) {
-      alpha_list_1[[iter_MCMC + left_size - iter_max]] <- alpha_res_1_old
-      alpha_list_2[[iter_MCMC + left_size - iter_max]] <- alpha_res_2_old
-      A_list_1[[iter_MCMC + left_size - iter_max]] <- A_res_1_old
-      A_list_2[[iter_MCMC + left_size - iter_max]] <- A_res_2_old
-      order_list[[iter_MCMC + left_size - iter_max]] <- order_old
-      llike_vec[[iter_MCMC + left_size - iter_max]] <- llike_old
+    llike_vec[iter_MCMC] <- llike_old
+    ## data set 1
+    adj_1 <- alpha_res_1_old[order(order_old), order(order_old)]
+    adj_1 <- ifelse(adj_1 > 0.5, 1, 0)
+    adj_1 <- t(adj_1)
+    g_1 <- as(getGraph(adj_1), "graphNEL")
+    ## data set 2
+    adj_2 <- alpha_res_2_old[order(order_old), order(order_old)]
+    adj_2 <- ifelse(adj_2 > 0.5, 1, 0)
+    adj_2 <- t(adj_2)
+    g_2 <- as(getGraph(adj_2), "graphNEL")
+    ## load true value
+    g_true1 <- as(getGraph(adj_true1), "graphNEL")
+    g_true2 <- as(getGraph(adj_true2), "graphNEL")
+    ## save results
+    error_mat1[, iter_MCMC] <- c(
+      pcalg::shd(g_true1, g_1),
+      check_edge(adj_true1, adj_1)
+    )
+    error_mat2[, iter_MCMC] <- c(
+      pcalg::shd(g_true2, g_2),
+      check_edge(adj_true2, adj_2)
+    )
+    if (iter_MCMC > burn_in) {
+      alpha_list_1[[iter_MCMC - burn_in]] <- alpha_res_1_old
+      alpha_list_2[[iter_MCMC - burn_in]] <- alpha_res_2_old
+      A_list_1[[iter_MCMC - burn_in]] <- A_res_1_old
+      A_list_2[[iter_MCMC - burn_in]] <- A_res_2_old
+      order_list[[iter_MCMC - burn_in]] <- order_old
     }
   }
   # return results
   return(list(
     alpha_list_1 = alpha_list_1, alpha_list_2 = alpha_list_2,
     A_list_1 = A_list_1, A_list_2 = A_list_2,
-    order_list = order_list, llike_vec = llike_vec
+    order_list = order_list, llike_vec = llike_vec,
+    error_mat1 = error_mat1, error_mat2 = error_mat2
   ))
 }
+
+# #### MCMC
+# time1 <- Sys.time()
+# set.seed(2021)
+# res <- Graph_MCMC_two(dta_1 = dta_1, dta_2 = dta_2, iter_max = 10, burn_in = 5,
+#                       prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))
+# Sys.time() - time1
