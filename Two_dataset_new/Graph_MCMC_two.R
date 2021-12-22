@@ -213,7 +213,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
     A_list_1[[iter_MCMC]] <- A_res_1_old
     A_list_2[[iter_MCMC]] <- A_res_2_old
     order_list[[iter_MCMC]] <- order_old
-    llike_vec[[iter_MCMC]] <- llike_old
+    llike_vec[iter_MCMC] <- llike_old
   }
   # return results
   return(list(
