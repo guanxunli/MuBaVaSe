@@ -96,7 +96,7 @@ eval_fun <- function(dag_list, g_true, adj_true, lambdas = c(1, 2, 3, 4, 5)) {
       "lambda = ", lambdas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
       "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
       "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
-      "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4), 
+      "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4),
       "L2", round(check_adj_l2(adj_pre = adj, adj_act = adj_true), 4),
       "L1", round(check_adj_l1(adj_pre = adj, adj_act = adj_true), 4), "\n"
     )

@@ -54,90 +54,90 @@ check_adj_l1 <- function(adj_pre, adj_act) {
   return(sum(abs(adj_pre - adj_act)) / 2)
 }
 
-########################### Do one figure ##################################
-#### generate graph
-set.seed(2021)
-n_graph <- 1
-graph_sim <- graph_generation(
-  K = K, n_graph = n_graph, p = p, n_tol = n_tol,
-  e_com = e_com, e_pri = e_pri
-)
-adj_true1 <- t(graph_sim$G[[1]][[1]])
-g_true1 <- as(getGraph(adj_true1), "graphNEL")
-weight_true1 <- t(graph_sim$A[[1]][[1]])
-adj_true2 <- t(graph_sim$G[[1]][[2]])
-g_true2 <- as(getGraph(adj_true2), "graphNEL")
-weight_true2 <- t(graph_sim$A[[1]][[2]])
-data <- graph_sim$X[[1]]
-
-#### joint GES method the first step
-ges_joint_fun <- function(data, lambdas = c(0.5, 1, 2, 3, 4, 5)) {
-  source("simulation_DAG/newclass.R")
-  p <- ncol(data[[1]])
-  dag_list <- list()
-  for (iter_lambda in seq_len(length(lambdas))) {
-    lambda <- lambdas[iter_lambda]
-    l0score <- new("MultiGaussL0pen",
-                   data = data, lambda = lambda * log(p),
-                   intercept = TRUE, use.cpp = FALSE
-    )
-    ges_fit <- ges(l0score)
-    dag <- as(ges_fit$essgraph, "matrix")
-    dag_list[[iter_lambda]] <- ifelse(dag == TRUE, 1, 0)
-  }
-  return(dag_list)
-}
-
-dag_list <- ges_joint_fun(data)
-
-## Joint GES the second step
-subset <- function(y, x, data) {
-  t <- rep(0, ncol(data))
-  if (length(x) <= 1) {
-    t[x] <- 1
-  } else {
-    model <- glmnet::cv.glmnet(as.matrix(data[, x]), data[, y], family = "gaussian", intercept = FALSE)
-    nonz <- which(as.vector(coef(model)) != 0) - 1
-    t[x[nonz]] <- 1
-  }
-  return(t)
-}
-
-# do joint estimation given single data
-ges_alg <- function(dag_list, dta) {
-  adj_list <- list()
-  for (iter in seq_len(length(dag_list))) {
-    in_mat <- dag_list[[iter]]
-    joint_mat <- sapply(seq_len(ncol(dta)), function(i) subset(i, which(in_mat[, i] != 0), dta))
-    adj_list[[iter]] <- joint_mat
-  }
-  return(adj_list)
-}
-
-dag_list1 <- ges_alg(dag_list, data[[1]])
-dag_list2 <- ges_alg(dag_list, data[[2]])
-
-#### check results
-eval_fun <- function(dag_list, g_true, adj_true, 
-                     lambdas = c(0.5, 1, 2, 3, 4, 5)) {
-  for (iter in seq_len(length(dag_list))) {
-    adj <- dag_list[[iter]]
-    g <- as(adj, "graphNEL")
-    cat(
-      "lambda = ", lambdas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
-      "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
-      "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
-      "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4),
-      "L2", round(check_adj_l2(adj_pre = adj, adj_act = adj_true), 4),
-      "L1", round(check_adj_l1(adj_pre = adj, adj_act = adj_true), 4), "\n"
-    )
-  }
-}
-
-## data set 1
-eval_fun(dag_list1, g_true = g_true1, adj_true = adj_true1)
-## data set 2
-eval_fun(dag_list2, g_true = g_true2, adj_true = adj_true2)
+# ########################### Do one figure ##################################
+# #### generate graph
+# set.seed(2021)
+# n_graph <- 1
+# graph_sim <- graph_generation(
+#   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
+#   e_com = e_com, e_pri = e_pri
+# )
+# adj_true1 <- t(graph_sim$G[[1]][[1]])
+# g_true1 <- as(getGraph(adj_true1), "graphNEL")
+# weight_true1 <- t(graph_sim$A[[1]][[1]])
+# adj_true2 <- t(graph_sim$G[[1]][[2]])
+# g_true2 <- as(getGraph(adj_true2), "graphNEL")
+# weight_true2 <- t(graph_sim$A[[1]][[2]])
+# data <- graph_sim$X[[1]]
+#
+# #### joint GES method the first step
+# ges_joint_fun <- function(data, lambdas = c(0.5, 1, 2, 3, 4, 5)) {
+#   source("simulation_DAG/newclass.R")
+#   p <- ncol(data[[1]])
+#   dag_list <- list()
+#   for (iter_lambda in seq_len(length(lambdas))) {
+#     lambda <- lambdas[iter_lambda]
+#     l0score <- new("MultiGaussL0pen",
+#                    data = data, lambda = lambda * log(p),
+#                    intercept = TRUE, use.cpp = FALSE
+#     )
+#     ges_fit <- ges(l0score)
+#     dag <- as(ges_fit$essgraph, "matrix")
+#     dag_list[[iter_lambda]] <- ifelse(dag == TRUE, 1, 0)
+#   }
+#   return(dag_list)
+# }
+#
+# dag_list <- ges_joint_fun(data)
+#
+# ## Joint GES the second step
+# subset <- function(y, x, data) {
+#   t <- rep(0, ncol(data))
+#   if (length(x) <= 1) {
+#     t[x] <- 1
+#   } else {
+#     model <- glmnet::cv.glmnet(as.matrix(data[, x]), data[, y], family = "gaussian", intercept = FALSE)
+#     nonz <- which(as.vector(coef(model)) != 0) - 1
+#     t[x[nonz]] <- 1
+#   }
+#   return(t)
+# }
+#
+# # do joint estimation given single data
+# ges_alg <- function(dag_list, dta) {
+#   adj_list <- list()
+#   for (iter in seq_len(length(dag_list))) {
+#     in_mat <- dag_list[[iter]]
+#     joint_mat <- sapply(seq_len(ncol(dta)), function(i) subset(i, which(in_mat[, i] != 0), dta))
+#     adj_list[[iter]] <- joint_mat
+#   }
+#   return(adj_list)
+# }
+#
+# dag_list1 <- ges_alg(dag_list, data[[1]])
+# dag_list2 <- ges_alg(dag_list, data[[2]])
+#
+# #### check results
+# eval_fun <- function(dag_list, g_true, adj_true,
+#                      lambdas = c(0.5, 1, 2, 3, 4, 5)) {
+#   for (iter in seq_len(length(dag_list))) {
+#     adj <- dag_list[[iter]]
+#     g <- as(adj, "graphNEL")
+#     cat(
+#       "lambda = ", lambdas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
+#       "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+#       "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+#       "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+#       "L2", round(check_adj_l2(adj_pre = adj, adj_act = adj_true), 4),
+#       "L1", round(check_adj_l1(adj_pre = adj, adj_act = adj_true), 4), "\n"
+#     )
+#   }
+# }
+#
+# ## data set 1
+# eval_fun(dag_list1, g_true = g_true1, adj_true = adj_true1)
+# ## data set 2
+# eval_fun(dag_list2, g_true = g_true2, adj_true = adj_true2)
 
 ########################### Do parallel ##################################
 #### generate graph

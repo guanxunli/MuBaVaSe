@@ -99,7 +99,7 @@ eval_fun <- function(dag_list, g_true, adj_true,
     adj <- dag_list[[iter]]
     g <- as(adj, "graphNEL")
     cat(
-      "alpha = ", alphas[iter], c(shd(g_true, g), check_edge(adj_true, adj)), 
+      "alpha = ", alphas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
       "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
       "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
       "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4),
