@@ -12,24 +12,24 @@
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
-# 
+#
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
 # # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
-# 
+#
 # alpha_1 <- rep(0, p)
 # alpha_1[c(index_c, index_1)] <- 1
 # alpha_2 <- rep(0, p)
 # alpha_2[c(index_c, index_2)] <- 1
-# 
+#
 # X_1 <- matrix(rnorm(p * n1), nrow = n1, ncol = p)
 # X_2 <- matrix(rnorm(p * n2), nrow = n2, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n1, sd = sigma)
 # Y_2 <- X_2 %*% b_2 + rnorm(n2, sd = sigma)
-# 
+#
 # dta_list <- list()
 # dta_list[[1]] <- list()
 # dta_list[[1]]$X <- X_1
@@ -111,8 +111,8 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
     b2_list[[iter_K]] <- matrix(0, nrow = p, ncol = L)
     alpha_list[[iter_K]] <- matrix(0, nrow = p, ncol = L)
     # storage list
-    res_list[[iter_K]] <- rep(NA, n[iter_K]) 
-    res_tmp_list[[iter_K]] <- rep(NA, n[iter_K]) 
+    res_list[[iter_K]] <- rep(NA, n[iter_K])
+    res_tmp_list[[iter_K]] <- rep(NA, n[iter_K])
     # Initialize data set
     if (intercept) {
       dta_list[[iter_K]]$mean_Y <- mean(dta_list[[iter_K]]$Y)
@@ -252,14 +252,14 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
 #                                   prior_vec = c(1 / (6 * p^1.5), 1 / (6 * p^1.5), 2 / (3 * p^1.5))
 # )
 # Sys.time() - time1
-# 
+#
 # ## original function for twp data sets
 # source("Two_dataset_new/sum_single_effect_two.R")
 # time1 <- Sys.time()
-# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2, 
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2,
 #                              prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))
 # Sys.time() - time1
-# 
+#
 # ## compare two results
 # sum((out_res$res[[1]]$Xb - res$Xb_1)^2)
 # sum((out_res$res[[2]]$Xb - res$Xb_2)^2)

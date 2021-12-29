@@ -8,17 +8,19 @@ lBF_model_single <- function(lsigma02, prior_pi, z2, s2) {
   maxlBF <- max(lBF)
   wBF <- exp(lBF - maxlBF)
   wBF_sum <- sum(prior_pi * wBF)
-  return(- maxlBF - log(wBF_sum))
+  return(-maxlBF - log(wBF_sum))
 }
 
 sigma0_opt_single <- function(lsigma02_int, prior_pi, z2, s2, b_hat) {
   tmp1 <- lBF_model_single(lsigma02 = lsigma02_int, prior_pi = prior_pi, z2 = z2, s2 = s2)
-  lsigma02 <- optim(par = log(max(c(b_hat^2 - s2, 1))), fn = lBF_model_single, method = "Brent", lower = -30, upper = 15,
-                    prior_pi = prior_pi, z2 = z2, s2 = s2)$par
+  lsigma02 <- optim(
+    par = log(max(c(b_hat^2 - s2, 1))), fn = lBF_model_single, method = "Brent", lower = -30, upper = 15,
+    prior_pi = prior_pi, z2 = z2, s2 = s2
+  )$par
   tmp2 <- lBF_model_single(lsigma02 = lsigma02, prior_pi = prior_pi, z2 = z2, s2 = s2)
   if (tmp2 < tmp1) {
     return(exp(lsigma02))
-  } else{
+  } else {
     return(exp(lsigma02_int))
   }
 }

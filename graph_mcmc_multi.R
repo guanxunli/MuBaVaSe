@@ -14,22 +14,22 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-# 
+#
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
+#
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
+#
 # eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
 # eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
 # dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
 # dta_2 <- t(dta_2)
-# 
+#
 # dta_list <- list()
 # dta_list[[1]] <- dta_1
 # dta_list[[2]] <- dta_2
@@ -202,7 +202,7 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
     }
     llike_pro <- llike_pro + sum(llike_mat_pro[c(pos_change, pos_change + 1), ]) +
       sum(llike_penalty_pro[c(pos_change, pos_change + 1)])
-
+    
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
@@ -246,5 +246,6 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
   return(list(
     alpha_list = alpha_list, A_list = A_list,
     order_list = order_list,
-    llike_vec = llike_vec))
+    llike_vec = llike_vec
+  ))
 }

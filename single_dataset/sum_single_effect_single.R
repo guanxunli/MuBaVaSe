@@ -23,17 +23,19 @@ lBF_model_single <- function(lsigma02, prior_pi, z2, s2) {
   maxlBF <- max(lBF)
   wBF <- exp(lBF - maxlBF)
   wBF_sum <- sum(prior_pi * wBF)
-  return(- maxlBF - log(wBF_sum))
+  return(-maxlBF - log(wBF_sum))
 }
 
 sigma0_opt_single <- function(lsigma02_int, prior_pi, z2, s2, b_hat) {
   tmp1 <- lBF_model_single(lsigma02 = lsigma02_int, prior_pi = prior_pi, z2 = z2, s2 = s2)
-  lsigma02 <- optim(par = log(max(c(b_hat^2 - s2, 1))), fn = lBF_model_single, method = "Brent", lower = -30, upper = 15,
-                    prior_pi = prior_pi, z2 = z2, s2 = s2)$par
+  lsigma02 <- optim(
+    par = log(max(c(b_hat^2 - s2, 1))), fn = lBF_model_single, method = "Brent", lower = -30, upper = 15,
+    prior_pi = prior_pi, z2 = z2, s2 = s2
+  )$par
   tmp2 <- lBF_model_single(lsigma02 = lsigma02, prior_pi = prior_pi, z2 = z2, s2 = s2)
   if (tmp2 < tmp1) {
     return(exp(lsigma02))
-  } else{
+  } else {
     return(exp(lsigma02_int))
   }
 }
@@ -43,7 +45,7 @@ KL_fun_single <- function(X_scale, X_scale2, Y, sigma2, b, b2, lBF) {
   n <- length(Y)
   tmp1 <- sum(dnorm(Y, mean = 0, sd = sqrt(sigma2), log = TRUE))
   tmp3 <- n / 2 * log(2 * pi * sigma2)
-  tmp4 <- 1 / (2 * sigma2) * (crossprod(Y) - 2 * crossprod(Y, X_scale%*% b) + sum(X_scale2 %*% b2))
+  tmp4 <- 1 / (2 * sigma2) * (crossprod(Y) - 2 * crossprod(Y, X_scale %*% b) + sum(X_scale2 %*% b2))
   return(tmp1 + lBF + tmp3 + tmp4)
 }
 
@@ -61,13 +63,13 @@ ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
 effset_fun <- function(index_L, alpha_mat, Xcor, cor_low_bd = 0.5, sigma0_low_bd = 1e-8) {
   if (length(index_L) == 0) {
     return(NULL)
-  } else{
+  } else {
     index_eff <- NULL
     for (iter_l in seq_len(length(index_L))) {
-      index_sel <- which(alpha_mat[, iter_l] > 1/p)
+      index_sel <- which(alpha_mat[, iter_l] > 1 / p)
       if (length(index_sel) == 1) {
         index_eff <- c(index_eff, index_sel)
-      } else{
+      } else {
         cor_tmp <- max(abs(Xcor[index_sel, index_sel]))
         if (cor_tmp > cor_low_bd) index_eff <- c(index_eff, index_sel)
       }
@@ -77,9 +79,9 @@ effset_fun <- function(index_L, alpha_mat, Xcor, cor_low_bd = 0.5, sigma0_low_bd
 }
 
 ## Main functions
-sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE, 
-                                     sigma2_int = NULL, sigma02_int = NULL, prior_pi = NULL, 
-                                     L = NULL, itermax = 100, tol = 1e-4, cor_low_bd = 0.5, 
+sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
+                                     sigma2_int = NULL, sigma02_int = NULL, prior_pi = NULL,
+                                     L = NULL, itermax = 100, tol = 1e-4, cor_low_bd = 0.5,
                                      sigma0_low_bd = 1e-8) {
   # Initialization
   p <- ncol(X)
@@ -97,7 +99,7 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
   } else {
     mean_Y <- 0
   }
-  Y <- Y- mean_Y
+  Y <- Y - mean_Y
   Xcor <- cor(X)
   diag(Xcor) <- 0
   X2 <- colSums(X_scale * X_scale)
@@ -105,7 +107,7 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
   
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(Y))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
-  if (is.null(prior_pi)) prior_pi <- rep(1/p ,p)
+  if (is.null(prior_pi)) prior_pi <- rep(1 / p, p)
   if (is.null(L)) L <- min(10, ncol(X))
   
   ELBO <- rep(NA, itermax + 1)
@@ -132,7 +134,7 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
       sigma02 <- sigma0_opt_single(lsigma02_int, prior_pi = prior_pi, z2 = z2, s2 = s2, b_hat = b_hat)
       sigma02_vec[l] <- sigma02
       # Get Bayesian Factor
-      tmp1 <- log(sqrt(s2 / (sigma02 + s2))) 
+      tmp1 <- log(sqrt(s2 / (sigma02 + s2)))
       tmp2 <- z2 / 2 * sigma02 / (sigma02 + s2)
       lBF <- tmp1 + tmp2
       maxlBF <- max(lBF)
@@ -141,24 +143,26 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
       lBF_model <- maxlBF + log(wBF_sum)
       # Get posterior
       post_alpha <- prior_pi * wBF / wBF_sum
-      post_sigma2 <- 1 / (1/s2 + 1/sigma02)
+      post_sigma2 <- 1 / (1 / s2 + 1 / sigma02)
       post_mu <- post_sigma2 / s2 * b_hat
       # Calculate posterior mean
       alpha_mat[, l] <- post_alpha
       b_mat[, l] <- post_alpha * post_mu
       b2_mat[, l] <- post_alpha * (post_mu^2 + post_sigma2)
-      KL_div <- KL_div + KL_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = res_tmp, sigma2 = sigma2, 
-                                       b = b_mat[, l], b2 = b2_mat[, l], lBF = lBF_model)
+      KL_div <- KL_div + KL_fun_single(
+        X_scale = X_scale, X_scale2 = X_scale2, Y = res_tmp, sigma2 = sigma2,
+        b = b_mat[, l], b2 = b2_mat[, l], lBF = lBF_model
+      )
       res <- res_tmp - X_scale %*% b_mat[, l]
     }
     ERSS <- ERSS_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
     ELBO[iter + 1] <- -n / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
     sigma2 <- ERSS / n
-    if (abs(ELBO[iter + 1] -   ELBO[iter]) < 1e-4) break
+    if (abs(ELBO[iter + 1] - ELBO[iter]) < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
   index_L <- which(sigma02_vec > sigma0_low_bd)
-  index_eff <- effset_fun(index_L, alpha_mat, Xcor, cor_low_bd, sigma0_low_bd) 
+  index_eff <- effset_fun(index_L, alpha_mat, Xcor, cor_low_bd, sigma0_low_bd)
   # return results
   res <- list()
   res$ELBO <- ELBO
@@ -177,7 +181,7 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
 # length(intersect(res1, index_t)) / L
 # length(intersect(res1, index_t)) / length(res1)
 # sum((colSums(res$alpha * res$mu) - b)^2)
-# 
+#
 ## My code
 res <- sum_single_effect_single(X = X, Y = Y, L = L + 5, scale_x = FALSE)
 res$ELBO
@@ -187,4 +191,4 @@ res$sigma02_vec
 res1 <- res$index_eff
 length(intersect(res1, index_t)) / L
 length(intersect(res1, index_t)) / length(res1)
-sum((res$post_mean- b)^2)
+sum((res$post_mean - b)^2)

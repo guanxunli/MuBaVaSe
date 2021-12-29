@@ -4,7 +4,7 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                                order_int = NULL, iter_max = 50000,
                                sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
-                               burn_in = iter_max - 5000, 
+                               burn_in = iter_max - 5000,
                                residual_variance_lowerbound = NULL,
                                adj_true1 = NULL, adj_true2 = NULL) {
   ## Initialization
@@ -47,8 +47,8 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
   llike_penalty_vec_old <- res_old$llike_penalty_vec
   llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old) + sum(llike_penalty_vec_old)
   llike_vec <- rep(NA, iter_max)
-  error_mat1 <- matrix(NA, nrow = 2, ncol = iter_max) 
-  error_mat2 <- matrix(NA, nrow = 2, ncol = iter_max) 
+  error_mat1 <- matrix(NA, nrow = 2, ncol = iter_max)
+  error_mat2 <- matrix(NA, nrow = 2, ncol = iter_max)
   ## save lists
   alpha_list_1 <- list()
   alpha_list_2 <- list()

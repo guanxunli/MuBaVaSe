@@ -12,19 +12,19 @@
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
-# 
+#
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
 # # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
-# 
+#
 # alpha_1 <- rep(0, p)
 # alpha_1[c(index_c, index_1)] <- 1
 # alpha_2 <- rep(0, p)
 # alpha_2[c(index_c, index_2)] <- 1
-# 
+#
 # X_1 <- matrix(rnorm(p * n1), nrow = n1, ncol = p)
 # X_2 <- matrix(rnorm(p * n2), nrow = n2, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n1, sd = sigma)

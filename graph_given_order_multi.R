@@ -14,22 +14,22 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-# 
+#
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
+#
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
+#
 # eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
 # eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
 # dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
 # dta_2 <- t(dta_2)
-# 
+#
 # dta_list <- list()
 # dta_list[[1]] <- dta_1
 # dta_list[[2]] <- dta_2
@@ -161,12 +161,12 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
 #   prior_vec = c(1 / (6 * p^1.5), 1 / (6 * p^1.5), 2 / (3 * p^1.5))
 # )
 # Sys.time() - time1
-# 
+#
 # source("Two_dataset_new/Graph_given_order_two.R")
 # time1 <- Sys.time()
 # res_two <- joint_graph_fun_two(dta_1, dta_2, prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))
 # Sys.time() - time1
-# 
+#
 # sum((res_two$alpha_res_1 - res_multi$alpha_list[[1]])^2)
 # sum((res_two$llike_2_vec - res_multi$llike_mat[, 2])^2)
 # sum((res_two$llike_penalty_vec - res_multi$llike_penalty)^2)
