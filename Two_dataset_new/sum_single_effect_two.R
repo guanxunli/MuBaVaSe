@@ -12,19 +12,19 @@
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
-#
+# 
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
 # # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
-#
+# 
 # alpha_1 <- rep(0, p)
 # alpha_1[c(index_c, index_1)] <- 1
 # alpha_2 <- rep(0, p)
 # alpha_2[c(index_c, index_2)] <- 1
-#
+# 
 # X_1 <- matrix(rnorm(p * n1), nrow = n1, ncol = p)
 # X_2 <- matrix(rnorm(p * n2), nrow = n2, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n1, sd = sigma)
@@ -190,6 +190,8 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
   res$sigma02_vec <- sigma02_vec
   
   if (length(index_L) > 0) {
+    # all alpha
+    res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
     # data set 1
     res$alpha_1 <- 1 - matrixStats::rowProds(1 - alpha_mat_1[, index_L, drop = FALSE])
     res$post_mean1 <- rowSums(b_mat_1[, index_L, drop = FALSE])
@@ -198,9 +200,9 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
     res$alpha_2 <- 1 - matrixStats::rowProds(1 - alpha_mat_2[, index_L, drop = FALSE])
     res$post_mean2 <- rowSums(b_mat_2[, index_L, drop = FALSE])
     res$Xb_2 <- mean_Y_2 + X_scale_2 %*% res$post_mean2
-    # all alpha
-    res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
   } else {
+    # all alpha
+    res$alpha <- rep(0, 3 * p)
     # data set 1
     res$alpha_1 <- rep(0, p)
     res$post_mean1 <- rep(0, p)
@@ -209,8 +211,6 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
     res$alpha_2 <- rep(0, p)
     res$post_mean2 <- rep(0, p)
     res$Xb_2 <- rep(mean_Y_2, n2)
-    # all alpha
-    res$alpha <- rep(0, 3 * p)
   }
   # return results
   return(res)

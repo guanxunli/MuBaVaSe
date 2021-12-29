@@ -1,31 +1,32 @@
 # ## define parameters
 # p <- 100
-# n <- 300
+# n1 <- 300
+# n2 <- 400
 # p_c <- 100
-# p_1 <- 20
-# p_2 <- 20
+# p_1 <- 30
+# p_2 <- 25
 # sigma <- 1
 # sigma0 <- 0.6
 # A1 <- matrix(0, nrow = p, ncol = p)
 # A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(202108)
+# set.seed(2021)
 # # Define the true graph given order
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), c(index_1, index_c)), size = p_2, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
 # 
-# A1[lower.tri(A1)][c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# A2[lower.tri(A2)][c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
+# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
 # 
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
 # 
-# eps_1 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n), nrow = p, ncol = n)
+# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
 # dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
 # dta_2 <- t(dta_2)
 # 
@@ -47,7 +48,7 @@
 # residual_variance_lowerbound is the lower bound for sigma2
 
 source("sum_single_effect_mult.R")
-joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = FALSE,
+joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
                               sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                               com_mat = NULL, com_list = NULL,
                               itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
@@ -55,8 +56,17 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = FALSE,
   ## Initialization
   K <- length(dta_list)
   n_group <- 2^K - 1
-  p <- ncol(dta_list[[1]])
-  n <- nrow(dta_list[[1]])
+  p <- rep(NA, K)
+  n <- rep(NA, K)
+  for (iter_K in seq_len(K)) {
+    p[iter_K] <- ncol(dta_list[[iter_K]])
+    n[iter_K] <- nrow(dta_list[[iter_K]])
+  }
+  if (length(unique(p)) > 1) {
+    stop("The number of features should be same!")
+  } else {
+    p <- p[1]
+  }
   ## define prior vector
   if (is.null(prior_vec)) {
     prior_vec <- rep(1 / (n_group * p^1.5), n_group)
@@ -87,7 +97,7 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = FALSE,
   for (iter_K in seq_len(K)) {
     alpha_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
     A_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
-    Xb_list[[iter_K]] <- matrix(0, nrow = n, ncol = p)
+    Xb_list[[iter_K]] <- matrix(0, nrow = n[iter_K], ncol = p)
     Y_list[[iter_K]] <- dta_list[[iter_K]][, 1]
     if (intercept) {
       mean_list[[iter_K]] <- mean(Y_list[[iter_K]])

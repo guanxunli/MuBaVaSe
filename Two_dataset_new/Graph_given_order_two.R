@@ -14,15 +14,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-#
+# 
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-#
+# 
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-#
+# 
 # eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -45,7 +45,7 @@
 
 ## load variable selection function
 source("Two_dataset_new/sum_single_effect_two.R")
-joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
+joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                 sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                 itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
                                 residual_variance_lowerbound = NULL) {

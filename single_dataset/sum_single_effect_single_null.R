@@ -30,9 +30,9 @@
 
 source("single_dataset/utility_single.R")
 sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE,
-                                  sigma02_int = NULL, sigma2_int = NULL, prior_null = NULL,
-                                  L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
-                                  residual_variance_lowerbound = NULL) {
+                                          sigma02_int = NULL, sigma2_int = NULL, prior_null = NULL,
+                                          L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                                          residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(X)
   n <- nrow(X)
@@ -59,12 +59,12 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   # pre-calculate
   X_scale2 <- X_scale * X_scale
   X2 <- colSums(X_scale2)
-  Y <- Y- mean_Y
-
+  Y <- Y - mean_Y
+  
   # Initialize prior
   if (is.null(prior_null)) {
-    prior_null <- 1 - 1 / (p ^ 0.5)
-  } 
+    prior_null <- 1 - 1 / (p^0.5)
+  }
   prior_pi <- c(rep((1 - prior_null) / p, p), prior_null)
   
   # initialize ELBO
@@ -157,12 +157,8 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
 ## check results
 res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
 res$ELBO
-res$sigma2
-res$sigma02_vec
-res$alpha_null
-res$KL_div_vec
 ## check with true
 res1 <- which(res$alpha > 0.5)
 length(intersect(res1, index_t)) / L
 length(intersect(res1, index_t)) / length(res1)
-sum((res$post_mean- b)^2)
+sum((res$post_mean - b)^2)
