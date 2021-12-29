@@ -129,7 +129,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # # get order
 # set.seed(2021)
 # dta <- rbind(dta_1, dta_2)
-# score_ges <- new("GaussL0penObsScore", data = dta, intercept = TRUE)
+# score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
 # ges_fit <- ges(score_ges)
 # ges_adj <- as(ges_fit$repr, "matrix")
 # ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
@@ -292,6 +292,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   ## do parallel
   cl <- makeCluster(20)
   registerDoParallel(cl)
+  set.seed(2021)
   out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
     library(pcalg)
     dta_1 <- graph_sim$X[[iter]][[1]]
@@ -300,7 +301,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     adj_true2 <- t(graph_sim$G[[iter]][[2]])
     # get order
     dta <- rbind(dta_1, dta_2)
-    score_ges <- new("GaussL0penObsScore", data = dta, intercept = intercept)
+    score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
     ges_fit <- ges(score_ges)
     ges_adj <- as(ges_fit$repr, "matrix")
     ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
@@ -425,8 +426,12 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     "data1:", "&", round(colMeans(res_1), 4), "&",
     "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
   )
-  saveRDS(alpha_mat_list1, 
-          paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat1.rds"))
-  saveRDS(alpha_mat_list2, 
-          paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat2.rds"))
+  saveRDS(
+    alpha_mat_list1,
+    paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat1.rds")
+  )
+  saveRDS(
+    alpha_mat_list2,
+    paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat2.rds")
+  )
 }
