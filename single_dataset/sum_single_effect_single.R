@@ -104,12 +104,12 @@ sum_single_effect_single <- function(X, Y, scale_x = TRUE, intercept = TRUE,
   diag(Xcor) <- 0
   X2 <- colSums(X_scale * X_scale)
   X_scale2 <- X_scale * X_scale
-  
+
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(Y))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(prior_pi)) prior_pi <- rep(1 / p, p)
   if (is.null(L)) L <- min(10, ncol(X))
-  
+
   ELBO <- rep(NA, itermax + 1)
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
