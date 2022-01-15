@@ -1,5 +1,5 @@
-# n <- 500
-# p <- 5000
+# n <- 5000
+# p <- 100
 # sigma <- 1
 # sigma0 <- 0.6
 # L <- 20
@@ -36,13 +36,13 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   ## Initialization
   p <- ncol(X)
   n <- nrow(X)
-
+  
   # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(Y))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
-
+  
   ## data preprocess
   # intercept
   if (intercept) {
@@ -53,38 +53,41 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   # scale
   X_scale <- scale(X, center = intercept, scale = scale_x)
   # pre-calculate
+  XtX <- crossprod(X_scale)
   X_scale2 <- X_scale * X_scale
   X2 <- colSums(X_scale2)
   Y <- Y - mean_Y
-
+  XtY <- crossprod(X_scale, Y)
+  
   # Initialize prior
   if (is.null(prior_null)) {
     prior_null <- 1 - 1 / (p^0.5)
   }
   prior_pi <- c(rep((1 - prior_null) / p, p), prior_null)
-
+  
   # initialize ELBO
   ELBO <- rep(NA, itermax + 1)
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
   sigma02_vec <- rep(sigma02_int, L)
-
+  
   # Save matrix
   b_mat <- matrix(0, nrow = p, ncol = L)
   b2_mat <- matrix(0, nrow = p, ncol = L)
   alpha_mat <- matrix(0, nrow = p, ncol = L)
   alpha_null <- rep(0, L)
-
+  
   # Begin iteration
+  beta_hat <- rowSums(b_mat)
   for (iter in seq_len(itermax)) {
-    res <- Y - X_scale %*% rowSums(b_mat)
     KL_div_vec <- rep(0, L)
     for (l in seq_len(L)) {
       # residuals
-      res_tmp <- res + X_scale %*% b_mat[, l]
+      beta_use <- beta_hat - b_mat[, l]
+      res_tmp <- Y - X_scale %*% beta_use
       # update parameters
-      XtY <- crossprod(X_scale, res_tmp)
-      b_hat <- XtY / X2
+      XtY_tmp <- XtY - XtX %*% beta_use
+      b_hat <- XtY_tmp / X2
       s2 <- sigma2 / X2
       z2 <- b_hat^2 / s2
       # calculate sigma0
@@ -113,7 +116,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
         X_scale = X_scale, Y = res_tmp, X_scale2 = X_scale2, sigma2 = sigma2,
         b = b_mat[, l], b2 = b2_mat[, l], lBF = lBF_model
       )
-      res <- res_tmp - X_scale %*% b_mat[, l]
+      beta_hat <- beta_use + b_mat[, l]
     }
     # calculate ELBO
     ERSS <- ERSS_fun_single(X_scale = X_scale, X_scale2 = X_scale2, Y = Y, b_mat = b_mat, b2_mat = b2_mat)
@@ -133,7 +136,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   res$alpha_null <- alpha_null
   res$index_L <- index_L
   res$KL_div_vec <- -KL_div_vec
-
+  
   if (length(index_L) > 0) {
     res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
     res$post_mean <- rowSums(b_mat[, index_L, drop = FALSE])
@@ -148,7 +151,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   return(res)
 }
 
-# # check results
+## check results
 # time1 <- Sys.time()
 # res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
 # res$ELBO

@@ -106,7 +106,7 @@ sum_single_effect_single_null_simu <- function(X, Y, scale_x = TRUE, intercept =
       )
       res <- res_tmp - X_scale %*% b_mat[, l]
       cat(
-        "Iteration:", iter, "l:", l, "Posterior:", round(post_alpha[1:2], 4),
+        "Iteration:", iter, "l:", l, "Posterior:", round(post_alpha[1:3], 4),
         "NULL model:", round(post_alpha[length(post_alpha)], 4), "\n"
       )
     }
@@ -145,14 +145,12 @@ sum_single_effect_single_null_simu <- function(X, Y, scale_x = TRUE, intercept =
 
 #### Define parameters
 sigma <- 1
-sigma0 <- 0.6
 n <- 500
-p <- 3
+p <- 1000
 L <- 2
 index_t <- seq_len(L)
-Sigma <- matrix(c(1, 0, 0.99, 
-                  0, 1, 0,
-                  0.99, 0, 1), nrow = 3)
+Sigma <- diag(1, nrow = p)
+Sigma[1, 3] <- Sigma[3, 1] <- 0.99
 Sigma_chol <- chol(Sigma)
 
 ## Do simulation
@@ -163,8 +161,12 @@ set.seed(2021)
 out_res <- foreach(iter = seq_len(n_iter)) %dorng% {
   ## Generate data
   b <- rep(0, p)
-  # b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-  b[index_t] <- runif(L, min = 0.1, max = 1)
+  b_tmp <- sample(c(-1, 1), size = L, replace = TRUE) *
+    runif(L, min = 0.1, max = 1)
+  b[1] <- b_tmp[which.max(abs(b_tmp))]
+  b[2] <- b_tmp[-which.max(abs(b_tmp))]
+  # b[1] <- b_tmp[-which.max(abs(b_tmp))]
+  # b[2] <- b_tmp[which.max(abs(b_tmp))]
   X <- t(Sigma_chol) %*% matrix(rnorm(n * p), nrow = p, ncol = n)
   X <- t(X)
   X_scale <- scale(X, scale = FALSE)
@@ -175,9 +177,9 @@ out_res <- foreach(iter = seq_len(n_iter)) %dorng% {
     scale_x = FALSE, intercept = FALSE
   )
   res1 <- which(res$alpha > 0.5)
-  list(b = b, X = X_scale, Y = Y,
+  list(b = b[1:3], X = X_scale, Y = Y,
        acc = length(intersect(res1, index_t)) / L,
-       index_find = res1, alpha = res$alpha)
+       index_find = res1, alpha = res$alpha[1:3])
 }
 stopCluster(cl)
 
@@ -206,33 +208,56 @@ ggplot(data = res_df, aes(x = min_coef, color = acc, fill = acc)) +
   geom_histogram(position = "dodge", bins = 30) +
   scale_colour_manual(values = c("red", "green4")) +
   theme_bw()
+
+index_wrong <- which(res_df$acc == 0)
+check_df <- apply(res_df[index_wrong, -1], 2, round, digits = 4)
+check_df <- as.data.frame(check_df)
+check_df$find <- NA
+check_df$small_coef_index <- NA
+check_df$small_cor_index <- NA
+for (iter in seq_len(length(index_wrong))) {
+  res_tmp <- out_res[[index_wrong[iter]]]
+  if (length(res_tmp$index_find) == 0) {
+    check_df$find[iter] <- 0
+  } else if (length(res_tmp$index_find) == 2) {
+    check_df$find[iter] <- 3
+  } else {
+    check_df$find[iter] <- res_tmp$index_find
+  }
+  b_tmp <- res_tmp$b
+  check_df$small_coef_index[iter] <- which.min(abs(b_tmp[1:2]))
+  cor_tmp <- c(
+    cor(res_tmp$Y, res_tmp$X[, 1]),
+    cor(res_tmp$Y, res_tmp$X[, 2]),
+    cor(res_tmp$Y, res_tmp$X[, 3])
+  )
+  check_df$small_cor_index[iter] <- which.min(abs(cor_tmp))
+}
+print(check_df)
+
 # the correlation figure
-ggplot(data = res_df, aes(x = corXY1, y = corXY2, color = acc, fill = acc)) +
-  geom_point() +
-  scale_colour_manual(values = c("red", "green4")) +
-  theme_bw()
 ggplot(data = res_df, aes(x = abs(corXY1), y = abs(corXY2), color = acc, fill = acc)) +
   geom_point() +
   scale_colour_manual(values = c("red", "green4")) +
   theme_bw()
-ggplot(data = res_df, aes(x = abs(corXY1), y = abs(corXY3), color = acc, fill = acc)) +
+# correlation 1 and 3
+ggplot(data = res_df, aes(x = abs(corXY_small), y = abs(corXY3), color = acc, fill = acc)) +
   geom_point() +
   scale_colour_manual(values = c("red", "green4")) +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw()
-ggplot(data = res_df, aes(x = abs(corXY_small), y = abs(corXY3), color = acc, fill = acc)) +
+ggplot(data = res_df, aes(x = abs(corXY3), y = abs(corXY1), color = acc, fill = acc)) +
   geom_point() +
   scale_colour_manual(values = c("red", "green4")) +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw()
 
 ########################### check specific examples###########################
-b <- out_res[[78]]$b
+b <- out_res[[83]]$b
 print(b)
-X <- out_res[[78]]$X
-Y <- out_res[[78]]$Y
-round(cor(X), 4)
+X <- out_res[[83]]$X
+Y <- out_res[[83]]$Y
 round(c(cor(Y, X[, 1]), cor(Y, X[, 2]), cor(Y, X[, 3])), 4)
 res <- sum_single_effect_single_null_simu(X = X, Y = Y, L = L + 1, 
                                           scale_x = FALSE, intercept = FALSE)
-head(res$alpha)
+round(res$alpha[1:3], 4)

@@ -146,11 +146,12 @@ sum_single_effect_single_null_simu <- function(X, Y, scale_x = TRUE, intercept =
 #### Define parameters
 sigma <- 1
 sigma0 <- 0.6
-n <- 500
+n <- 2000
 p <- 2
 L <- 2
 index_t <- seq_len(L)
-Sigma <- matrix(c(1, 0.99, 0.99, 1), nrow = 2)
+Sigma <- diag(1, nrow = p)
+Sigma[1, 2] <- Sigma[2, 1] <- 0.99
 Sigma_chol <- chol(Sigma)
 
 ## Do simulation
@@ -162,8 +163,8 @@ out_res <- foreach(iter = seq_len(n_iter)) %dorng% {
   ## Generate data
   b <- rep(0, p)
   # b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-  b[index_t] <- runif(L, min = 0.1, max = 1)
-  # b[index_t] <- c(1, 1)
+  # b[index_t] <- runif(L, min = 0.1, max = 1)
+  b[index_t] <- 0.1
   X <- t(Sigma_chol) %*% matrix(rnorm(n * p), nrow = p, ncol = n)
   X <- t(X)
   X_scale <- scale(X, scale = FALSE)
@@ -175,55 +176,30 @@ out_res <- foreach(iter = seq_len(n_iter)) %dorng% {
   )
   res1 <- which(res$alpha > 0.5)
   list(
-    b = b, X = X_scale, Y = Y,
+    b = b[1:2], X = X_scale, Y = Y,
     acc = length(intersect(res1, index_t)) / L,
-    index_find = res1, alpha = res$alpha
+    index_find = res1, alpha = res$alpha[1:2]
   )
 }
 stopCluster(cl)
 
 res_df <- data.frame(
   "acc" = rep(NA, n_iter), "min_coef" = rep(NA, n_iter),
-  "corX" = rep(NA, n_iter), "corXY_large" = rep(NA, n_iter),
-  "corXY_small" = rep(NA, n_iter)
+  "corXY1" = rep(NA, n_iter), "corXY2" = rep(NA, n_iter),
+  "corXY_small" = rep(NA, n_iter), "cor_diff" = rep(NA, n_iter)
 )
 for (iter in seq_len(n_iter)) {
   res_tmp <- out_res[[iter]]
   res_df$acc[iter] <- ifelse(res_tmp$acc == 1, 1, 0)
-  res_df$min_coef[iter] <- min(abs(res_tmp$b))
-  index_min <- which.min(abs(res_tmp$b))
-  res_df$corX[iter] <- cor(res_tmp$X)[1, 2]
-  res_df$corXY_large[iter] <- cor(res_tmp$Y, res_tmp$X[, -index_min])
+  res_df$min_coef[iter] <- min(abs(res_tmp$b[1:2]))
+  index_min <- which.min(abs(res_tmp$b[1:2]))
+  res_df$corXY1[iter] <- cor(res_tmp$Y, res_tmp$X[, 1])
+  res_df$corXY2[iter] <- cor(res_tmp$Y, res_tmp$X[, 2])
   res_df$corXY_small[iter] <- cor(res_tmp$Y, res_tmp$X[, index_min])
+  res_df$cor_diff[iter] <- abs(abs(res_df$corXY1[iter]) - 
+                                 abs(res_df$corXY2[iter]))
 }
 sum(res_df$acc)
-
-index_wrong <- which(res_df$acc == 0)
-check_df <- data.frame(
-  "find" = rep(NA, length(index_wrong)),
-  "large_coef" = rep(NA, length(index_wrong)),
-  "large_cor" = rep(NA, length(index_wrong)),
-  "min_alpha" = rep(NA, length(index_wrong))
-)
-for (iter in seq_len(length(index_wrong))) {
-  res_tmp <- out_res[[index_wrong[iter]]]
-  if (length(res_tmp$index_find) == 1) {
-    check_df$find[iter] <- res_tmp$index_find
-  } else {
-    check_df$find[iter] <- 0
-  }
-  b_tmp <- res_tmp$b
-  check_df$large_coef[iter] <- which.max(abs(b_tmp))
-  cor_tmp <- c(
-    cor(res_tmp$Y, res_tmp$X[, 1]),
-    cor(res_tmp$Y, res_tmp$X[, 2])
-  )
-  check_df$large_cor[iter] <- which.max(abs(cor_tmp))
-  check_df$min_alpha[iter] <- min(abs(res_tmp$alpha))
-}
-sum(check_df$find != check_df$large_coef)
-sum(check_df$find != check_df$large_cor)
-round(check_df$min_alpha, 4)
 
 ## Show figures
 res_df$acc <- as.factor(res_df$acc)
@@ -232,30 +208,60 @@ ggplot(data = res_df, aes(x = min_coef, color = acc, fill = acc)) +
   geom_histogram(position = "dodge", bins = 30) +
   scale_colour_manual(values = c("red", "green4")) +
   theme_bw()
-# the correlation figure
-ggplot(data = res_df, aes(x = corXY_small, y = corXY_large, color = acc, fill = acc)) +
-  geom_point() +
+
+ggplot(data = res_df, aes(x = abs(corXY_small), color = acc, fill = acc)) +
+  geom_histogram(position = "dodge", bins = 30) +
   scale_colour_manual(values = c("red", "green4")) +
   theme_bw()
-ggplot(data = res_df, aes(x = abs(corXY_small), y = abs(corXY_large), color = acc, fill = acc)) +
-  geom_point() +
-  scale_colour_manual(values = c("red", "green4")) +
-  geom_abline(intercept = 0, slope = 1) +
-  theme_bw()
-# ggplot(data = res_df, aes(x = abs(corX), y = abs(corXY_large), color = acc, fill = acc)) +
-#   geom_point() +
-#   scale_colour_manual(values = c("red", "green4")) +
-#   theme_bw()
-# ggplot(data = res_df, aes(x = abs(corX), y = abs(corXY_small), color = acc, fill = acc)) +
-#   geom_point() +
+
+# ggplot(data = res_df, aes(x = abs(cor_diff), color = acc, fill = acc)) +
+#   geom_histogram(position = "dodge", bins = 30) +
 #   scale_colour_manual(values = c("red", "green4")) +
 #   theme_bw()
 
+# the correlation figure
+ggplot(data = res_df, aes(x = corXY1, y = corXY2, color = acc, fill = acc)) +
+  geom_point() +
+  scale_colour_manual(values = c("red", "green4")) +
+  theme_bw()
+ggplot(data = res_df, aes(x = abs(corXY1), y = abs(corXY2), color = acc, fill = acc)) +
+  geom_point() +
+  scale_colour_manual(values = c("red", "green4")) +
+  theme_bw()
+
+## check wrong case
+index_wrong <- which(res_df$acc == 0)
+check_df <- apply(res_df[index_wrong, -1], 2, round, digits = 4)
+check_df <- as.data.frame(check_df)
+check_df$find <- NA
+check_df$large_coef_index <- NA
+check_df$large_cor_index <- NA
+check_df$min_alpha <- NA
+for (iter in seq_len(length(index_wrong))) {
+  res_tmp <- out_res[[index_wrong[iter]]]
+  if (length(res_tmp$index_find) == 1) {
+    check_df$find[iter] <- res_tmp$index_find
+  } else {
+    check_df$find[iter] <- 0
+  }
+  b_tmp <- res_tmp$b[1:2]
+  check_df$large_coef_index[iter] <- which.max(abs(b_tmp))
+  cor_tmp <- c(
+    cor(res_tmp$Y, res_tmp$X[, 1]),
+    cor(res_tmp$Y, res_tmp$X[, 2])
+  )
+  check_df$large_cor_index[iter] <- which.max(abs(cor_tmp))
+  check_df$min_alpha[iter] <- round(min(abs(res_tmp$alpha[1:2])), 4)
+}
+check_df
+sum(check_df$find != check_df$large_coef_index)
+sum(check_df$find != check_df$large_cor_index)
+
 ########################### check specific examples###########################
-b <- out_res[[8]]$b
+b <- out_res[[55]]$b
 print(b)
-X <- out_res[[8]]$X
-Y <- out_res[[8]]$Y
+X <- out_res[[55]]$X
+Y <- out_res[[55]]$Y
 round(cor(X), 4)
 round(c(cor(Y, X[, 1]), cor(Y, X[, 2])), 4)
 res <- sum_single_effect_single_null_simu(
