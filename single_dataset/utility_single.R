@@ -34,6 +34,13 @@ KL_fun_single <- function(X_scale, X_scale2, Y, sigma2, b, b2, lBF) {
   return(tmp1 + lBF + tmp3 + tmp4)
 }
 
+KL_fun_single_graph <- function(XtY, XtXbeta_use, X_scale2, sigma2, b, b2, lBF) {
+  tmp1_1 <- - 2 * crossprod(b, XtY)
+  tmp1_2 <- 2 * crossprod(b, XtXbeta_use)
+  tmp2 <- sum(X_scale2 %*% b2)
+  return(lBF + 1 / (2 * sigma2) * (tmp1_1 + tmp1_2 + tmp2))
+}
+
 ## Calculate ERSS
 ERSS_fun_single <- function(X_scale, X_scale2, Y, b_mat, b2_mat) {
   mu_lmat <- X_scale %*% b_mat

@@ -1,18 +1,18 @@
-# n <- 5000
-# p <- 100
-# sigma <- 1
-# sigma0 <- 0.6
-# L <- 20
-# set.seed(2021)
-# ## Generate data
-# index_t <- sample(seq_len(p), size = L, replace = FALSE)
-# b <- rep(0, p)
-# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-# # b[index_t] <- 100
-# # b[index_t] <- c(1e4, 1e4, rep(1, 18))
-# X <- matrix(rnorm(n * p), nrow = n, ncol = p)
-# X_scale <- scale(X)
-# Y <- X %*% b + rnorm(n, sd = sigma)
+n <- 5000
+p <- 100
+sigma <- 1
+sigma0 <- 0.6
+L <- 20
+set.seed(2021)
+## Generate data
+index_t <- sample(seq_len(p), size = L, replace = FALSE)
+b <- rep(0, p)
+b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# b[index_t] <- 100
+# b[index_t] <- c(1e4, 1e4, rep(1, 18))
+X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+X_scale <- scale(X)
+Y <- X %*% b + rnorm(n, sd = sigma)
 
 ## main function with null model
 # X are regressors, n x p matrix, each column is one feature
@@ -84,9 +84,9 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
     for (l in seq_len(L)) {
       # residuals
       beta_use <- beta_hat - b_mat[, l]
-      res_tmp <- Y - X_scale %*% beta_use
       # update parameters
-      XtY_tmp <- XtY - XtX %*% beta_use
+      XtXbeta_use <- XtX %*% beta_use
+      XtY_tmp <- XtY - XtXbeta_use
       b_hat <- XtY_tmp / X2
       s2 <- sigma2 / X2
       z2 <- b_hat^2 / s2
@@ -112,9 +112,9 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
       b_mat[, l] <- alpha_mat[, l] * post_mu
       b2_mat[, l] <- alpha_mat[, l] * (post_mu^2 + post_sigma2)
       ## calculate the minus KL divergence
-      KL_div_vec[l] <- KL_fun_single(
-        X_scale = X_scale, Y = res_tmp, X_scale2 = X_scale2, sigma2 = sigma2,
-        b = b_mat[, l], b2 = b2_mat[, l], lBF = lBF_model
+      KL_div_vec[l] <- KL_fun_single_graph(
+        XtY = XtY, XtXbeta_use = XtXbeta_use, X_scale2 = X_scale2,
+        sigma2 = sigma2, b = b_mat[, l], b2 = b2_mat[, l], lBF = lBF_model
       )
       beta_hat <- beta_use + b_mat[, l]
     }
@@ -152,10 +152,10 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
 }
 
 ## check results
-# time1 <- Sys.time()
-# res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
-# res$ELBO
-# Sys.time() - time1
+time1 <- Sys.time()
+res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
+res$ELBO
+Sys.time() - time1
 # ## check with true
 # res1 <- which(res$alpha > 0.5)
 # length(intersect(res1, index_t)) / L

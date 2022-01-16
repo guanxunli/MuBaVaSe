@@ -116,17 +116,17 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
     for (l in seq_len(L)) {
       ## data set 1
       beta_use_1 <- beta_hat_1 - b_mat_1[, l]
-      res_tmp_1 <-  Y_1 - X_scale_1 %*% beta_use_1
       # update parameters
-      XtYtmp_1 <-  XtY_1 - XtX_1 %*% beta_use_1
+      XtXbeta_use_1 <- XtX_1 %*% beta_use_1
+      XtYtmp_1 <-  XtY_1 - XtXbeta_use_1
       b_hat_1 <- XtYtmp_1 / X2_1
       s2_1 <- sigma2 / X2_1
       z2_1 <- b_hat_1^2 / s2_1
       ## data set 2
       beta_use_2 <- beta_hat_2 - b_mat_2[, l]
-      res_tmp_2 <-  Y_2 - X_scale_2 %*% beta_use_2
       # update parameters
-      XtYtmp_2 <-  XtY_2 - XtX_2 %*% beta_use_2
+      XtXbeta_use_2 <- XtX_2 %*% beta_use_2
+      XtYtmp_2 <-  XtY_2 - XtXbeta_use_2
       b_hat_2 <- XtYtmp_2 / X2_2
       s2_2 <- sigma2 / X2_2
       z2_2 <- b_hat_2^2 / s2_2
@@ -168,11 +168,11 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
       b_mat_2[, l] <- alpha_mat_2[, l] * post_mu_2
       b2_mat_2[, l] <- alpha_mat_2[, l] * (post_mu_2^2 + post_sigma2_2)
       ## calculate the -KL divergence
-      KL_div <- KL_div + KL_fun_two(
-        X_scale_1 = X_scale_1, Y_1 = res_tmp_1, X_scale_2 = X_scale_2, Y_2 = res_tmp_2,
-        X_scale2_1 = X_scale2_1, X_scale2_2 = X_scale2_2, sigma2 = sigma2,
-        b_1 = b_mat_1[, l], b2_1 = b2_mat_1[, l], b_2 = b_mat_2[, l],
-        b2_2 = b2_mat_2[, l], lBF = lBF_model
+      KL_div <- KL_div + KL_fun_two_graph(
+        XtY_1 = XtY_1, XtXbeta_use_1 = XtXbeta_use_1, X_scale2_1 = X_scale2_1,
+        XtY_2 = XtY_2, XtXbeta_use_2 = XtXbeta_use_2, X_scale2_2 = X_scale2_2,
+        sigma2 = sigma2, b_1 = b_mat_1[, l], b2_1 = b2_mat_1[, l], 
+        b_2 = b_mat_2[, l], b2_2 = b2_mat_2[, l], lBF = lBF_model
       )
       beta_hat_1 <- beta_use_1 + b_mat_1[, l]
       beta_hat_2 <- beta_use_2 + b_mat_2[, l]
