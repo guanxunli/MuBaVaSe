@@ -149,10 +149,11 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
 }
 
 # ##check results
-# time1 <- Sys.time()
+# Rprof()
 # res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
+# Rprof(NULL)
+# summaryRprof()
 # res$ELBO
-# Sys.time() - time1
 # ## check with true
 # res1 <- which(res$alpha > 0.5)
 # length(intersect(res1, index_t)) / L

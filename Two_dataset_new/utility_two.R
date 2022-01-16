@@ -39,6 +39,27 @@ sigma0_opt_two <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat
   }
 }
 
+sigma0_opt_two_test <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2) {
+  tmp1 <- lBF_model_two(
+    lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1,
+    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
+  )
+  lsigma02 <- optimize(
+    lBF_model_two,
+    lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1,
+    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
+  )$minimum
+  tmp2 <- lBF_model_two(
+    lsigma02 = lsigma02, prior_pi = prior_pi, z2_1 = z2_1,
+    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
+  )
+  if (tmp2 < tmp1) {
+    return(exp(lsigma02))
+  } else {
+    return(exp(lsigma02_int))
+  }
+}
+
 ## Calculate the -KL divergence
 KL_fun_two <- function(X_scale_1, X_scale2_1, Y_1, X_scale_2, Y_2, X_scale2_2,
                        sigma2, b_1, b2_1, b_2, b2_2, lBF) {
@@ -56,8 +77,8 @@ KL_fun_two <- function(X_scale_1, X_scale2_1, Y_1, X_scale_2, Y_2, X_scale2_2,
 KL_fun_two_graph <- function(XtY_1, XtXbeta_use_1, X_scale2_1,
                              XtY_2, XtXbeta_use_2, X_scale2_2,
                              sigma2, b_1, b2_1, b_2, b2_2, lBF) {
-  tmp1_1 <- - 2 * (crossprod(b_1, XtY_1) - crossprod(b_1, XtXbeta_use_1))
-  tmp1_2 <- - 2 * (crossprod(b_2, XtY_2) - crossprod(b_2, XtXbeta_use_2))
+  tmp1_1 <- -2 * (crossprod(b_1, XtY_1) - crossprod(b_1, XtXbeta_use_1))
+  tmp1_2 <- -2 * (crossprod(b_2, XtY_2) - crossprod(b_2, XtXbeta_use_2))
   tmp2_1 <- sum(X_scale2_1 %*% b2_1)
   tmp2_2 <- sum(X_scale2_2 %*% b2_2)
   return(lBF + 1 / (2 * sigma2) * (tmp1_1 + tmp1_2 + tmp2_1 + tmp2_2))

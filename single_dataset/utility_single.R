@@ -25,6 +25,20 @@ sigma0_opt_single <- function(lsigma02_int, prior_pi, z2, s2, b_hat) {
   }
 }
 
+sigma0_opt_single_test <- function(lsigma02_int, prior_pi, z2, s2, b_hat) {
+  tmp1 <- lBF_model_single(lsigma02 = lsigma02_int, prior_pi = prior_pi, z2 = z2, s2 = s2)
+  lsigma02 <- optimize(
+    f = lBF_model_single, lower = -30, upper = 15,
+    prior_pi = prior_pi, z2 = z2, s2 = s2
+  )$minimum
+  tmp2 <- lBF_model_single(lsigma02 = lsigma02, prior_pi = prior_pi, z2 = z2, s2 = s2)
+  if (tmp2 < tmp1) {
+    return(exp(lsigma02))
+  } else {
+    return(exp(lsigma02_int))
+  }
+}
+
 ## Calculate the minus KL divergence
 KL_fun_single <- function(X_scale, X_scale2, Y, sigma2, b, b2, lBF) {
   n <- length(Y)
@@ -35,7 +49,7 @@ KL_fun_single <- function(X_scale, X_scale2, Y, sigma2, b, b2, lBF) {
 }
 
 KL_fun_single_graph <- function(XtY, XtXbeta_use, X_scale2, sigma2, b, b2, lBF) {
-  tmp1_1 <- - 2 * crossprod(b, XtY)
+  tmp1_1 <- -2 * crossprod(b, XtY)
   tmp1_2 <- 2 * crossprod(b, XtXbeta_use)
   tmp2 <- sum(X_scale2 %*% b2)
   return(lBF + 1 / (2 * sigma2) * (tmp1_1 + tmp1_2 + tmp2))

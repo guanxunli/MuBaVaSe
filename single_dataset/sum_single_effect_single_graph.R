@@ -1,18 +1,18 @@
-n <- 5000
-p <- 100
-sigma <- 1
-sigma0 <- 0.6
-L <- 20
-set.seed(2021)
-## Generate data
-index_t <- sample(seq_len(p), size = L, replace = FALSE)
-b <- rep(0, p)
-b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
-# b[index_t] <- 100
-# b[index_t] <- c(1e4, 1e4, rep(1, 18))
-X <- matrix(rnorm(n * p), nrow = n, ncol = p)
-X_scale <- scale(X)
-Y <- X %*% b + rnorm(n, sd = sigma)
+# n <- 5000
+# p <- 100
+# sigma <- 1
+# sigma0 <- 0.6
+# L <- 20
+# set.seed(2021)
+# ## Generate data
+# index_t <- sample(seq_len(p), size = L, replace = FALSE)
+# b <- rep(0, p)
+# b[index_t] <- rnorm(L, mean = 0, sd = sigma0)
+# # b[index_t] <- 100
+# # b[index_t] <- c(1e4, 1e4, rep(1, 18))
+# X <- matrix(rnorm(n * p), nrow = n, ncol = p)
+# X_scale <- scale(X)
+# Y <- X %*% b + rnorm(n, sd = sigma)
 
 ## main function with null model
 # X are regressors, n x p matrix, each column is one feature
@@ -36,13 +36,13 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   ## Initialization
   p <- ncol(X)
   n <- nrow(X)
-  
+
   # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(Y))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
-  
+
   ## data preprocess
   # intercept
   if (intercept) {
@@ -58,25 +58,25 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   X2 <- colSums(X_scale2)
   Y <- Y - mean_Y
   XtY <- crossprod(X_scale, Y)
-  
+
   # Initialize prior
   if (is.null(prior_null)) {
     prior_null <- 1 - 1 / (p^0.5)
   }
   prior_pi <- c(rep((1 - prior_null) / p, p), prior_null)
-  
+
   # initialize ELBO
   ELBO <- rep(NA, itermax + 1)
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
   sigma02_vec <- rep(sigma02_int, L)
-  
+
   # Save matrix
   b_mat <- matrix(0, nrow = p, ncol = L)
   b2_mat <- matrix(0, nrow = p, ncol = L)
   alpha_mat <- matrix(0, nrow = p, ncol = L)
   alpha_null <- rep(0, L)
-  
+
   # Begin iteration
   beta_hat <- rowSums(b_mat)
   for (iter in seq_len(itermax)) {
@@ -92,7 +92,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
       z2 <- b_hat^2 / s2
       # calculate sigma0
       lsigma02_int <- max(log(sigma02_vec[l]), -30)
-      sigma02 <- sigma0_opt_single(lsigma02_int, prior_pi, z2, s2, b_hat)
+      sigma02 <- sigma0_opt_single_test(lsigma02_int, prior_pi, z2, s2, b_hat)
       sigma02_vec[l] <- sigma02
       ## Get Bayesian Factor
       tmp1 <- log(sqrt(s2 / (sigma02 + s2)))
@@ -136,7 +136,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   res$alpha_null <- alpha_null
   res$index_L <- index_L
   res$KL_div_vec <- -KL_div_vec
-  
+
   if (length(index_L) > 0) {
     res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
     res$post_mean <- rowSums(b_mat[, index_L, drop = FALSE])
@@ -151,11 +151,12 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   return(res)
 }
 
-## check results
-time1 <- Sys.time()
-res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
-res$ELBO
-Sys.time() - time1
+# ## check results
+# Rprof()
+# res <- sum_single_effect_single_null(X = X, Y = Y, L = L + 5, scale_x = TRUE)
+# Rprof(NULL)
+# summaryRprof()
+# res$ELBO
 # ## check with true
 # res1 <- which(res$alpha > 0.5)
 # length(intersect(res1, index_t)) / L

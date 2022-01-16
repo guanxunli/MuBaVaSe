@@ -14,15 +14,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-# 
+#
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
+#
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
+#
 # eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -122,10 +122,11 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
   ))
 }
 
-################## check results with GES ##################
-# time1 <- Sys.time()
+# ################## check results with GES ##################
+# Rprof()
 # res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2)
-# Sys.time() - time1
+# Rprof(NULL)
+# summaryRprof()
 # sum(res_joint$llike_1_vec + res_joint$llike_2_vec + res_joint$llike_penalty_vec)
 # ## remove order edge
 # check_edge <- function(adj_pre, adj_act) {

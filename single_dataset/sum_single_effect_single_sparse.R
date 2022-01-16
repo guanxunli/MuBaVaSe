@@ -37,13 +37,13 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   ## Initialization
   p <- ncol(X)
   n <- nrow(X)
-  
+
   # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(Y))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
-  
+
   ## data preprocess
   # intercept
   if (intercept) {
@@ -57,25 +57,25 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   X_scale2 <- X_scale * X_scale
   X2 <- colSums(X_scale2)
   Y <- Y - mean_Y
-  
+
   # Initialize prior
   if (is.null(prior_null)) {
     prior_null <- 1 - 1 / (p^0.5)
   }
   prior_pi <- c(rep((1 - prior_null) / p, p), prior_null)
-  
+
   # initialize ELBO
   ELBO <- rep(NA, itermax + 1)
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
   sigma02_vec <- rep(sigma02_int, L)
-  
+
   # Save matrix
   b_mat <- Matrix(0, nrow = p, ncol = L, sparse = TRUE)
   b2_mat <- Matrix(0, nrow = p, ncol = L, sparse = TRUE)
   alpha_mat <- Matrix(0, nrow = p, ncol = L, sparse = TRUE)
   alpha_null <- rep(0, L)
-  
+
   # Begin iteration
   for (iter in seq_len(itermax)) {
     res <- Y - X_scale %*% rowSums(b_mat)
@@ -135,7 +135,7 @@ sum_single_effect_single_null <- function(X, Y, scale_x = TRUE, intercept = TRUE
   res$alpha_null <- alpha_null
   res$index_L <- index_L
   res$KL_div_vec <- -KL_div_vec
-  
+
   if (length(index_L) > 0) {
     res$alpha <- 1 - matrixStats::rowProds(1 - as.matrix(alpha_mat[, index_L, drop = FALSE]))
     res$post_mean <- rowSums(b_mat[, index_L, drop = FALSE])
