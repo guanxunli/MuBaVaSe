@@ -7,7 +7,7 @@
 # p_2 <- 6
 # sigma <- 1
 # sigma0 <- 0.6
-# set.seed(2021)
+# set.seed(2022)
 # ## Generate data
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
@@ -44,10 +44,10 @@
 # residual_variance_lowerbound is the lower bound for sigma2
 
 source("Two_dataset_v3/utility_two.R")
-sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept = TRUE,
-                                         sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
-                                         L = NULL, itermax = 100, tol = 1e-4,
-                                         residual_variance_lowerbound = NULL) {
+sum_single_effect_two_sampling <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept = TRUE,
+                                           sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
+                                           L = NULL, itermax = 100, tol = 1e-4,
+                                           residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(X_1)
   if (p != ncol(X_2)) stop("The number of features should be same!")
@@ -89,6 +89,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   if (is.null(prior_vec)) {
     prior_vec <- c(1 / (2 * p^1.5), 1 / (p^2))
   }
+  lprior_vec <- log(prior_vec)
   prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
   prior_pi <- c(prior_pi, 1 - sum(prior_pi))
 
@@ -132,8 +133,8 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
       # calculate sigma0
       lsigma02_int <- max(log(sigma02_vec[l]), -30)
       sigma02 <- sigma0_opt_two_test(
-        lsigma02_int, prior_pi, z2_1, s2_1, z2_2,
-        s2_2, b_hat_1, b_hat_2
+        lsigma02_int, prior_pi, z2_1, s2_1,
+        z2_2, s2_2, b_hat_1, b_hat_2
       )
       sigma02_vec[l] <- sigma02
       ## Get Bayesian Factor
@@ -200,21 +201,33 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   res$ELBO <- ELBO
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
+  alpha_mat[which(alpha_mat < 1e-2)] <- 0
+  alpha_mat <- as(t(t(alpha_mat) / colSums(alpha_mat)), "sparseMatrix")
+  res$alpha_mat <- alpha_mat
   res$index1_select <- NULL
-  res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(sigma2), log = TRUE))
+  res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(res$sigma2), log = TRUE))
   res$index2_select <- NULL
-  res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(sigma2), log = TRUE))
+  res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(res$sigma2), log = TRUE))
+  res$lprior <- 0
+
   ## variable selection
-  index_all <- apply(alpha_mat, 2, which.max)
-  index_select <- which(index_all < (3 * p + 1))
+  index_all <- apply(res$alpha_mat, 2, function(x) {
+    index_use <- sample(seq_len(length(x)), 1, prob = x)
+    return(c(index_use, x[index_use]))
+  })
+  res$lpropose <- sum(log(index_all[2, ]))
+  index_select <- which(index_all[1, ] < (3 * p + 1))
+  # calculate the likelihood and index
   if (length(index_select) > 0) {
-    # calculate the likelihood and index
-    sigma02_select <- sigma02_vec[index_select]
-    index_select <- index_all[index_select]
+    sigma02_select <- res$sigma02_vec[index_select]
+    index_select <- index_all[1, ][index_select]
     # index
     index_1 <- which(index_select < p + 1)
     index_c <- which(index_select > 2 * p)
     index_2 <- intersect(which(index_select > p), which(index_select < 2 * p + 1))
+    res$lprior <- log(choose(L, length(index_1))) + log(choose(L - length(index_1), length(index_2))) +
+      log(choose(L - length(index_1) - length(index_2), length(index_c))) +
+      (length(index_1) + length(index_2)) * lprior_vec[1] + length(index_c) * lprior_vec[2]
     # select index
     sigma02_select1 <- sigma02_select[c(index_1, index_c)]
     index1_select <- c(index_select[index_1], index_select[index_c] - 2 * p)
@@ -225,7 +238,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
       Sigma_1_inverse <- diag(1, n1) - X_scale_1[, index1_select, drop = FALSE] %*%
         solve(
           crossprod(X_scale_1[, index1_select, drop = FALSE]) +
-            sigma2 * diag(1 / sigma02_select1, nrow = length(sigma02_select1)),
+            res$sigma2 * diag(1 / sigma02_select1, nrow = length(sigma02_select1)),
           t(X_scale_1[, index1_select, drop = FALSE])
         )
       loglikelihood_1 <- -n1 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_1_inverse)) -
@@ -237,7 +250,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
       Sigma_2_inverse <- diag(1, n2) - X_scale_2[, index2_select, drop = FALSE] %*%
         solve(
           crossprod(X_scale_2[, index2_select, drop = FALSE]) +
-            sigma2 * diag(1 / sigma02_select2, nrow = length(sigma02_select2)),
+            res$sigma2 * diag(1 / sigma02_select2, nrow = length(sigma02_select2)),
           t(X_scale_2[, index2_select, drop = FALSE])
         )
       loglikelihood_2 <- -n2 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_2_inverse)) -
@@ -246,15 +259,15 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
       res$loglikelihood_2 <- loglikelihood_2
     }
   }
-  # return results
   return(res)
 }
 
 # #### check results
 # ## joint method 1
 # time1 <- Sys.time()
-# res_new <- sum_single_effect_two_single(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1,
-#                                         scale_x = TRUE, intercept = TRUE)
+# res_new <- sum_single_effect_two_sampling(X_1, Y_1, X_2, Y_2,
+#                                           L = p_c + p_1 + p_2 + 1,
+#                                           scale_x = TRUE, intercept = TRUE)
 # Sys.time() - time1
 #
 # ## joint method 2
@@ -265,7 +278,6 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
 # Sys.time() - time1
 # res$index1 <- which(res$alpha_1 > 0.5)
 # res$index2 <- which(res$alpha_2 > 0.5)
-# ## joint method 2
 #
 # ## data set 1
 # cat("Joint: ", round(length(intersect(res$index1, c(index_1, index_c))) / (p_1 + p_c), 4),
@@ -276,5 +288,5 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
 # ## data set 2
 # cat("Joint: ", round(length(intersect(res$index2, c(index_2, index_c))) / (p_2 + p_c), 4),
 #     round(length(intersect(res$index2, c(index_2, index_c))) / length(res$index2), 4), "\n",
-#     "Single: ", round(length(intersect(res_new$index2_select, c(index_2, index_c))) / (p_2 + p_c), 4),
+#     "joint new: ", round(length(intersect(res_new$index2_select, c(index_2, index_c))) / (p_2 + p_c), 4),
 #     round(length(intersect(res_new$index2_select, c(index_2, index_c))) / length(res_new$index2_select), 4), "\n")
