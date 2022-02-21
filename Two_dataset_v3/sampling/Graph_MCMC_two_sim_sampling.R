@@ -208,9 +208,13 @@ Graph_MCMC_two_sim_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept
         graph_res_2_old[pos_change, res_pos$index2_select] <- 1
         graph_res_1_old[pos_change + 1, res_pos1$index1_select] <- 1
         graph_res_2_old[pos_change + 1, res_pos1$index2_select] <- 1
+        # hyper parameters
+        sigma2_vec_old[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
+        sigma02_vec_list_old[[pos_change + 1]] <- res_pos1$sigma02_vec
         # alpha mat
         if (pos_change != 1) {
           alpha_list_old[[pos_change]] <- res_pos$alpha_mat
+          sigma02_vec_list_old[[pos_change]] <- res_pos$sigma02_vec
         }
         alpha_list_old[[pos_change + 1]] <- res_pos1$alpha_mat
         if (pos_change + 1 < p) {
@@ -224,10 +228,6 @@ Graph_MCMC_two_sim_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept
               alpha_list_old[[iter_p]][c(pos_change + 2 * tmp_p + 1, pos_change + 2 * tmp_p), ]
           }
         }
-        # hyper parameters
-        sigma2_vec_old[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
-        sigma02_vec_list_old[[pos_change]] <- res_pos$sigma02_vec
-        sigma02_vec_list_old[[pos_change + 1]] <- res_pos1$sigma02_vec
         # likelihood
         llike_vec_1_old <- llike_vec_1_pro
         llike_vec_2_old <- llike_vec_2_pro

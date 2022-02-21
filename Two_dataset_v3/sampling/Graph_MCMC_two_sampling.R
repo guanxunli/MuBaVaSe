@@ -1,34 +1,34 @@
-# ## define parameters
-# p <- 100
-# n1 <- 300
-# n2 <- 400
-# p_c <- 100
-# p_1 <- 30
-# p_2 <- 25
-# sigma <- 1
-# sigma0 <- 0.6
-# A1 <- matrix(0, nrow = p, ncol = p)
-# A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(2022)
-# # Define the true graph given order
-# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-# 
-# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
-# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
-# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
-# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-# dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
-# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-# dta_2 <- t(dta_2)
+## define parameters
+p <- 100
+n1 <- 300
+n2 <- 400
+p_c <- 100
+p_1 <- 30
+p_2 <- 25
+sigma <- 1
+sigma0 <- 0.6
+A1 <- matrix(0, nrow = p, ncol = p)
+A2 <- matrix(0, nrow = p, ncol = p)
+set.seed(2022)
+# Define the true graph given order
+index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
+index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
+index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
+
+A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
+
+alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
+alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
+
+eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
+dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
+dta_1 <- t(dta_1)
+eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
+dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
+dta_2 <- t(dta_2)
 
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
@@ -47,6 +47,18 @@
 
 source("Two_dataset_v3/sampling/Graph_given_order_two_sampling.R")
 source("Two_dataset_v3/sampling/sum_single_effect_two_sampling.R")
+scale_x = FALSE
+intercept = TRUE
+order_int = NULL
+iter_max = 10000
+sigma02_int = NULL
+sigma2_int = NULL
+prior_vec = NULL
+itermax = 100
+L_max = 10
+tol = 1e-4
+burn_in = 5000
+residual_variance_lowerbound = NULL
 Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                     order_int = NULL, iter_max = 50000,
                                     sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
@@ -97,6 +109,7 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
   order_list <- list()
   ## begin MCMC
   for (iter_MCMC in seq_len(iter_max)) {
+    print(iter_MCMC)
     if (iter_MCMC %% 10000 == 0) print(iter_MCMC)
     ## Two update methods
     if (sample(c(0, 1), size = 1)) {
@@ -238,9 +251,13 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
         graph_res_2_old[pos_change, res_pos$index2_select] <- 1
         graph_res_1_old[pos_change + 1, res_pos1$index1_select] <- 1
         graph_res_2_old[pos_change + 1, res_pos1$index2_select] <- 1
+        # hyper parameters
+        sigma2_vec_old[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
+        sigma02_vec_list_old[[pos_change + 1]] <- res_pos1$sigma02_vec
         # alpha mat
         if (pos_change != 1) {
           alpha_list_old[[pos_change]] <- res_pos$alpha_mat
+          sigma02_vec_list_old[[pos_change]] <- res_pos$sigma02_vec
         }
         alpha_list_old[[pos_change + 1]] <- res_pos1$alpha_mat
         if (pos_change + 1 < p) {
@@ -254,10 +271,6 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
               alpha_list_old[[iter_p]][c(pos_change + 2 * tmp_p + 1, pos_change + 2 * tmp_p), ]
           }
         }
-        # hyper parameters
-        sigma2_vec_old[c(pos_change, pos_change + 1)] <- c(res_pos$sigma2, res_pos1$sigma2)
-        sigma02_vec_list_old[[pos_change]] <- res_pos$sigma02_vec
-        sigma02_vec_list_old[[pos_change + 1]] <- res_pos1$sigma02_vec
         # likelihood
         llike_vec_1_old <- llike_vec_1_pro
         llike_vec_2_old <- llike_vec_2_pro
