@@ -50,7 +50,7 @@ source("Two_dataset_v3/single/sum_single_effect_two_single.R")
 Graph_MCMC_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                   order_int = NULL, iter_max = 50000,
                                   sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
-                                  itermax = 100, L_max = 10, tol = 1e-4,
+                                  itermax = 100, L_max = 10, tol = 1e-4, prior_penalty = FALSE,
                                   burn_in = iter_max - 5000, residual_variance_lowerbound = NULL) {
   ## Initialization
   p <- ncol(dta_1)
@@ -85,7 +85,10 @@ Graph_MCMC_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRU
   llike_1_vec_old <- res_old$llike_1_vec
   llike_2_vec_old <- res_old$llike_2_vec
   lprior_graph_old <- res_old$lprior_graph
-  llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old) + sum(lprior_graph_old)
+  llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old) 
+  if (prior_penalty) {
+    llike_old <- llike_old + sum(lprior_graph_old)
+  }
   llike_vec <- rep(NA, iter_max)
   ## save lists
   alpha_list_1 <- list()
@@ -106,8 +109,10 @@ Graph_MCMC_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRU
     ## propose the new order
     pos_change <- sample(seq_len(p - 1), 1)
     llike_pro <- llike_old - sum(llike_1_vec_old[c(pos_change, pos_change + 1)]) - 
-      sum(llike_2_vec_old[c(pos_change, pos_change + 1)]) -
-      sum(lprior_graph_old[c(pos_change, pos_change + 1)])
+      sum(llike_2_vec_old[c(pos_change, pos_change + 1)])
+    if (prior_penalty) {
+      llike_pro <- llike_pro - sum(lprior_graph_old[c(pos_change, pos_change + 1)])
+    }
     dta_1_pro[, c(pos_change, pos_change + 1)] <- dta_1_old[, c(pos_change + 1, pos_change)]
     dta_2_pro[, c(pos_change, pos_change + 1)] <- dta_2_old[, c(pos_change + 1, pos_change)]
     order_pro[c(pos_change, pos_change + 1)] <- order_old[c(pos_change + 1, pos_change)]
@@ -149,8 +154,10 @@ Graph_MCMC_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRU
     llike_2_vec_pro[pos_change + 1] <- res_pos1$loglikelihood_2
     lprior_graph_pro[pos_change + 1] <- res_pos1$lprior_graph
     llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + 
-      sum(llike_2_vec_pro[c(pos_change, pos_change + 1)]) +
-      sum(lprior_graph_pro[c(pos_change, pos_change + 1)])
+      sum(llike_2_vec_pro[c(pos_change, pos_change + 1)])
+    if (prior_penalty) {
+      llike_pro <- llike_pro + sum(lprior_graph_pro[c(pos_change, pos_change + 1)])
+    }
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE

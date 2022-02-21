@@ -66,62 +66,62 @@ check_adj_l1 <- function(adj_pre, adj_act) {
   return(sum(abs(adj_pre - adj_act)) / 2)
 }
 
-########################### Do one figure ##################################
-#### generate graph
-set.seed(2022)
-n_graph <- 1
-graph_sim <- graph_generation(
-  K = K, n_graph = n_graph, p = p, n_tol = n_tol,
-  e_com = e_com, e_pri = e_pri
-)
-adj_true1 <- t(graph_sim$G[[1]][[1]])
-g_true1 <- as(getGraph(adj_true1), "graphNEL")
-weight_true1 <- t(graph_sim$A[[1]][[1]])
-adj_true2 <- t(graph_sim$G[[1]][[2]])
-g_true2 <- as(getGraph(adj_true2), "graphNEL")
-weight_true2 <- t(graph_sim$A[[1]][[2]])
-
-#### our method
-source("Two_dataset_v3/single/Graph_given_order_two_single.R")
-dta_1 <- graph_sim$X[[1]][[1]]
-dta_2 <- graph_sim$X[[1]][[2]]
-
-#### If we know the order
-for (iter_prior in seq_len(length(prior_vec_list))) {
-  prior_vec <- prior_vec_list[[iter_prior]]
-  out_res <- joint_graph_fun_two_single(dta_1 = dta_1, dta_2 = dta_2, prior_vec = prior_vec,
-                                        scale_x = scale_x, intercept = intercept)
-  print(round(sum(out_res$llike_1_vec + out_res$llike_2_vec), 4))
-  ## Calculate the error
-  ## data set 1
-  adj_1 <- out_res$alpha_res_1
-  adj_1 <- t(adj_1)
-  g_1 <- as(getGraph(adj_1), "graphNEL")
-  cat(
-    "prior = ", prior_vec[1], prior_vec[2],
-    c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)),
-    "TP", round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
-    "FP", round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
-    "FN", round(FNrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
-    "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
-    "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
-    "\n"
-  )
-  ## data set 2
-  adj_2 <- out_res$alpha_res_2
-  adj_2 <- t(adj_2)
-  g_2 <- as(getGraph(adj_2), "graphNEL")
-  cat(
-    "prior = ", prior_vec[1], prior_vec[2],
-    c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)),
-    "TP", round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
-    "FP", round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
-    "FN", round(FNrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
-    "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
-    "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
-    "\n"
-  )
-}
+# ########################### Do one figure ##################################
+# #### generate graph
+# set.seed(2022)
+# n_graph <- 1
+# graph_sim <- graph_generation(
+#   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
+#   e_com = e_com, e_pri = e_pri
+# )
+# adj_true1 <- t(graph_sim$G[[1]][[1]])
+# g_true1 <- as(getGraph(adj_true1), "graphNEL")
+# weight_true1 <- t(graph_sim$A[[1]][[1]])
+# adj_true2 <- t(graph_sim$G[[1]][[2]])
+# g_true2 <- as(getGraph(adj_true2), "graphNEL")
+# weight_true2 <- t(graph_sim$A[[1]][[2]])
+# 
+# #### our method
+# source("Two_dataset_v3/single/Graph_given_order_two_single.R")
+# dta_1 <- graph_sim$X[[1]][[1]]
+# dta_2 <- graph_sim$X[[1]][[2]]
+# 
+# #### If we know the order
+# for (iter_prior in seq_len(length(prior_vec_list))) {
+#   prior_vec <- prior_vec_list[[iter_prior]]
+#   out_res <- joint_graph_fun_two_single(dta_1 = dta_1, dta_2 = dta_2, prior_vec = prior_vec,
+#                                         scale_x = scale_x, intercept = intercept)
+#   print(round(sum(out_res$llike_1_vec + out_res$llike_2_vec), 4))
+#   ## Calculate the error
+#   ## data set 1
+#   adj_1 <- out_res$alpha_res_1
+#   adj_1 <- t(adj_1)
+#   g_1 <- as(getGraph(adj_1), "graphNEL")
+#   cat(
+#     "prior = ", prior_vec[1], prior_vec[2],
+#     c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)),
+#     "TP", round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
+#     "FP", round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
+#     "FN", round(FNrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
+#     "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
+#     "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
+#     "\n"
+#   )
+#   ## data set 2
+#   adj_2 <- out_res$alpha_res_2
+#   adj_2 <- t(adj_2)
+#   g_2 <- as(getGraph(adj_2), "graphNEL")
+#   cat(
+#     "prior = ", prior_vec[1], prior_vec[2],
+#     c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)),
+#     "TP", round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
+#     "FP", round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
+#     "FN", round(FNrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
+#     "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
+#     "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
+#     "\n"
+#   )
+# }
 
 # ########################## Do MCMC quick test ############################
 # iter_max <- 100
@@ -191,7 +191,7 @@ graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
 )
-
+prior_penalty = TRUE
 iter_max <- 100000
 
 library(foreach)
@@ -224,7 +224,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
       scale_x = scale_x, intercept = intercept,
       order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
       prior_vec = prior_vec, itermax = 100, tol = 1e-4,
-      burn_in = iter_max - 5000,
+      burn_in = iter_max - 5000, prior_penalty = prior_penalty,
       adj_true1 = adj_true1, adj_true2 = adj_true2
     )
   }
@@ -264,13 +264,13 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
         ylab("No order")
       png(paste0(
         "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "data1_single.png"
+        "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data1_single.png"
       ))
       grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
       dev.off()
       png(paste0(
         "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "data2_single.png"
+        "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data2_single.png"
       ))
       grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
       dev.off()
