@@ -14,15 +14,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-#
+# 
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-#
+# 
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-#
+# 
 # eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -43,7 +43,7 @@
 # residual_variance_lowerbound is the lower bound for sigma2
 
 ## load variable selection function
-source("Two_dataset_v3/sum_single_effect_two_single.R")
+source("Two_dataset_v3/single/sum_single_effect_two_single.R")
 joint_graph_fun_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                        sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                        itermax = 100, L_max = 10, tol = 1e-4,
@@ -64,6 +64,7 @@ joint_graph_fun_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept 
   llike_1_vec <- rep(NA, p)
   llike_2_vec <- rep(NA, p)
   sigma2_vec <- rep(NA, p)
+  lprior_graph <- rep(0, p)
   if (intercept) {
     mean_1 <- mean(dta_1[, 1])
     mean_2 <- mean(dta_2[, 1])
@@ -92,6 +93,7 @@ joint_graph_fun_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept 
     llike_1_vec[iter_p + 1] <- res$loglikelihood_1
     llike_2_vec[iter_p + 1] <- res$loglikelihood_2
     sigma2_vec[iter_p + 1] <- res$sigma2
+    lprior_graph[iter_p + 1] <- res$lprior
     if (is.null(res$index1_select) == FALSE) alpha_res_1[iter_p + 1, res$index1_select] <- 1
     if (is.null(res$index2_select) == FALSE) alpha_res_2[iter_p + 1, res$index2_select] <- 1
   }
@@ -99,7 +101,7 @@ joint_graph_fun_two_single <- function(dta_1, dta_2, scale_x = FALSE, intercept 
   return(list(
     alpha_res_1 = alpha_res_1, alpha_res_2 = alpha_res_2,
     llike_1_vec = llike_1_vec, llike_2_vec = llike_2_vec,
-    sigma2_vec = sigma2_vec
+    sigma2_vec = sigma2_vec, lprior_graph = lprior_graph
   ))
 }
 

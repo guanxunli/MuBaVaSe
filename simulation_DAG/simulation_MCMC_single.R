@@ -12,10 +12,13 @@ e_com <- 100
 e_pri <- 30
 # Define prior
 prior_vec_list <- list()
-prior_vec_list[[1]] <- c(1 / p^1.5, 1 / p^2)
-prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
-prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^1.5)
-prior_vec_list[[4]] <- c(1 / p^2, 1 / p^2)
+prior_vec_list[[1]] <- c(1 / p^1.5, 1 / p^1.75)
+prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^1.75)
+prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^2)
+prior_vec_list[[4]] <- c(1 / (2 * p^1.5), 1 / p^2)
+prior_vec_list[[5]] <- c(1 / p^2, 1 / p^2.25)
+prior_vec_list[[6]] <- c(1 / (2 * p^2), 1 / p^2.25)
+
 # Define MCMC parameters
 scale_x <- FALSE
 intercept <- TRUE
@@ -63,68 +66,68 @@ check_adj_l1 <- function(adj_pre, adj_act) {
   return(sum(abs(adj_pre - adj_act)) / 2)
 }
 
-# ########################### Do one figure ##################################
-# #### generate graph
-# set.seed(2022)
-# n_graph <- 1
-# graph_sim <- graph_generation(
-#   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
-#   e_com = e_com, e_pri = e_pri
-# )
-# adj_true1 <- t(graph_sim$G[[1]][[1]])
-# g_true1 <- as(getGraph(adj_true1), "graphNEL")
-# weight_true1 <- t(graph_sim$A[[1]][[1]])
-# adj_true2 <- t(graph_sim$G[[1]][[2]])
-# g_true2 <- as(getGraph(adj_true2), "graphNEL")
-# weight_true2 <- t(graph_sim$A[[1]][[2]])
-#
-# #### our method
-# source("Two_dataset_v3/Graph_given_order_two_single.R")
-# dta_1 <- graph_sim$X[[1]][[1]]
-# dta_2 <- graph_sim$X[[1]][[2]]
-#
-# #### If we know the order
-# for (iter_prior in seq_len(length(prior_vec_list))) {
-#   prior_vec <- prior_vec_list[[iter_prior]]
-#   out_res <- joint_graph_fun_two_single(dta_1 = dta_1, dta_2 = dta_2, prior_vec = prior_vec,
-#                                         scale_x = scale_x, intercept = intercept)
-#   print(round(sum(out_res$llike_1_vec + out_res$llike_2_vec), 4))
-#   ## Calculate the error
-#   ## data set 1
-#   adj_1 <- out_res$alpha_res_1
-#   adj_1 <- t(adj_1)
-#   g_1 <- as(getGraph(adj_1), "graphNEL")
-#   cat(
-#     "prior = ", prior_vec[1], prior_vec[2],
-#     c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)),
-#     "TP", round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
-#     "FP", round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
-#     "FN", round(FNrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
-#     "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
-#     "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
-#     "\n"
-#   )
-#   ## data set 2
-#   adj_2 <- out_res$alpha_res_2
-#   adj_2 <- t(adj_2)
-#   g_2 <- as(getGraph(adj_2), "graphNEL")
-#   cat(
-#     "prior = ", prior_vec[1], prior_vec[2],
-#     c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)),
-#     "TP", round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
-#     "FP", round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
-#     "FN", round(FNrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
-#     "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
-#     "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
-#     "\n"
-#   )
-# }
-#
+########################### Do one figure ##################################
+#### generate graph
+set.seed(2022)
+n_graph <- 1
+graph_sim <- graph_generation(
+  K = K, n_graph = n_graph, p = p, n_tol = n_tol,
+  e_com = e_com, e_pri = e_pri
+)
+adj_true1 <- t(graph_sim$G[[1]][[1]])
+g_true1 <- as(getGraph(adj_true1), "graphNEL")
+weight_true1 <- t(graph_sim$A[[1]][[1]])
+adj_true2 <- t(graph_sim$G[[1]][[2]])
+g_true2 <- as(getGraph(adj_true2), "graphNEL")
+weight_true2 <- t(graph_sim$A[[1]][[2]])
+
+#### our method
+source("Two_dataset_v3/single/Graph_given_order_two_single.R")
+dta_1 <- graph_sim$X[[1]][[1]]
+dta_2 <- graph_sim$X[[1]][[2]]
+
+#### If we know the order
+for (iter_prior in seq_len(length(prior_vec_list))) {
+  prior_vec <- prior_vec_list[[iter_prior]]
+  out_res <- joint_graph_fun_two_single(dta_1 = dta_1, dta_2 = dta_2, prior_vec = prior_vec,
+                                        scale_x = scale_x, intercept = intercept)
+  print(round(sum(out_res$llike_1_vec + out_res$llike_2_vec), 4))
+  ## Calculate the error
+  ## data set 1
+  adj_1 <- out_res$alpha_res_1
+  adj_1 <- t(adj_1)
+  g_1 <- as(getGraph(adj_1), "graphNEL")
+  cat(
+    "prior = ", prior_vec[1], prior_vec[2],
+    c(shd(g_true1, g_1), check_edge(adj_true1, adj_1)),
+    "TP", round(TPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
+    "FP", round(FPrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
+    "FN", round(FNrate_fun(adj_pre = adj_1, adj_act = adj_true1), 4),
+    "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
+    "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_1, adj_act = adj_true1), 4),
+    "\n"
+  )
+  ## data set 2
+  adj_2 <- out_res$alpha_res_2
+  adj_2 <- t(adj_2)
+  g_2 <- as(getGraph(adj_2), "graphNEL")
+  cat(
+    "prior = ", prior_vec[1], prior_vec[2],
+    c(shd(g_true2, g_2), check_edge(adj_true2, adj_2)),
+    "TP", round(TPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
+    "FP", round(FPrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
+    "FN", round(FNrate_fun(adj_pre = adj_2, adj_act = adj_true2), 4),
+    "L2", round(check_adj_l2(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
+    "L1", round(check_adj_l1(adj_pre = out_res$alpha_res_2, adj_act = adj_true2), 4),
+    "\n"
+  )
+}
+
 # ########################## Do MCMC quick test ############################
 # iter_max <- 100
 # prior_vec <- prior_vec_list[[2]]
-# source("Two_dataset_v3/Graph_MCMC_two_single.R")
-# source("Two_dataset_v3/Graph_MCMC_two_sim_single.R")
+# source("Two_dataset_v3/single/Graph_MCMC_two_single.R")
+# source("Two_dataset_v3/single/Graph_MCMC_two_sim_single.R")
 # #### with GES Initialization
 # # get order
 # set.seed(2022)
@@ -142,7 +145,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #                               prior_vec = prior_vec, itermax = 100, tol = 1e-4,
 #                               burn_in = 1, adj_true1 = adj_true1, adj_true2 = adj_true2
 # )
-#
+# 
 # # Show likelihood
 # library(ggplot2)
 # library(gridExtra)
@@ -159,7 +162,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
 # grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
-#
+# 
 # ##### without GES initialization
 # out_res <- Graph_MCMC_two_sim_single(dta_1, dta_2, scale_x = scale_x, intercept = intercept,
 #                           order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
@@ -181,7 +184,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
 ########################### Do parallel ##################################
 #### generate graph
-source("Two_dataset_v3/Graph_MCMC_two_sim_single.R")
+source("Two_dataset_v3/single/Graph_MCMC_two_sim_single.R")
 set.seed(2021)
 n_graph <- 20
 graph_sim <- graph_generation(
@@ -323,12 +326,12 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     "data1:", round(colMeans(res_1), 4),
     "data2:", round(colMeans(res_2), 4), "\n"
   )
-  ## show tex
-  cat(
-    "$", prior_vec, "$", "&",
-    "data1:", "&", round(colMeans(res_1), 4), "&",
-    "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
-  )
+  # ## show tex
+  # cat(
+  #   "$", prior_vec, "$", "&",
+  #   "data1:", "&", round(colMeans(res_1), 4), "&",
+  #   "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
+  # )
   # saveRDS(
   #   alpha_mat_list1,
   #   paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat1.rds")
