@@ -181,8 +181,8 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
 ########################### Do parallel ##################################
 #### generate graph
-set.seed(2021)
 source("Two_dataset_v3/Graph_MCMC_two_sim_single.R")
+set.seed(2021)
 n_graph <- 20
 graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
@@ -261,13 +261,13 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
         ylab("No order")
       png(paste0(
         "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "data1.png"
+        "e_com", e_com, "e_pri", e_pri, "data1_single.png"
       ))
       grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
       dev.off()
       png(paste0(
         "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "data2.png"
+        "e_com", e_com, "e_pri", e_pri, "data2_single.png"
       ))
       grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
       dev.off()
@@ -329,12 +329,12 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     "data1:", "&", round(colMeans(res_1), 4), "&",
     "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
   )
-  saveRDS(
-    alpha_mat_list1,
-    paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat1.rds")
-  )
-  saveRDS(
-    alpha_mat_list2,
-    paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat2.rds")
-  )
+  # saveRDS(
+  #   alpha_mat_list1,
+  #   paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat1.rds")
+  # )
+  # saveRDS(
+  #   alpha_mat_list2,
+  #   paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat2.rds")
+  # )
 }
