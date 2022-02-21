@@ -43,7 +43,7 @@
 # residual_variance_lowerbound is the lower bound for sigma2
 
 ## load variable selection function
-source("Two_dataset_v3/sum_single_effect_two_sampling.R")
+source("Two_dataset_v3/sampling/sum_single_effect_two_sampling.R")
 joint_graph_fun_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                          sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                          itermax = 100, L_max = 10, tol = 1e-4,

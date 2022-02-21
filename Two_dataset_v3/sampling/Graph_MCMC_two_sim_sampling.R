@@ -1,5 +1,5 @@
-source("Two_dataset_v3/Graph_given_order_two_sampling.R")
-source("Two_dataset_v3/sum_single_effect_two_sampling.R")
+source("Two_dataset_v3/sampling/Graph_given_order_two_sampling.R")
+source("Two_dataset_v3/sampling/sum_single_effect_two_sampling.R")
 Graph_MCMC_two_sim_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                         order_int = NULL, iter_max = 50000,
                                         sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
@@ -180,9 +180,9 @@ Graph_MCMC_two_sim_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept
       llike_vec_1_pro[c(pos_change, pos_change + 1)] <- c(res_pos$loglikelihood_1, res_pos1$loglikelihood_1)
       llike_vec_2_pro[c(pos_change, pos_change + 1)] <- c(res_pos$loglikelihood_2, res_pos1$loglikelihood_2)
       llike_old <- sum(llike_vec_1_old) + sum(llike_vec_2_old) +
-        sum(lprior_graph_old) + sum(lpropose_graph_pro)
+        sum(lprior_graph_old) + sum(lpropose_graph_pro[c(pos_change, pos_change + 1)])
       llike_pro <- sum(llike_vec_1_pro) + sum(llike_vec_2_pro) +
-        sum(lprior_graph_pro) + sum(lpropose_graph_old)
+        sum(lprior_graph_pro) + sum(lpropose_graph_old[c(pos_change, pos_change + 1)])
       # accept or not
       if (llike_pro > llike_old) {
         accept <- TRUE
@@ -209,7 +209,9 @@ Graph_MCMC_two_sim_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept
         graph_res_1_old[pos_change + 1, res_pos1$index1_select] <- 1
         graph_res_2_old[pos_change + 1, res_pos1$index2_select] <- 1
         # alpha mat
-        alpha_list_old[[pos_change]] <- res_pos$alpha_mat
+        if (pos_change != 1) {
+          alpha_list_old[[pos_change]] <- res_pos$alpha_mat
+        }
         alpha_list_old[[pos_change + 1]] <- res_pos1$alpha_mat
         if (pos_change + 1 < p) {
           for (iter_p in (pos_change + 2):p) {

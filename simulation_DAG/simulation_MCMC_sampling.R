@@ -12,10 +12,13 @@ e_com <- 100
 e_pri <- 30
 # Define prior
 prior_vec_list <- list()
-prior_vec_list[[1]] <- c(1 / p^1.5, 1 / p^2)
-prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
-prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^1.5)
-prior_vec_list[[4]] <- c(1 / p^2, 1 / p^2)
+prior_vec_list[[1]] <- c(1 / p^1.5, 1 / p^1.75)
+prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^1.75)
+prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^2)
+prior_vec_list[[4]] <- c(1 / (2 * p^1.5), 1 / p^2)
+prior_vec_list[[5]] <- c(1 / p^2, 1 / p^2.25)
+prior_vec_list[[6]] <- c(1 / (2 * p^2), 1 / p^2.25)
+
 # Define MCMC parameters
 scale_x <- FALSE
 intercept <- TRUE
@@ -77,12 +80,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # adj_true2 <- t(graph_sim$G[[1]][[2]])
 # g_true2 <- as(getGraph(adj_true2), "graphNEL")
 # weight_true2 <- t(graph_sim$A[[1]][[2]])
-#
+# 
 # #### our method
-# source("Two_dataset_v3/Graph_given_order_two_sampling.R")
+# source("Two_dataset_v3/sampling/Graph_given_order_two_sampling.R")
 # dta_1 <- graph_sim$X[[1]][[1]]
 # dta_2 <- graph_sim$X[[1]][[2]]
-#
+# 
 # #### If we know the order
 # set.seed(1)
 # for (iter_prior in seq_len(length(prior_vec_list))) {
@@ -120,12 +123,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     "\n"
 #   )
 # }
-#
+# 
 # ########################## Do MCMC quick test ############################
 # iter_max <- 100
 # prior_vec <- prior_vec_list[[2]]
-# source("Two_dataset_v3/Graph_MCMC_two_sampling.R")
-# source("Two_dataset_v3/Graph_MCMC_two_sim_sampling.R")
+# source("Two_dataset_v3/sampling/Graph_MCMC_two_sampling.R")
+# source("Two_dataset_v3/sampling/Graph_MCMC_two_sim_sampling.R")
 # #### with GES Initialization
 # # get order
 # set.seed(2022)
@@ -143,7 +146,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #                               prior_vec = prior_vec, itermax = 100, tol = 1e-4,
 #                               burn_in = 1, adj_true1 = adj_true1, adj_true2 = adj_true2
 # )
-#
+# 
 # # Show likelihood
 # library(ggplot2)
 # library(gridExtra)
@@ -160,7 +163,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
 # grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
-#
+# 
 # ##### without GES initialization
 # out_res <- Graph_MCMC_two_sim_sampling(dta_1, dta_2, scale_x = scale_x, intercept = intercept,
 #                           order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
@@ -182,7 +185,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
 ########################### Do parallel ##################################
 #### generate graph
-source("Two_dataset_v3/Graph_MCMC_two_sim_sampling.R")
+source("Two_dataset_v3/sampling/Graph_MCMC_two_sim_sampling.R")
 set.seed(2021)
 n_graph <- 20
 graph_sim <- graph_generation(
@@ -205,6 +208,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   set.seed(2021)
   out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
     library(pcalg)
+    library(Matrix)
     dta_1 <- graph_sim$X[[iter]][[1]]
     dta_2 <- graph_sim$X[[iter]][[2]]
     adj_true1 <- t(graph_sim$G[[iter]][[1]])
@@ -222,7 +226,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
       scale_x = scale_x, intercept = intercept,
       order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
       prior_vec = prior_vec, itermax = 100, tol = 1e-4,
-      burn_in = iter_max - 5000,
+      burn_in = iter_max - 10000,
       adj_true1 = adj_true1, adj_true2 = adj_true2
     )
   }
@@ -276,13 +280,13 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     # analysis
     alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
     alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-    for (iter in seq_len(5000)) {
+    for (iter in seq_len(10000)) {
       order_tmp <- order(res_tmp$order_list[[iter]])
       alpha_mat_1 <- alpha_mat_1 + res_tmp$graph_list_1[[iter]][order_tmp, order_tmp]
       alpha_mat_2 <- alpha_mat_2 + res_tmp$graph_list_2[[iter]][order_tmp, order_tmp]
     }
-    alpha_mat_1 <- alpha_mat_1 / 5000
-    alpha_mat_2 <- alpha_mat_2 / 5000
+    alpha_mat_1 <- alpha_mat_1 / 10000
+    alpha_mat_2 <- alpha_mat_2 / 10000
     ## data set 1
     adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
     adj_1 <- t(adj_1)
@@ -324,12 +328,12 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     "data1:", round(colMeans(res_1), 4),
     "data2:", round(colMeans(res_2), 4), "\n"
   )
-  ## show tex
-  cat(
-    "$", prior_vec, "$", "&",
-    "data1:", "&", round(colMeans(res_1), 4), "&",
-    "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
-  )
+  # ## show tex
+  # cat(
+  #   "$", prior_vec, "$", "&",
+  #   "data1:", "&", round(colMeans(res_1), 4), "&",
+  #   "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
+  # )
   # saveRDS(
   #   alpha_mat_list1,
   #   paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat1.rds")

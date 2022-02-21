@@ -14,15 +14,15 @@
 # index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-#
+# 
 # A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-#
+# 
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-#
+# 
 # eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
 # dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
 # dta_1 <- t(dta_1)
@@ -45,8 +45,8 @@
 # tol is the threshold for ELBO
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("Two_dataset_v3/Graph_given_order_two_sampling.R")
-source("Two_dataset_v3/sum_single_effect_two_sampling.R")
+source("Two_dataset_v3/sampling/Graph_given_order_two_sampling.R")
+source("Two_dataset_v3/sampling/sum_single_effect_two_sampling.R")
 Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                     order_int = NULL, iter_max = 50000,
                                     sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
@@ -97,7 +97,7 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
   order_list <- list()
   ## begin MCMC
   for (iter_MCMC in seq_len(iter_max)) {
-    if (iter_MCMC %% 1000 == 0) print(iter_MCMC)
+    if (iter_MCMC %% 10000 == 0) print(iter_MCMC)
     ## Two update methods
     if (sample(c(0, 1), size = 1)) {
       # may change
@@ -210,9 +210,9 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
       llike_vec_1_pro[c(pos_change, pos_change + 1)] <- c(res_pos$loglikelihood_1, res_pos1$loglikelihood_1)
       llike_vec_2_pro[c(pos_change, pos_change + 1)] <- c(res_pos$loglikelihood_2, res_pos1$loglikelihood_2)
       llike_old <- sum(llike_vec_1_old) + sum(llike_vec_2_old) +
-        sum(lprior_graph_old) + sum(lpropose_graph_pro)
+        sum(lprior_graph_old) + sum(lpropose_graph_pro[c(pos_change, pos_change + 1)])
       llike_pro <- sum(llike_vec_1_pro) + sum(llike_vec_2_pro) +
-        sum(lprior_graph_pro) + sum(lpropose_graph_old)
+        sum(lprior_graph_pro) + sum(lpropose_graph_old[c(pos_change, pos_change + 1)])
       # accept or not
       if (llike_pro > llike_old) {
         accept <- TRUE
@@ -239,7 +239,9 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
         graph_res_1_old[pos_change + 1, res_pos1$index1_select] <- 1
         graph_res_2_old[pos_change + 1, res_pos1$index2_select] <- 1
         # alpha mat
-        alpha_list_old[[pos_change]] <- res_pos$alpha_mat
+        if (pos_change != 1) {
+          alpha_list_old[[pos_change]] <- res_pos$alpha_mat
+        }
         alpha_list_old[[pos_change + 1]] <- res_pos1$alpha_mat
         if (pos_change + 1 < p) {
           for (iter_p in (pos_change + 2):p) {

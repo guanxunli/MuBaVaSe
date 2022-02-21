@@ -8,14 +8,17 @@ p <- 100
 n_tol <- 600
 K <- 2
 n <- n_tol / K
-e_com <- 50
-e_pri <- 50
+e_com <- 100
+e_pri <- 30
 # Define prior
 prior_vec_list <- list()
-prior_vec_list[[1]] <- c(1 / p^1.5, 1 / p^2)
-prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
-prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^1.5)
-prior_vec_list[[4]] <- c(1 / p^2, 1 / p^2)
+prior_vec_list[[1]] <- c(1 / p^1.5, 1 / p^1.75)
+prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^1.75)
+prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^2)
+prior_vec_list[[4]] <- c(1 / (2 * p^1.5), 1 / p^2)
+prior_vec_list[[5]] <- c(1 / p^2, 1 / p^2.25)
+prior_vec_list[[6]] <- c(1 / (2 * p^2), 1 / p^2.25)
+
 # Define MCMC parameters
 scale_x <- FALSE
 intercept <- TRUE
