@@ -125,7 +125,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 
 # ########################## Do MCMC quick test ############################
 # iter_max <- 100
-# prior_vec <- prior_vec_list[[2]]
+# prior_vec <- prior_vec_list[[1]]
 # source("Two_dataset_v3/single/Graph_MCMC_two_single.R")
 # source("Two_dataset_v3/single/Graph_MCMC_two_sim_single.R")
 # #### with GES Initialization

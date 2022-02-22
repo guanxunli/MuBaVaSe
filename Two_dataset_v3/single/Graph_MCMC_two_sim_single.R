@@ -127,6 +127,8 @@ Graph_MCMC_two_sim_single <- function(dta_1, dta_2, scale_x = FALSE, intercept =
     llike_1_vec_pro[pos_change + 1] <- res_pos1$loglikelihood_1
     llike_2_vec_pro[pos_change + 1] <- res_pos1$loglikelihood_2
     lprior_graph_pro[pos_change + 1] <- res_pos1$lprior_graph
+    llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + 
+      sum(llike_2_vec_pro[c(pos_change, pos_change + 1)])
     if (prior_penalty) {
       llike_pro <- llike_pro + sum(lprior_graph_pro[c(pos_change, pos_change + 1)])
     }

@@ -80,12 +80,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # adj_true2 <- t(graph_sim$G[[1]][[2]])
 # g_true2 <- as(getGraph(adj_true2), "graphNEL")
 # weight_true2 <- t(graph_sim$A[[1]][[2]])
-#
+# 
 # #### our method
 # source("Two_dataset_new/Graph_given_order_two.R")
 # dta_1 <- graph_sim$X[[1]][[1]]
 # dta_2 <- graph_sim$X[[1]][[2]]
-#
+# 
 # #### If we know the order
 # for (iter_prior in seq_len(length(prior_vec_list))) {
 #   prior_vec <- prior_vec_list[[iter_prior]]
@@ -122,10 +122,10 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     "\n"
 #   )
 # }
-#
+# 
 # ########################## Do MCMC quick test ############################
 # iter_max <- 100
-# prior_vec <- prior_vec_list[[1]]
+# prior_vec <- prior_vec_list[[2]]
 # source("Two_dataset_new/Graph_MCMC_two.R")
 # source("Two_dataset_new/Graph_MCMC_two_sim.R")
 # #### with GES Initialization
@@ -145,7 +145,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #                               prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
 #                               burn_in = 1, adj_true1 = adj_true1, adj_true2 = adj_true2
 # )
-#
+# 
 # # Show likelihood
 # library(ggplot2)
 # library(gridExtra)
@@ -162,7 +162,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
 # grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
-#
+# 
 # ## analysis
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
@@ -207,7 +207,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   "L1", round(check_adj_l1(adj_pre = alpha_mat_2, adj_act = adj_true2), 4),
 #   "\n"
 # )
-#
+# 
 # ##### without GES initialization
 # out_res <- Graph_MCMC_two_sim(dta_1, dta_2, scale_x = scale_x, intercept = intercept,
 #                           order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
@@ -227,7 +227,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
 # grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
-#
+# 
 # # analysis
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
@@ -423,12 +423,12 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     "data1:", round(colMeans(res_1), 4),
     "data2:", round(colMeans(res_2), 4), "\n"
   )
-  ## show tex
-  cat(
-    "$", prior_vec, "$", "&",
-    "data1:", "&", round(colMeans(res_1), 4), "&",
-    "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
-  )
+  # ## show tex
+  # cat(
+  #   "$", prior_vec, "$", "&",
+  #   "data1:", "&", round(colMeans(res_1), 4), "&",
+  #   "data2:", "&", round(colMeans(res_2), 4), "\\\\\n"
+  # )
   # saveRDS(
   #   alpha_mat_list1,
   #   paste0(prior_vec[1], "_", prior_vec[2], "_", e_com, "_", e_pri, "_", "alpha_mat1_MCMC.rds")

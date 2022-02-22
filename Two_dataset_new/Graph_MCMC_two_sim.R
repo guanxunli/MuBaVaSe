@@ -1,4 +1,4 @@
-source("Two_dataset_new/sum_single_effect_two.R")
+source("Two_dataset_new/sum_single_effect_two_graph.R")
 source("Two_dataset_new/Graph_given_order_two.R")
 Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                                order_int = NULL, iter_max = 50000,
@@ -179,6 +179,15 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
     }
     ## save lists
     llike_vec[iter_MCMC] <- llike_old
+    # check error
+    adj_1 <- alpha_res_1_old[order(order_old), order(order_old)]
+    adj_1 <- ifelse(adj_1 > 0.5, 1, 0)
+    adj_1 <- t(adj_1)
+    g_1 <- as(getGraph(adj_1), "graphNEL")
+    adj_2 <- alpha_res_2_old[order(order_old), order(order_old)]
+    adj_2 <- ifelse(adj_2 > 0.5, 1, 0)
+    adj_2 <- t(adj_2)
+    g_2 <- as(getGraph(adj_2), "graphNEL")
     ## save results
     error_mat1[, iter_MCMC] <- c(
       pcalg::shd(g_true1, g_1),
