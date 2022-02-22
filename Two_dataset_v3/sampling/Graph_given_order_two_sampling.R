@@ -72,18 +72,13 @@ joint_graph_fun_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercep
   lprior_graph <- rep(0, p)
   lpropose_graph <- rep(0, p)
   # initialization
-  if (intercept) {
-    mean_1 <- mean(dta_1[, 1])
-    mean_2 <- mean(dta_2[, 1])
-  } else {
-    mean_1 <- 0
-    mean_2 <- 0
-  }
+  dta_1 <- scale(dta_1, center = intercept, scale = scale_x)
+  dta_2 <- scale(dta_2, center = intercept, scale = scale_x)
   alpha_list[[1]] <- NULL
   sigma02_vec_list[[1]] <- NULL
   sigma2_vec[1] <- var(c(dta_1[, 1], dta_2[, 1]))
-  llike_vec_1[1] <- sum(dnorm(dta_1[, 1], mean = mean_1, sd = sqrt(sigma2_vec[1]), log = TRUE))
-  llike_vec_2[1] <- sum(dnorm(dta_2[, 1], mean = mean_2, sd = sqrt(sigma2_vec[1]), log = TRUE))
+  llike_vec_1[1] <- sum(dnorm(dta_1[, 1], mean = 0, sd = sqrt(sigma2_vec[1]), log = TRUE))
+  llike_vec_2[1] <- sum(dnorm(dta_2[, 1], mean = 0, sd = sqrt(sigma2_vec[1]), log = TRUE))
   # begin iteration
   for (iter_p in seq_len(p - 1)) {
     X_1 <- dta_1[, seq_len(iter_p), drop = FALSE]
@@ -93,7 +88,7 @@ joint_graph_fun_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercep
     ## variable selection
     res <- sum_single_effect_two_sampling(
       X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2,
-      scale_x = scale_x, intercept = intercept, sigma02_int = sigma02_int,
+      scale_x = FALSE, intercept = FALSE, sigma02_int = sigma02_int,
       sigma2_int = sigma2_int, prior_vec = prior_vec, L = min(iter_p, L_max),
       itermax = itermax, tol = tol,
       residual_variance_lowerbound = residual_variance_lowerbound

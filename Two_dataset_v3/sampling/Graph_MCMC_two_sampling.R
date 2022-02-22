@@ -1,34 +1,34 @@
-## define parameters
-p <- 100
-n1 <- 300
-n2 <- 400
-p_c <- 100
-p_1 <- 30
-p_2 <- 25
-sigma <- 1
-sigma0 <- 0.6
-A1 <- matrix(0, nrow = p, ncol = p)
-A2 <- matrix(0, nrow = p, ncol = p)
-set.seed(2022)
-# Define the true graph given order
-index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-
-A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-
-alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-
-eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
-dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-dta_1 <- t(dta_1)
-eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
-dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-dta_2 <- t(dta_2)
+# ## define parameters
+# p <- 100
+# n1 <- 300
+# n2 <- 400
+# p_c <- 100
+# p_1 <- 30
+# p_2 <- 25
+# sigma <- 1
+# sigma0 <- 0.6
+# A1 <- matrix(0, nrow = p, ncol = p)
+# A2 <- matrix(0, nrow = p, ncol = p)
+# set.seed(2022)
+# # Define the true graph given order
+# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
+# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
+# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
+# 
+# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
+# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
+# 
+# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
+# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
+# 
+# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
+# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
+# dta_1 <- t(dta_1)
+# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
+# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
+# dta_2 <- t(dta_2)
 
 ## MCMC method for Graph
 # dta_1 and dta_2 are p x n data set
@@ -47,18 +47,6 @@ dta_2 <- t(dta_2)
 
 source("Two_dataset_v3/sampling/Graph_given_order_two_sampling.R")
 source("Two_dataset_v3/sampling/sum_single_effect_two_sampling.R")
-scale_x = FALSE
-intercept = TRUE
-order_int = NULL
-iter_max = 10000
-sigma02_int = NULL
-sigma2_int = NULL
-prior_vec = NULL
-itermax = 100
-L_max = 10
-tol = 1e-4
-burn_in = 5000
-residual_variance_lowerbound = NULL
 Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                     order_int = NULL, iter_max = 50000,
                                     sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
@@ -69,6 +57,8 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
   if (p != ncol(dta_2)) stop("The number of features should be same!")
   n1 <- nrow(dta_1)
   n2 <- nrow(dta_2)
+  dta_1 <- scale(dta_1, center = intercept, scale = scale_x)
+  dta_2 <- scale(dta_2, center = intercept, scale = scale_x)
   ## define prior vector
   if (is.null(prior_vec)) {
     prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
@@ -85,7 +75,7 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
   dta_2_old <- dta_2[, order_old]
   ## load the main function
   res_old <- joint_graph_fun_two_sampling(
-    dta_1 = dta_1_old, dta_2 = dta_2_old, scale_x = scale_x, intercept = intercept,
+    dta_1 = dta_1_old, dta_2 = dta_2_old, scale_x = FALSE, intercept = FALSE,
     sigma02_int = sigma02_int, sigma2_int = sigma2_int, prior_vec = prior_vec,
     itermax = itermax, L_max = L_max, tol = tol,
     residual_variance_lowerbound = residual_variance_lowerbound
@@ -109,7 +99,6 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
   order_list <- list()
   ## begin MCMC
   for (iter_MCMC in seq_len(iter_max)) {
-    print(iter_MCMC)
     if (iter_MCMC %% 10000 == 0) print(iter_MCMC)
     ## Two update methods
     if (sample(c(0, 1), size = 1)) {
@@ -129,7 +118,7 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
         # calculate the likelihood
         out_res <- sampling_fun(
           X_1 = X_1, Y_1 = Y_1, X_2 = X_2, Y_2 = Y_2,
-          scale_x = scale_x, intercept = intercept,
+          scale_x = FALSE, intercept = FALSE,
           lprior_vec = lprior_vec, sigma2 = sigma2_vec_old[iter_p + 1],
           alpha_mat = alpha_list_old[[iter_p + 1]],
           sigma02_vec = sigma02_vec_list_old[[iter_p + 1]]
@@ -189,20 +178,13 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
         res_pos$lprior <- 0
         res_pos$lpropose <- 0
         res_pos$alpha_mat <- NULL
-        if (intercept) {
-          mean_1 <- mean(dta_1_pro[, 1])
-          mean_2 <- mean(dta_2_pro[, 1])
-        } else {
-          mean_1 <- 0
-          mean_2 <- 0
-        }
-        res_pos$loglikelihood_1 <- sum(dnorm(x = dta_1_pro[, 1], mean = mean_1, sd = sqrt(res_pos$sigma2), log = TRUE))
-        res_pos$loglikelihood_2 <- sum(dnorm(x = dta_2_pro[, 1], mean = mean_2, sd = sqrt(res_pos$sigma2), log = TRUE))
+        res_pos$loglikelihood_1 <- sum(dnorm(x = dta_1_pro[, 1], mean = 0, sd = sqrt(res_pos$sigma2), log = TRUE))
+        res_pos$loglikelihood_2 <- sum(dnorm(x = dta_2_pro[, 1], mean = 0, sd = sqrt(res_pos$sigma2), log = TRUE))
       } else {
         res_pos <- sum_single_effect_two_sampling(
           X_1 = dta_1_pro[, seq_len(pos_change - 1), drop = FALSE], Y_1 = dta_1_pro[, pos_change],
           X_2 = dta_2_pro[, seq_len(pos_change - 1), drop = FALSE], Y_2 = dta_2_pro[, pos_change],
-          scale_x = scale_x, intercept = intercept,
+          scale_x = FALSE, intercept = FALSE,
           sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1],
           prior_vec = prior_vec, L = min(pos_change - 1, L_max),
           itermax = itermax, tol = tol,
@@ -212,7 +194,7 @@ Graph_MCMC_two_sampling <- function(dta_1, dta_2, scale_x = FALSE, intercept = T
       res_pos1 <- sum_single_effect_two_sampling(
         X_1 = dta_1_pro[, seq_len(pos_change), drop = FALSE], Y_1 = dta_1_pro[, pos_change + 1],
         X_2 = dta_2_pro[, seq_len(pos_change), drop = FALSE], Y_2 = dta_2_pro[, pos_change + 1],
-        scale_x = scale_x, intercept = intercept,
+        scale_x = FALSE, intercept = FALSE,
         sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change],
         prior_vec = prior_vec, L = min(pos_change, L_max),
         itermax = itermax, tol = tol,

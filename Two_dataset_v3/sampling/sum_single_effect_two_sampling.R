@@ -196,18 +196,14 @@ sum_single_effect_two_sampling <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, i
     if (ELBO[iter + 1] - ELBO[iter] < 1e-4) break
   }
   ELBO <- as.numeric(na.omit(ELBO[-1]))
+  alpha_mat[which(alpha_mat < 1e-2)] <- 0
+  alpha_mat <- as(t(t(alpha_mat) / colSums(alpha_mat)), "sparseMatrix")
   ## return results
   res <- list()
   res$ELBO <- ELBO
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
-  alpha_mat[which(alpha_mat < 1e-2)] <- 0
-  alpha_mat <- as(t(t(alpha_mat) / colSums(alpha_mat)), "sparseMatrix")
   res$alpha_mat <- alpha_mat
-  res$index1_select <- NULL
-  res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(res$sigma2), log = TRUE))
-  res$index2_select <- NULL
-  res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(res$sigma2), log = TRUE))
   res$lprior <- 0
 
   ## variable selection
@@ -245,6 +241,9 @@ sum_single_effect_two_sampling <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, i
         1 / 2 * crossprod(Y_1, Sigma_1_inverse %*% Y_1)
       res$index1_select <- index1_select
       res$loglikelihood_1 <- loglikelihood_1
+    } else {
+      res$index1_select <- NULL
+      res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(res$sigma2), log = TRUE))
     }
     if (length(index2_select) > 0) {
       Sigma_2_inverse <- diag(1, n2) - X_scale_2[, index2_select, drop = FALSE] %*%
@@ -257,7 +256,15 @@ sum_single_effect_two_sampling <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, i
         1 / 2 * crossprod(Y_2, Sigma_2_inverse %*% Y_2)
       res$index2_select <- index2_select
       res$loglikelihood_2 <- loglikelihood_2
+    } else {
+      res$index2_select <- NULL
+      res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(res$sigma2), log = TRUE))
     }
+  } else {
+    res$index1_select <- NULL
+    res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(res$sigma2), log = TRUE))
+    res$index2_select <- NULL
+    res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(res$sigma2), log = TRUE))
   }
   return(res)
 }

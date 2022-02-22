@@ -191,7 +191,7 @@ graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
 )
-prior_penalty = TRUE
+prior_penalty <- TRUE
 iter_max <- 100000
 
 library(foreach)

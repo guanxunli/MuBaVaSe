@@ -121,10 +121,6 @@ sampling_fun <- function(X_1, Y_1, X_2, Y_2, scale_x, intercept,
   res$alpha_mat <- alpha_mat
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
-  res$index1_select <- NULL
-  res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(res$sigma2), log = TRUE))
-  res$index2_select <- NULL
-  res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(res$sigma2), log = TRUE))
   res$lprior <- 0
   ## variable selection
   index_all <- apply(res$alpha_mat, 2, function(x) {
@@ -161,6 +157,9 @@ sampling_fun <- function(X_1, Y_1, X_2, Y_2, scale_x, intercept,
         1 / 2 * crossprod(Y_1, Sigma_1_inverse %*% Y_1)
       res$index1_select <- index1_select
       res$loglikelihood_1 <- loglikelihood_1
+    } else {
+      res$index1_select <- NULL
+      res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(res$sigma2), log = TRUE))
     }
     if (length(index2_select) > 0) {
       Sigma_2_inverse <- diag(1, n2) - X_scale_2[, index2_select, drop = FALSE] %*%
@@ -173,7 +172,15 @@ sampling_fun <- function(X_1, Y_1, X_2, Y_2, scale_x, intercept,
         1 / 2 * crossprod(Y_2, Sigma_2_inverse %*% Y_2)
       res$index2_select <- index2_select
       res$loglikelihood_2 <- loglikelihood_2
+    } else {
+      res$index2_select <- NULL
+      res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(res$sigma2), log = TRUE))
     }
+  } else {
+    res$index1_select <- NULL
+    res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(res$sigma2), log = TRUE))
+    res$index2_select <- NULL
+    res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(res$sigma2), log = TRUE))
   }
   return(res)
 }
