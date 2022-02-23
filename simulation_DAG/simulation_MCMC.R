@@ -282,7 +282,7 @@ graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
 )
-
+prior_penalty <- TRUE
 iter_max <- 100000
 
 library(foreach)
@@ -311,7 +311,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
     order_int <- as.numeric(igraph::topo_sort(graph_i))
     # Do MCMC
-    Graph_MCMC_two_sim(dta_1, dta_2,
+    Graph_MCMC_two_sim(dta_1, dta_2, prior_penalty = prior_penalty,
                        scale_x = scale_x, intercept = intercept,
                        order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
                        prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
@@ -355,13 +355,13 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
         ylab("No order")
       png(paste0(
         "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "data1_MCMC.png"
+        "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data1_MCMC.png"
       ))
       grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
       dev.off()
       png(paste0(
         "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "data2_MCMC.png"
+        "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data2_MCMC.png"
       ))
       grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
       dev.off()
