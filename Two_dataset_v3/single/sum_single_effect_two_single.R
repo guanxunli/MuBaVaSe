@@ -202,10 +202,6 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
   res$lprior_graph <- 0
-  res$index1_select <- NULL
-  res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(sigma2), log = TRUE))
-  res$index2_select <- NULL
-  res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(sigma2), log = TRUE))
   ## variable selection
   index_all <- apply(alpha_mat, 2, which.max)
   index_select <- which(index_all < (3 * p + 1))
@@ -217,9 +213,10 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
     index_1 <- which(index_select < p + 1)
     index_c <- which(index_select > 2 * p)
     index_2 <- intersect(which(index_select > p), which(index_select < 2 * p + 1))
-    res$lprior <- log(choose(L, length(index_1))) + log(choose(L - length(index_1), length(index_2))) +
-      log(choose(L - length(index_1) - length(index_2), length(index_c))) +
-      (length(index_1) + length(index_2)) * lprior_vec[1] + length(index_c) * lprior_vec[2]
+    # res$lprior <- log(choose(L, length(index_1))) + log(choose(L - length(index_1), length(index_2))) +
+    #   log(choose(L - length(index_1) - length(index_2), length(index_c))) +
+    #   (length(index_1) + length(index_2)) * lprior_vec[1] + length(index_c) * lprior_vec[2]
+    res$lprior <- (length(index_1) + length(index_2)) * lprior_vec[1] + length(index_c) * lprior_vec[2]
     # select index
     sigma02_select1 <- sigma02_select[c(index_1, index_c)]
     index1_select <- c(index_select[index_1], index_select[index_c] - 2 * p)
@@ -227,29 +224,46 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
     index2_select <- c(index_select[index_2] - p, index_select[index_c] - 2 * p)
     # return likelihood
     if (length(index1_select) > 0) {
-      Sigma_1_inverse <- diag(1, n1) - X_scale_1[, index1_select, drop = FALSE] %*%
-        solve(
-          crossprod(X_scale_1[, index1_select, drop = FALSE]) +
-            sigma2 * diag(1 / sigma02_select1, nrow = length(sigma02_select1)),
-          t(X_scale_1[, index1_select, drop = FALSE])
-        )
-      loglikelihood_1 <- -n1 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_1_inverse)) -
-        1 / 2 * crossprod(Y_1, Sigma_1_inverse %*% Y_1)
+      # Sigma_1_inverse <- diag(1, n1) - X_scale_1[, index1_select, drop = FALSE] %*%
+      #   solve(
+      #     crossprod(X_scale_1[, index1_select, drop = FALSE]) +
+      #       sigma2 * diag(1 / sigma02_select1, nrow = length(sigma02_select1)),
+      #     t(X_scale_1[, index1_select, drop = FALSE])
+      #   )
+      # loglikelihood_1 <- -n1 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_1_inverse)) -
+      #   1 / 2 * crossprod(Y_1, Sigma_1_inverse %*% Y_1)
+      Y_fit_1 <- solve(crossprod(X_scale_1[, index1_select, drop = FALSE]), 
+                       crossprod(X_scale_1[, index1_select, drop = FALSE], Y_1))
+      loglikelihood_1 <- sum(dnorm(Y_fit_1, sd = sqrt(sigma2), log = TRUE))
       res$index1_select <- index1_select
       res$loglikelihood_1 <- loglikelihood_1
+    } else {
+      res$index1_select <- NULL
+      res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(sigma2), log = TRUE))
     }
     if (length(index2_select) > 0) {
-      Sigma_2_inverse <- diag(1, n2) - X_scale_2[, index2_select, drop = FALSE] %*%
-        solve(
-          crossprod(X_scale_2[, index2_select, drop = FALSE]) +
-            sigma2 * diag(1 / sigma02_select2, nrow = length(sigma02_select2)),
-          t(X_scale_2[, index2_select, drop = FALSE])
-        )
-      loglikelihood_2 <- -n2 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_2_inverse)) -
-        1 / 2 * crossprod(Y_2, Sigma_2_inverse %*% Y_2)
+      # Sigma_2_inverse <- diag(1, n2) - X_scale_2[, index2_select, drop = FALSE] %*%
+      #   solve(
+      #     crossprod(X_scale_2[, index2_select, drop = FALSE]) +
+      #       sigma2 * diag(1 / sigma02_select2, nrow = length(sigma02_select2)),
+      #     t(X_scale_2[, index2_select, drop = FALSE])
+      #   )
+      # loglikelihood_2 <- -n2 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_2_inverse)) -
+      #   1 / 2 * crossprod(Y_2, Sigma_2_inverse %*% Y_2)
+      Y_fit_2 <- solve(crossprod(X_scale_2[, index2_select, drop = FALSE]), 
+                       crossprod(X_scale_2[, index2_select, drop = FALSE], Y_2))
+      loglikelihood_2 <- sum(dnorm(Y_fit_2, sd = sqrt(sigma2), log = TRUE))
       res$index2_select <- index2_select
       res$loglikelihood_2 <- loglikelihood_2
+    } else {
+      res$index2_select <- NULL
+      res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(sigma2), log = TRUE))
     }
+  } else {
+    res$index1_select <- NULL
+    res$loglikelihood_1 <- sum(dnorm(Y_1, sd = sqrt(sigma2), log = TRUE))
+    res$index2_select <- NULL
+    res$loglikelihood_2 <- sum(dnorm(Y_2, sd = sqrt(sigma2), log = TRUE))
   }
   # return results
   return(res)
@@ -261,7 +275,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
 # res_new <- sum_single_effect_two_single(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1,
 #                                         scale_x = TRUE, intercept = TRUE)
 # Sys.time() - time1
-
+# 
 # ## joint method 2
 # source("Two_dataset_new/sum_single_effect_two_graph.R")
 # time1 <- Sys.time()
