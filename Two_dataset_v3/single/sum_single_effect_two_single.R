@@ -12,19 +12,19 @@
 # index_c <- sample(seq_len(p), size = p_c, replace = FALSE)
 # index_1 <- sample(setdiff(seq_len(p), index_c), size = p_1, replace = FALSE)
 # index_2 <- sample(setdiff(seq_len(p), index_c), size = p_2, replace = FALSE)
-# 
+#
 # b_1 <- rep(0, p)
 # b_1[c(index_c, index_1)] <- rnorm(p_c + p_1, mean = 0, sd = sigma0)
 # # b_1[c(index_c, index_1)] <- c(rep(1,15), rep(0.05, 10), rep(0.1, 5))
 # b_2 <- rep(0, p)
 # b_2[c(index_c, index_2)] <- rnorm(p_c + p_2, mean = 0, sd = sigma0)
 # # b_2[c(index_c, index_2)] <- c(rep(0.05,15), rep(1, 10), rep(0.1, 5))
-# 
+#
 # alpha_1 <- rep(0, p)
 # alpha_1[c(index_c, index_1)] <- 1
 # alpha_2 <- rep(0, p)
 # alpha_2[c(index_c, index_2)] <- 1
-# 
+#
 # X_1 <- matrix(rnorm(p * n1), nrow = n1, ncol = p)
 # X_2 <- matrix(rnorm(p * n2), nrow = n2, ncol = p)
 # Y_1 <- X_1 %*% b_1 + rnorm(n1, sd = sigma)
@@ -53,17 +53,17 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   if (p != ncol(X_2)) stop("The number of features should be same!")
   n1 <- nrow(X_1)
   n2 <- nrow(X_2)
-
+  
   # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
-
+  
   ## data preprocess
   X_scale_1 <- scale(X_1, center = intercept, scale = scale_x)
   X_scale_2 <- scale(X_2, center = intercept, scale = scale_x)
-
+  
   if (intercept) {
     mean_Y_1 <- mean(Y_1)
     mean_Y_2 <- mean(Y_2)
@@ -73,7 +73,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   }
   Y_1 <- Y_1 - mean_Y_1
   Y_2 <- Y_2 - mean_Y_2
-
+  
   ## data set 1
   XtX_1 <- crossprod(X_scale_1)
   X_scale2_1 <- X_scale_1 * X_scale_1
@@ -84,7 +84,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   X_scale2_2 <- X_scale_2 * X_scale_2
   X2_2 <- colSums(X_scale2_2)
   XtY_2 <- crossprod(X_scale_2, Y_2)
-
+  
   # Initialize prior
   if (is.null(prior_vec)) {
     prior_vec <- c(1 / (2 * p^1.5), 1 / (p^2))
@@ -92,13 +92,13 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   lprior_vec <- log(prior_vec)
   prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
   prior_pi <- c(prior_pi, 1 - sum(prior_pi))
-
+  
   # initialize ELBO
   ELBO <- rep(NA, itermax + 1)
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
   sigma02_vec <- rep(sigma02_int, L)
-
+  
   # Save matrix
   b_mat_1 <- matrix(0, nrow = p, ncol = L)
   b2_mat_1 <- matrix(0, nrow = p, ncol = L)
@@ -107,7 +107,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
   alpha_mat_1 <- matrix(0, nrow = p, ncol = L)
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
   alpha_mat <- matrix(0, nrow = 3 * p + 1, ncol = L)
-
+  
   # Begin iteration
   beta_hat_1 <- rowSums(b_mat_1)
   beta_hat_2 <- rowSums(b_mat_2)
@@ -232,8 +232,10 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
       #   )
       # loglikelihood_1 <- -n1 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_1_inverse)) -
       #   1 / 2 * crossprod(Y_1, Sigma_1_inverse %*% Y_1)
-      Y_fit_1 <- solve(crossprod(X_scale_1[, index1_select, drop = FALSE]), 
-                       crossprod(X_scale_1[, index1_select, drop = FALSE], Y_1))
+      Y_fit_1 <- solve(
+        crossprod(X_scale_1[, index1_select, drop = FALSE]),
+        crossprod(X_scale_1[, index1_select, drop = FALSE], Y_1)
+      )
       loglikelihood_1 <- sum(dnorm(Y_fit_1, sd = sqrt(sigma2), log = TRUE))
       res$index1_select <- index1_select
       res$loglikelihood_1 <- loglikelihood_1
@@ -250,8 +252,10 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
       #   )
       # loglikelihood_2 <- -n2 / 2 * log(2 * pi) + 1 / 2 * log(det(Sigma_2_inverse)) -
       #   1 / 2 * crossprod(Y_2, Sigma_2_inverse %*% Y_2)
-      Y_fit_2 <- solve(crossprod(X_scale_2[, index2_select, drop = FALSE]), 
-                       crossprod(X_scale_2[, index2_select, drop = FALSE], Y_2))
+      Y_fit_2 <- solve(
+        crossprod(X_scale_2[, index2_select, drop = FALSE]),
+        crossprod(X_scale_2[, index2_select, drop = FALSE], Y_2)
+      )
       loglikelihood_2 <- sum(dnorm(Y_fit_2, sd = sqrt(sigma2), log = TRUE))
       res$index2_select <- index2_select
       res$loglikelihood_2 <- loglikelihood_2
@@ -275,7 +279,7 @@ sum_single_effect_two_single <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, int
 # res_new <- sum_single_effect_two_single(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1,
 #                                         scale_x = TRUE, intercept = TRUE)
 # Sys.time() - time1
-# 
+#
 # ## joint method 2
 # source("Two_dataset_new/sum_single_effect_two_graph.R")
 # time1 <- Sys.time()

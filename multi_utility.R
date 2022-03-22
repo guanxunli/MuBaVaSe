@@ -23,11 +23,16 @@ lBF_model_multi <- function(lsigma02, prior_pi, z2_mat, s2_mat, n_group, p, com_
 
 sigma0_opt_multi <- function(lsigma02_int, prior_pi, z2_mat, s2_mat, b_hat_mat, n_group, p, com_list) {
   tmp1 <- lBF_model_multi(lsigma02 = lsigma02_int, prior_pi, z2_mat, s2_mat, n_group, p, com_list)
-  lsigma02 <- optim(
-    par = log(max(b_hat_mat^2 - s2_mat, 1)), fn = lBF_model_multi,
-    method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_mat = z2_mat,
+  # lsigma02 <- optim(
+  #   par = log(max(b_hat_mat^2 - s2_mat, 1)), fn = lBF_model_multi,
+  #   method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_mat = z2_mat,
+  #   s2_mat = s2_mat, n_group = n_group, p = p, com_list = com_list
+  # )$par
+  lsigma02 <- optimize(
+    f = lBF_model_multi, lower = -30, upper = 15,
+    prior_pi = prior_pi, z2_mat = z2_mat,
     s2_mat = s2_mat, n_group = n_group, p = p, com_list = com_list
-  )$par
+  )$minimum
   tmp2 <- lBF_model_multi(lsigma02 = lsigma02, prior_pi, z2_mat, s2_mat, n_group, p, com_list)
   if (tmp2 < tmp1) {
     return(exp(lsigma02))
@@ -46,7 +51,7 @@ KL_fun_multi <- function(dta_list, Y_list, sigma2, b_list, b2_list, lBF, K, n, l
     tmp3 <- tmp3 + n[iter_K] / 2 * log(2 * pi * sigma2)
     tmp4 <- tmp4 + 1 / (2 * sigma2) *
       (crossprod(Y_list[[iter_K]]) - 2 * crossprod(Y_list[[iter_K]], dta_list[[iter_K]]$X_scale %*% b_list[[iter_K]][, l]) +
-         sum(dta_list[[iter_K]]$X_scale2 %*% b2_list[[iter_K]][, l]))
+        sum(dta_list[[iter_K]]$X_scale2 %*% b2_list[[iter_K]][, l]))
   }
   return(tmp1 + tmp3 + tmp4 + lBF)
 }

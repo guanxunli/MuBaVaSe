@@ -80,12 +80,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # adj_true2 <- t(graph_sim$G[[1]][[2]])
 # g_true2 <- as(getGraph(adj_true2), "graphNEL")
 # weight_true2 <- t(graph_sim$A[[1]][[2]])
-# 
+#
 # #### our method
 # source("Two_dataset_new/Graph_given_order_two.R")
 # dta_1 <- graph_sim$X[[1]][[1]]
 # dta_2 <- graph_sim$X[[1]][[2]]
-# 
+#
 # #### If we know the order
 # for (iter_prior in seq_len(length(prior_vec_list))) {
 #   prior_vec <- prior_vec_list[[iter_prior]]
@@ -122,7 +122,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     "\n"
 #   )
 # }
-# 
+#
 # ########################## Do MCMC quick test ############################
 # iter_max <- 100
 # prior_vec <- prior_vec_list[[2]]
@@ -145,7 +145,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #                               prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
 #                               burn_in = 1, adj_true1 = adj_true1, adj_true2 = adj_true2
 # )
-# 
+#
 # # Show likelihood
 # library(ggplot2)
 # library(gridExtra)
@@ -162,7 +162,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
 # grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
-# 
+#
 # ## analysis
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
@@ -207,7 +207,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   "L1", round(check_adj_l1(adj_pre = alpha_mat_2, adj_act = adj_true2), 4),
 #   "\n"
 # )
-# 
+#
 # ##### without GES initialization
 # out_res <- Graph_MCMC_two_sim(dta_1, dta_2, scale_x = scale_x, intercept = intercept,
 #                           order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
@@ -227,7 +227,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
 # grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
 # grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
-# 
+#
 # # analysis
 # alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
 # alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
@@ -282,7 +282,7 @@ graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
 )
-prior_penalty <- TRUE
+prior_penalty <- FALSE
 iter_max <- 100000
 
 library(foreach)
@@ -311,7 +311,8 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
     order_int <- as.numeric(igraph::topo_sort(graph_i))
     # Do MCMC
-    Graph_MCMC_two_sim(dta_1, dta_2, prior_penalty = prior_penalty,
+    Graph_MCMC_two_sim(dta_1, dta_2,
+                       prior_penalty = prior_penalty,
                        scale_x = scale_x, intercept = intercept,
                        order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
                        prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
@@ -331,41 +332,41 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   alpha_mat_list2 <- list()
   for (iter_graph in seq_len(n_graph)) {
     res_tmp <- out_res[[iter_graph]]
-    ## plot likelihood and error
-    if (iter_graph %% 10 == 0) {
-      gl <- ggplot() +
-        geom_line(aes(x = seq_len(iter_max), y = res_tmp$llike_vec)) +
-        xlab("Iteration") +
-        ylab("Log likelihood")
-      gs_1 <- ggplot() +
-        geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat1[1, ])) +
-        xlab("Iteration") +
-        ylab("SHD")
-      gu_1 <- ggplot() +
-        geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat1[2, ])) +
-        xlab("Iteration") +
-        ylab("No order")
-      gs_2 <- ggplot() +
-        geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat2[1, ])) +
-        xlab("Iteration") +
-        ylab("SHD")
-      gu_2 <- ggplot() +
-        geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat2[2, ])) +
-        xlab("Iteration") +
-        ylab("No order")
-      png(paste0(
-        "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data1_MCMC.png"
-      ))
-      grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
-      dev.off()
-      png(paste0(
-        "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
-        "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data2_MCMC.png"
-      ))
-      grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
-      dev.off()
-    }
+    # ## plot likelihood and error
+    # if (iter_graph %% 10 == 0) {
+    #   gl <- ggplot() +
+    #     geom_line(aes(x = seq_len(iter_max), y = res_tmp$llike_vec)) +
+    #     xlab("Iteration") +
+    #     ylab("Log likelihood")
+    #   gs_1 <- ggplot() +
+    #     geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat1[1, ])) +
+    #     xlab("Iteration") +
+    #     ylab("SHD")
+    #   gu_1 <- ggplot() +
+    #     geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat1[2, ])) +
+    #     xlab("Iteration") +
+    #     ylab("No order")
+    #   gs_2 <- ggplot() +
+    #     geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat2[1, ])) +
+    #     xlab("Iteration") +
+    #     ylab("SHD")
+    #   gu_2 <- ggplot() +
+    #     geom_line(aes(x = seq_len(iter_max), y = res_tmp$error_mat2[2, ])) +
+    #     xlab("Iteration") +
+    #     ylab("No order")
+    #   png(paste0(
+    #     "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
+    #     "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data1_MCMC.png"
+    #   ))
+    #   grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
+    #   dev.off()
+    #   png(paste0(
+    #     "pri", prior_vec[1], "com", prior_vec[2], "graph", iter_graph,
+    #     "e_com", e_com, "e_pri", e_pri, "penalty", prior_penalty, "data2_MCMC.png"
+    #   ))
+    #   grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
+    #   dev.off()
+    # }
     # analysis
     alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
     alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
@@ -419,7 +420,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   }
   # show results
   cat(
-    "p:", p, "e_com:", e_com, "e_pri", e_pri, "prior:", prior_vec,
+    "p:", p, "e_com:", e_com, "e_pri", e_pri, "prior:", round(prior_vec, 4),
     "data1:", round(colMeans(res_1), 4),
     "data2:", round(colMeans(res_2), 4), "\n"
   )

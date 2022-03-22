@@ -70,7 +70,7 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
   } else {
     p <- p[1]
   }
-  
+
   # combinatorics matrix
   if (is.null(com_mat)) {
     com_list <- list()
@@ -82,12 +82,12 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
       com_mat <- rbind(com_mat_copy, com_mat)
     }
     com_mat <- com_mat[-1, ]
-    
+
     for (iter_com in seq_len(n_group)) {
       com_list[[iter_com]] <- which(com_mat[iter_com, ] == 1)
     }
   }
-  
+
   ## initialize list
   if (is.null(L)) L <- min(10, p)
   Y_list <- list()
@@ -125,18 +125,18 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
     dta_list[[iter_K]]$X_scale2 <- dta_list[[iter_K]]$X_scale * dta_list[[iter_K]]$X_scale
     dta_list[[iter_K]]$X2 <- colSums(dta_list[[iter_K]]$X_scale2)
   }
-  
+
   # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(unlist(Y_list)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
-  
+
   # Initialize ELBO
   ELBO <- rep(NA, itermax + 1)
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
   sigma02_vec <- rep(sigma02_int, L)
-  
+
   # Initialize prior
   if (is.null(prior_vec)) {
     prior_vec <- rep(1 / (n_group * p^1.5), n_group)
@@ -145,7 +145,7 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
   }
   prior_pi <- rep(prior_vec, each = p)
   prior_pi <- c(prior_pi, 1 - sum(prior_pi))
-  
+
   # Begin iteration
   for (iter in seq_len(itermax)) {
     ## calculate residuals
@@ -205,7 +205,7 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
     ERSS <- 0
     for (iter_K in seq_len(K)) {
       ERSS <- ERSS + ERSS_fun_single(dta_list[[iter_K]]$X_scale, dta_list[[iter_K]]$X_scale2,
-                                     Y = dta_list[[iter_K]]$Y, b_mat = b_list[[iter_K]], b2_mat = b2_list[[iter_K]]
+        Y = dta_list[[iter_K]]$Y, b_mat = b_list[[iter_K]], b2_mat = b2_list[[iter_K]]
       )
     }
     ELBO[iter + 1] <- -sum(n) / 2 * log(2 * pi * sigma2) - 1 / (2 * sigma2) * ERSS + KL_div
@@ -213,7 +213,7 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
     sigma2 <- max(ERSS / sum(n), residual_variance_lowerbound)
     if (ELBO[iter + 1] - ELBO[iter] < 1e-4) break
   }
-  
+
   ELBO <- as.numeric(na.omit(ELBO[-1]))
   # select effect index
   index_L <- which(sigma02_vec > sigma0_low_bd)
@@ -223,7 +223,7 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
   out_res$sigma2 <- sigma2
   out_res$sigma02_vec <- sigma02_vec
   out_res$res <- list()
-  
+
   if (length(index_L) > 0) {
     out_res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])
     for (iter_K in seq_len(K)) {
