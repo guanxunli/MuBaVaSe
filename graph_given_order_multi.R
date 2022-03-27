@@ -47,7 +47,7 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("sum_single_effect_mult.R")
+source("sum_single_effect_mult_graph.R")
 joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
                               sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                               com_mat = NULL, com_list = NULL,
@@ -83,7 +83,7 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
       com_mat <- rbind(com_mat_copy, com_mat)
     }
     com_mat <- com_mat[-1, ]
-    
+
     for (iter_com in seq_len(n_group)) {
       com_list[[iter_com]] <- which(com_mat[iter_com, ] == 1)
     }
@@ -113,8 +113,8 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
   sigma2_vec[1] <- var(unlist(Y_list))
   for (iter_K in seq_len(K)) {
     llike_mat[1, iter_K] <- sum(dnorm(dta_list[[iter_K]][, 1],
-                                      mean = mean_list[[iter_K]],
-                                      sd = sqrt(sigma2_vec[1]), log = TRUE
+      mean = mean_list[[iter_K]],
+      sd = sqrt(sigma2_vec[1]), log = TRUE
     ))
   }
   # begin iteration
@@ -127,11 +127,11 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
     }
     ## variable selection
     res_vs <- sum_single_effect_mult(dta_vs_list,
-                                     scale_x = scale_x, intercept = intercept,
-                                     sigma02_int = sigma02_int, sigma2_int = sigma2_int,
-                                     prior_vec = prior_vec, L = min(iter_p, L_max), itermax = itermax,
-                                     tol = tol, sigma0_low_bd = sigma0_low_bd, com_mat = com_mat, com_list = com_list,
-                                     residual_variance_lowerbound = residual_variance_lowerbound
+      scale_x = scale_x, intercept = intercept,
+      sigma02_int = sigma02_int, sigma2_int = sigma2_int,
+      prior_vec = prior_vec, L = min(iter_p, L_max), itermax = itermax,
+      tol = tol, sigma0_low_bd = sigma0_low_bd, com_mat = com_mat, com_list = com_list,
+      residual_variance_lowerbound = residual_variance_lowerbound
     )
     llike_penalty[iter_p + 1] <- sum(res_vs$alpha * c(rep(lprior_vec, each = iter_p)))
     ## save needed list
