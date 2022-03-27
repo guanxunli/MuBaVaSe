@@ -107,7 +107,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
       dta_list = graph_sim$X[[iter]], scale_x = scale_x, intercept = intercept,
       order_int = order_int, iter_max = iter_max,
       prior_vec = prior_vec, itermax = 100, L_max = 10,
-      burn_in = 1
+      burn_in = iter_max - 5000
     )
   }
   stopCluster(cl)
@@ -116,6 +116,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   for (iter_K in seq_len(K)) {
     res[[iter_K]] <- matrix(NA, nrow = n_graph, ncol = 7)
   }
+  res_ave <- matrix(0, nrow = n_graph, ncol = 7)
 
   for (iter_graph in seq_len(n_graph)) {
     res_tmp <- out_res[[iter_graph]]
@@ -160,5 +161,10 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   cat("p:", p, "e_com:", e_com, "e_pri", e_pri, "prior:", round(prior_vec, 4), "\n")
   for (iter_K in seq_len(K)) {
     cat("data", iter_K, round(colMeans(res[[iter_K]]), 4), "\n")
+    res_ave <- res_ave + res[[iter_K]]
   }
+  # average results
+  res_ave <- res_ave / K
+  cat("prior:", round(prior_vec, 4), "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
+  cat(round(colMeans(res_ave), 4), "\n")
 }

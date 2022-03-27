@@ -62,14 +62,14 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
 #   e_com = e_com, e_pri = e_pri
 # )
-# adj_true1 <- t(graph_sim$G[[1]][[1]])
-# g_true1 <- as(getGraph(adj_true1), "graphNEL")
-# weight_true1 <- t(graph_sim$A[[1]][[1]])
-# adj_true2 <- t(graph_sim$G[[1]][[2]])
-# g_true2 <- as(getGraph(adj_true2), "graphNEL")
-# weight_true2 <- t(graph_sim$A[[1]][[2]])
+# adj_true <- list()
+# g_true <- list()
+# for (iter_K in seq_len(K)) {
+#   adj_true[[iter_K]] <- t(graph_sim$G[[1]][[iter_K]])
+#   g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
+# }
 # data <- graph_sim$X[[1]]
-#
+# 
 # #### joint GES method the first step
 # ges_joint_fun <- function(data, lambdas = c(0.5, 1, 2, 3, 4, 5)) {
 #   source("simulation_DAG/newclass.R")
@@ -87,9 +87,9 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   }
 #   return(dag_list)
 # }
-#
-# dag_list <- ges_joint_fun(data)
-#
+# 
+# dag_list_com <- ges_joint_fun(data)
+# 
 # ## Joint GES the second step
 # subset <- function(y, x, data) {
 #   t <- rep(0, ncol(data))
@@ -102,7 +102,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   }
 #   return(t)
 # }
-#
+# 
 # # do joint estimation given single data
 # ges_alg <- function(dag_list, dta) {
 #   adj_list <- list()
@@ -113,10 +113,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   }
 #   return(adj_list)
 # }
-#
-# dag_list1 <- ges_alg(dag_list, data[[1]])
-# dag_list2 <- ges_alg(dag_list, data[[2]])
-#
+# 
+# dag_list <- list()
+# for (iter_K in seq_len(K)) {
+#   dag_list[[iter_K]] <- ges_alg(dag_list_com, data[[iter_K]])
+# }
+# 
 # #### check results
 # eval_fun <- function(dag_list, g_true, adj_true,
 #                      lambdas = c(0.5, 1, 2, 3, 4, 5)) {
@@ -133,11 +135,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     )
 #   }
 # }
-#
+# 
 # ## data set 1
-# eval_fun(dag_list1, g_true = g_true1, adj_true = adj_true1)
-# ## data set 2
-# eval_fun(dag_list2, g_true = g_true2, adj_true = adj_true2)
+# for (iter_K in seq_len(K)) {
+#   cat("data set", iter_K, "\n")
+#   eval_fun(dag_list[[iter_K]], g_true = g_true[[iter_K]], adj_true = adj_true[[iter_K]])
+# }
 
 ########################### Do parallel ##################################
 #### generate graph
@@ -200,62 +203,58 @@ out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
   library(pcalg)
   ## load data
   data <- graph_sim$X[[iter]]
+  dag_list <- list()
   ## Do joint GES the first step
-  dag_list <- ges_joint_fun(data)
+  dag_list_com <- ges_joint_fun(data)
   ## Do joint GES the second step
-  dag_list1 <- ges_alg(dag_list, data[[1]])
-  dag_list2 <- ges_alg(dag_list, data[[2]])
-  list(dag_list1 = dag_list1, dag_list2 = dag_list2)
+  for (iter_K in seq_len(K)) {
+    dag_list[[iter_K]] <- ges_alg(dag_list_com,  data[[iter_K]])
+  }
+  return(dag_list)
 }
 stopCluster(cl)
 
 ## check results
-res_1 <- list()
-res_2 <- list()
+res <- list()
+for (iter_K in seq_len(K)) {
+  res[[iter_K]] <- list()
+}
 for (iter_lambda in seq_len(length(lambdas))) {
-  res_1[[iter_lambda]] <- matrix(NA, nrow = n_graph, ncol = 7)
-  res_2[[iter_lambda]] <- matrix(NA, nrow = n_graph, ncol = 7)
-  for (iter_graph in seq_len(n_graph)) {
-    ## load true value
-    adj_true1 <- t(graph_sim$G[[iter_graph]][[1]])
-    g_true1 <- as(getGraph(adj_true1), "graphNEL")
-    adj_true2 <- t(graph_sim$G[[iter_graph]][[2]])
-    g_true2 <- as(getGraph(adj_true2), "graphNEL")
-    ## load results
-    adj1 <- out_res[[iter_graph]][[1]][[iter_lambda]]
-    g1 <- as(adj1, "graphNEL")
-    adj2 <- out_res[[iter_graph]][[2]][[iter_lambda]]
-    g2 <- as(adj2, "graphNEL")
-    ## save results
-    res_1[[iter_lambda]][iter_graph, ] <- c(
-      shd(g_true1, g1),
-      check_edge(adj_true1, adj1),
-      TPrate_fun(adj_pre = adj1, adj_act = adj_true1),
-      FPrate_fun(adj_pre = adj1, adj_act = adj_true1),
-      FNrate_fun(adj_pre = adj1, adj_act = adj_true1),
-      check_adj_l2(adj_pre = adj1, adj_act = adj_true1),
-      check_adj_l1(adj_pre = adj1, adj_act = adj_true1)
-    )
-    res_2[[iter_lambda]][iter_graph, ] <- c(
-      shd(g_true2, g2),
-      check_edge(adj_true2, adj2),
-      TPrate_fun(adj_pre = adj2, adj_act = adj_true2),
-      FPrate_fun(adj_pre = adj2, adj_act = adj_true2),
-      FNrate_fun(adj_pre = adj2, adj_act = adj_true2),
-      check_adj_l2(adj_pre = adj2, adj_act = adj_true2),
-      check_adj_l1(adj_pre = adj2, adj_act = adj_true2)
-    )
+  for (iter_K in seq_len(K)) {
+    res[[iter_K]][[iter_lambda]] <- matrix(NA, nrow = n_graph, ncol = 7)
   }
-  ## show results
-  cat(
-    "lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri,
-    "data1:", round(colMeans(res_1[[iter_lambda]]), 4),
-    "data2:", round(colMeans(res_2[[iter_lambda]]), 4), "\n"
-  )
-  ## show tex
-  cat(
-    "$", lambdas[iter_lambda], "$", "&",
-    "data1", "&", round(colMeans(res_1[[iter_lambda]]), 4), "&",
-    "data2", "&", round(colMeans(res_2[[iter_lambda]]), 4), "\\\\\n"
-  )
+  for (iter_graph in seq_len(n_graph)) {
+    for (iter_K in seq_len(K)) {
+      ## load true value
+      adj_true <- t(graph_sim$G[[iter_graph]][[iter_K]])
+      g_true <- as(getGraph(adj_true), "graphNEL")
+      ## load results
+      adj <- out_res[[iter_graph]][[iter_K]][[iter_lambda]]
+      g <- as(adj, "graphNEL")
+      res[[iter_K]][[iter_lambda]][iter_graph, ] <- c(
+        shd(g_true, g),
+        check_edge(adj_true, adj),
+        TPrate_fun(adj_pre = adj, adj_act = adj_true),
+        FPrate_fun(adj_pre = adj, adj_act = adj_true),
+        FNrate_fun(adj_pre = adj, adj_act = adj_true),
+        check_adj_l2(adj_pre = adj, adj_act = adj_true),
+        check_adj_l1(adj_pre = adj, adj_act = adj_true)
+      )
+    }
+  }
+  cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
+  for (iter_K in seq_len(K)){
+    cat("data", iter_K, round(colMeans(res[[iter_K]][[iter_lambda]]), 4), "\n")
+  }
+}
+
+res_ave <- list()
+for (iter_lambda in seq_len(length(lambdas))) {
+  res_ave[[iter_lambda]] <- matrix(0, nrow = n_graph, ncol = 7)
+  for (iter_K in seq_len(K)) {
+    res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] + res[[iter_K]][[iter_lambda]]
+  }
+  res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] / K
+  cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
+  cat(round(colMeans(res_ave[[iter_lambda]]), 4), "\n")
 }
