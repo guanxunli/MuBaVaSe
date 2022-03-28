@@ -1,58 +1,10 @@
-# ## define parameters
-# p <- 100
-# n1 <- 300
-# n2 <- 400
-# p_c <- 100
-# p_1 <- 30
-# p_2 <- 25
-# sigma <- 1
-# sigma0 <- 0.6
-# A1 <- matrix(0, nrow = p, ncol = p)
-# A2 <- matrix(0, nrow = p, ncol = p)
-# set.seed(2021)
-# # Define the true graph given order
-# index_c <- sample(seq_len(p * (p - 1) / 2), size = p_c, replace = FALSE)
-# index_1 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_1, replace = FALSE)
-# index_2 <- sample(setdiff(seq_len(p * (p - 1) / 2), index_c), size = p_2, replace = FALSE)
-# 
-# A1[lower.tri(A1)][c(index_c, index_1)] <-  rnorm(p_c + p_1, mean = 0, sd = sigma0)
-# A2[lower.tri(A2)][c(index_c, index_2)] <-  rnorm(p_c + p_2, mean = 0, sd = sigma0)
-# 
-# alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_1[lower.tri(alpha_mat_1)][c(index_c, index_1)] <- 1
-# alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-# alpha_mat_2[lower.tri(alpha_mat_2)][c(index_c, index_2)] <- 1
-# 
-# eps_1 <- matrix(rnorm(p * n1), nrow = p, ncol = n1)
-# dta_1 <- solve(diag(1, nrow = p) - A1, eps_1)
-# dta_1 <- t(dta_1)
-# eps_2 <- matrix(rnorm(p * n2), nrow = p, ncol = n2)
-# dta_2 <- solve(diag(1, nrow = p) - A2, eps_2)
-# dta_2 <- t(dta_2)
-# 
-# dta_list <- list()
-# dta_list[[1]] <- dta_1
-# dta_list[[2]] <- dta_2
-
-## MCMC method for Graph
-# dta_list are n x p data set
-# scale_x : scale the data
-# intercept: calculate the mean of Y
-# order_int is the initialized order for nodes
-# iter_max is the maximun mcmc step
-# sigma02_int is initialization for signal prior variance
-# sigma2_int is initialization for error variance
-# prior_vec : prior for different models
-# itermax is the maximum iteration
-# tol is the threshold for ELBO
-# sigma0_low_bd is the threshold for select effect l
-
 source("sum_single_effect_mult_graph.R")
 source("graph_given_order_multi.R")
 Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_mat = NULL,
                              order_int = NULL, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
                              prior_vec = NULL, itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
-                             burn_in = iter_max - 5000, residual_variance_lowerbound = NULL) {
+                             burn_in = iter_max - 5000, residual_variance_lowerbound = NULL,
+                             adj_true = NULL) {
   ## Initialization
   K <- length(dta_list)
   n_group <- 2^K - 1
@@ -100,11 +52,11 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
   }
   ## Generate the first graph
   res_old <- joint_graph_multi(dta_old_list,
-    scale_x = scale_x, intercept = intercept,
-    sigma02_int = sigma02_int, sigma2_int = sigma2_int, prior_vec = prior_vec,
-    com_mat = com_mat, com_list = com_list, itermax = itermax, L_max = L_max,
-    tol = tol, sigma0_low_bd = sigma0_low_bd,
-    residual_variance_lowerbound = residual_variance_lowerbound
+                               scale_x = scale_x, intercept = intercept,
+                               sigma02_int = sigma02_int, sigma2_int = sigma2_int, prior_vec = prior_vec,
+                               com_mat = com_mat, com_list = com_list, itermax = itermax, L_max = L_max,
+                               tol = tol, sigma0_low_bd = sigma0_low_bd,
+                               residual_variance_lowerbound = residual_variance_lowerbound
   )
   ## old results
   alpha_res_old <- res_old$alpha_list
@@ -118,9 +70,13 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
   alpha_list <- list()
   A_list <- list()
   order_list <- list()
+  error_mat_list <- list()
+  g_true <- list()
   for (iter_K in seq_len(K)) {
     alpha_list[[iter_K]] <- list()
     A_list[[iter_K]] <- list()
+    error_mat_list[[iter_K]] <- matrix(NA, nrow = 2, ncol = iter_max)
+    g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
   }
   ## begin iteration
   for (iter_MCMC in seq_len(iter_max)) {
@@ -136,7 +92,6 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
     llike_mat_pro <- llike_mat_old
     llike_penalty_pro <- llike_penalty_old
     ## propose the new order
-    set.seed(1234)
     pos_change <- sample(seq_len(p - 1), 1)
     llike_pro <- llike_old - sum(llike_mat_old[c(pos_change, pos_change + 1), ]) -
       sum(llike_penalty_old[c(pos_change, pos_change + 1)])
@@ -203,7 +158,7 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
     }
     llike_pro <- llike_pro + sum(llike_mat_pro[c(pos_change, pos_change + 1), ]) +
       sum(llike_penalty_pro[c(pos_change, pos_change + 1)])
-
+    
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
@@ -239,6 +194,16 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
     }
     # save lists
     llike_vec[iter_MCMC] <- llike_old
+    for (iter_K in seq_len(K)) {
+      adj <- alpha_res_old[[iter_K]][order(order_old), order(order_old)]
+      adj <- ifelse(adj > 0.5, 1, 0)
+      adj <- t(adj)
+      g <- as(getGraph(adj), "graphNEL")
+      error_mat_list[[iter_K]][, iter_MCMC] <- c(
+        pcalg::shd(g_true[[iter_K]], g),
+        check_edge(adj_true[[iter_K]], adj)
+      )
+    }
     if (iter_MCMC > burn_in) {
       alpha_list[[iter_MCMC - burn_in]] <- alpha_res_old
       A_list[[iter_MCMC - burn_in]] <- A_res_old
@@ -249,6 +214,7 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
   return(list(
     alpha_list = alpha_list, A_list = A_list,
     order_list = order_list,
-    llike_vec = llike_vec
+    llike_vec = llike_vec,
+    error_mat_list = error_mat_list
   ))
 }

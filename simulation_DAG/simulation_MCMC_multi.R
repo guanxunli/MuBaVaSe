@@ -66,6 +66,92 @@ check_adj_l1 <- function(adj_pre, adj_act) {
   return(sum(abs(adj_pre - adj_act)) / 2)
 }
 
+########################### Do one figure ##################################
+#### generate graph
+set.seed(2021)
+n_graph <- 1
+graph_sim <- graph_generation(
+  K = K, n_graph = n_graph, p = p, n_tol = n_tol,
+  e_com = e_com, e_pri = e_pri
+)
+adj_true <- list()
+g_true <- list()
+for (iter_K in seq_len(K)) {
+  adj_true[[iter_K]] <- t(graph_sim$G[[1]][[iter_K]])
+  g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
+}
+
+#### our method
+source("graph_given_order_multi.R")
+dta_list <- graph_sim$X[[1]]
+
+#### If we know the order
+for (iter_prior in seq_len(length(prior_vec_list))) {
+  prior_vec <- prior_vec_list[[iter_prior]]
+  out_res <- joint_graph_multi(dta_list = dta_list, prior_vec = prior_vec,
+                                 scale_x = scale_x, intercept = intercept)
+  print(round(sum(out_res$llike_mat) + sum(out_res$llike_penalty), 4))
+  ## Calculate the error
+  for (iter_K in seq_len(K)) {
+    adj <-  ifelse(out_res$alpha_list[[iter_K]] > 0.5, 1, 0)
+    adj <- t(adj)
+    g <- as(getGraph(adj),  "graphNEL")
+    cat(
+      "prior = ", prior_vec[1], prior_vec[3],
+      c(shd(g_true[[iter_K]], g), check_edge(adj_true[[iter_K]], adj)),
+      "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true[[iter_K]]), 4),
+      "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true[[iter_K]]), 4),
+      "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true[[iter_K]]), 4),
+      "\n"
+    )
+  }
+}
+
+########################## Do MCMC quick test ############################
+iter_max <- 100
+prior_vec <- prior_vec_list[[3]]
+source("graph_mcmc_multi_sim.R")
+#### with GES Initialization
+# get order
+set.seed(2021)
+dta <- matrix(NA, nrow = K * n, ncol = p)
+for (iter_K in seq_len(K)) {
+  dta[(1 + (iter_K - 1) * n):(iter_K * n), ] <- graph_sim$X[[1]][[iter_K]]
+}
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
+ges_fit <- ges(score_ges)
+ges_adj <- as(ges_fit$repr, "matrix")
+ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
+graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
+order_int <- as.numeric(igraph::topo_sort(graph_i))
+# Do MCMC
+set.seed(2021)
+out_res <- Graph_MCMC_multi(dta_list, scale_x = scale_x, intercept = intercept,
+                            order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
+                            prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                            burn_in = 1, adj_true = adj_true
+)
+# Show likelihood
+library(ggplot2)
+library(gridExtra)
+gl <- ggplot() + geom_line(aes(x = seq_len(iter_max), y = out_res$llike_vec)) +
+  xlab("Iteration") + ylab("Log likelihood")
+gs_1 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+                                 y = out_res$error_mat_list[[1]][1, ])) +
+  xlab("Iteration") + ylab("SHD")
+gu_1 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+                                 y = out_res$error_mat_list[[1]][2, ])) +
+  xlab("Iteration") + ylab("No order")
+gs_2 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+                                 y = out_res$error_mat_list[[2]][1, ])) +
+  xlab("Iteration") + ylab("SHD")
+gu_2 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+                                 y = out_res$error_mat_list[[2]][2, ])) +
+  xlab("Iteration") + ylab("No order")
+layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
+grid.arrange(gl, gs_1, gu_1, layout_matrix = layout_matrix)
+grid.arrange(gl, gs_2, gu_2, layout_matrix = layout_matrix)
+
 ########################### Do parallel ##################################
 #### generate graph
 source("graph_mcmc_multi.R")
