@@ -12,8 +12,8 @@ e_com <- 100
 e_pri <- 30
 # Define prior
 prior_vec_list <- list()
-prior_vec_list[[1]] <- c(1 / p^1.5, 1 / p^1.75)
-prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^1.75)
+prior_vec_list[[1]] <- c(1 / p^1.25, 1 / p^1.5)
+prior_vec_list[[2]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
 prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^2)
 prior_vec_list[[4]] <- c(1 / (2 * p^1.5), 1 / p^2)
 prior_vec_list[[5]] <- c(1 / p^2, 1 / p^2.25)
@@ -80,12 +80,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # adj_true2 <- t(graph_sim$G[[1]][[2]])
 # g_true2 <- as(getGraph(adj_true2), "graphNEL")
 # weight_true2 <- t(graph_sim$A[[1]][[2]])
-#
+# 
 # #### our method
 # source("Two_dataset_new/Graph_given_order_two.R")
 # dta_1 <- graph_sim$X[[1]][[1]]
 # dta_2 <- graph_sim$X[[1]][[2]]
-#
+# 
 # #### If we know the order
 # for (iter_prior in seq_len(length(prior_vec_list))) {
 #   prior_vec <- prior_vec_list[[iter_prior]]
@@ -122,9 +122,9 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     "\n"
 #   )
 # }
-#
+# 
 # ########################## Do MCMC quick test ############################
-# iter_max <- 100
+# iter_max <- 200
 # prior_vec <- prior_vec_list[[2]]
 # source("Two_dataset_new/Graph_MCMC_two.R")
 # source("Two_dataset_new/Graph_MCMC_two_sim.R")
@@ -145,7 +145,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #                               prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
 #                               burn_in = 1, adj_true1 = adj_true1, adj_true2 = adj_true2
 # )
-#
+# 
 # # Show likelihood
 # library(ggplot2)
 # library(gridExtra)
@@ -282,8 +282,8 @@ graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
 )
-prior_penalty <- FALSE
-iter_max <- 100000
+prior_penalty <- TRUE
+iter_max <- 1e5
 
 library(foreach)
 library(doParallel)
