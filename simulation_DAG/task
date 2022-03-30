@@ -6,6 +6,7 @@
 #SBATCH --ntasks=25             # Requests 10 cores
 #SBATCH --mem=128G               # Requests memory per node
 #SBATCH --output=out1_1%J    # Sends stdout and stderr to 
+#SBATCH --account=132851395351
 
 ## Load the necessary modules
 module load GCC/11.2.0
