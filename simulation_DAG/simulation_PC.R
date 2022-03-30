@@ -5,8 +5,8 @@ source("simulation_DAG/graph_generation.R")
 # p <- as.numeric(args[6])
 # n_tol <- as.numeric(args[7])
 p <- 100
-n_tol <- 600
-K <- 2
+n_tol <- 1200
+K <- 5
 n <- n_tol / K
 e_com <- 50
 e_pri <- 50
@@ -69,39 +69,33 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
 # }
 # data <- graph_sim$X[[1]]
-# 
-# ## PC method
-# pc_fun <- function(dta,
-#                    alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
+#
+# #### GES method
+# ges_fun <- function(dta, lambdas = c(1, 2, 3, 4, 5)) {
 #   p <- ncol(dta)
-#   dta_cor <- cor(dta)
 #   dag_list <- list()
-#   for (iter_alpha in seq_len(length(alphas))) {
-#     alpha <- alphas[iter_alpha]
-#     pc_fit <- pc(
-#       suffStat = list(C = dta_cor, n = dim(dta)[1]),
-#       indepTest = gaussCItest, alpha = alpha,
-#       labels = sapply(1:p, toString)
-#     )
-#     dag <- as(pc_fit@graph, "matrix")
-#     dag_list[[iter_alpha]] <- ifelse(dag == TRUE, 1, 0)
+#   for (iter_lambda in seq_len(length(lambdas))) {
+#     lambda <- lambdas[iter_lambda]
+#     l0score <- new("GaussL0penObsScore", data = dta, lambda = lambda * log(p), intercept = FALSE)
+#     ges_fit <- ges(l0score)
+#     dag <- as(ges_fit$repr, "matrix")
+#     dag_list[[iter_lambda]] <- ifelse(dag == TRUE, 1, 0)
 #   }
 #   return(dag_list)
 # }
-# 
+#
 # dag_list <- list()
 # for (iter_K in seq_len(K)) {
 #   dag_list[[iter_K]] <- ges_fun(data[[iter_K]])
 # }
-# 
+#
 # #### check results
-# eval_fun <- function(dag_list, g_true, adj_true,
-#                      alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
+# eval_fun <- function(dag_list, g_true, adj_true, lambdas = c(1, 2, 3, 4, 5)) {
 #   for (iter in seq_len(length(dag_list))) {
 #     adj <- dag_list[[iter]]
 #     g <- as(adj, "graphNEL")
 #     cat(
-#       "alpha = ", alphas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
+#       "lambda = ", lambdas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
 #       "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
 #       "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
 #       "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4),
@@ -110,8 +104,8 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     )
 #   }
 # }
-# 
-# 
+#
+# ## data set 1
 # for (iter_K in seq_len(K)) {
 #   cat("data set", iter_K, "\n")
 #   eval_fun(dag_list[[iter_K]], g_true = g_true[[iter_K]], adj_true = adj_true[[iter_K]])
@@ -119,27 +113,23 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 
 ########################### Do parallel ##################################
 #### generate graph
-set.seed(2021)
-n_graph <- 20
+set.seed(2022)
+n_graph <- 50
 graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
 )
-alphas <- c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)
+lambdas <- c(1, 2, 3, 4, 5)
 
-pc_fun <- function(dta, alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
+ges_fun <- function(dta, lambdas = c(1, 2, 3, 4, 5)) {
   p <- ncol(dta)
-  dta_cor <- cor(dta)
   dag_list <- list()
-  for (iter_alpha in seq_len(length(alphas))) {
-    alpha <- alphas[iter_alpha]
-    pc_fit <- pc(
-      suffStat = list(C = dta_cor, n = dim(dta)[1]),
-      indepTest = gaussCItest, alpha = alpha,
-      labels = sapply(1:p, toString)
-    )
-    dag <- as(pc_fit@graph, "matrix")
-    dag_list[[iter_alpha]] <- ifelse(dag == TRUE, 1, 0)
+  for (iter_lambda in seq_len(length(lambdas))) {
+    lambda <- lambdas[iter_lambda]
+    l0score <- new("GaussL0penObsScore", data = dta, lambda = lambda * log(p), intercept = FALSE)
+    ges_fit <- ges(l0score)
+    dag <- as(ges_fit$repr, "matrix")
+    dag_list[[iter_lambda]] <- ifelse(dag == TRUE, 1, 0)
   }
   return(dag_list)
 }
@@ -147,16 +137,16 @@ pc_fun <- function(dta, alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
 library(foreach)
 library(doParallel)
 library(doRNG)
-cl <- makeCluster(20)
+cl <- makeCluster(25)
 registerDoParallel(cl)
 out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
   library(pcalg)
   ## load data
   data <- graph_sim$X[[iter]]
   dag_list <- list()
-  ## Do PC
+  ## Do GES
   for (iter_K in seq_len(K)) {
-    dag_list[[iter_K]] <- pc_fun(data[[iter_K]],  alphas = alphas)
+    dag_list[[iter_K]] <- ges_fun(data[[iter_K]], lambdas = lambdas)
   }
   return(dag_list)
 }
@@ -167,9 +157,9 @@ res <- list()
 for (iter_K in seq_len(K)) {
   res[[iter_K]] <- list()
 }
-for (iter_alpha in seq_len(length(alphas))) {
+for (iter_lambda in seq_len(length(lambdas))) {
   for (iter_K in seq_len(K)) {
-    res[[iter_K]][[iter_alpha]] <- matrix(NA, nrow = n_graph, ncol = 7)
+    res[[iter_K]][[iter_lambda]] <- matrix(NA, nrow = n_graph, ncol = 7)
   }
   for (iter_graph in seq_len(n_graph)) {
     for (iter_K in seq_len(K)) {
@@ -177,9 +167,9 @@ for (iter_alpha in seq_len(length(alphas))) {
       adj_true <- t(graph_sim$G[[iter_graph]][[iter_K]])
       g_true <- as(getGraph(adj_true), "graphNEL")
       ## load results
-      adj <- out_res[[iter_graph]][[iter_K]][[iter_alpha]]
+      adj <- out_res[[iter_graph]][[iter_K]][[iter_lambda]]
       g <- as(adj, "graphNEL")
-      res[[iter_K]][[iter_alpha]][iter_graph, ] <- c(
+      res[[iter_K]][[iter_lambda]][iter_graph, ] <- c(
         shd(g_true, g),
         check_edge(adj_true, adj),
         TPrate_fun(adj_pre = adj, adj_act = adj_true),
@@ -190,19 +180,28 @@ for (iter_alpha in seq_len(length(alphas))) {
       )
     }
   }
-  cat("alpha:", alphas[iter_alpha], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
-  for (iter_K in seq_len(K)){
-    cat("data", iter_K, round(colMeans(res[[iter_K]][[iter_alpha]]), 4), "\n")
+  cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
+  for (iter_K in seq_len(K)) {
+    cat("data", iter_K, round(colMeans(res[[iter_K]][[iter_lambda]]), 4), "\n")
   }
 }
 
 res_ave <- list()
-for (iter_alpha in seq_len(length(alphas))) {
-  res_ave[[iter_alpha]] <- matrix(0, nrow = n_graph, ncol = 7)
+for (iter_lambda in seq_len(length(lambdas))) {
+  res_ave[[iter_lambda]] <- matrix(0, nrow = n_graph, ncol = 7)
   for (iter_K in seq_len(K)) {
-    res_ave[[iter_alpha]] <- res_ave[[iter_alpha]] + res[[iter_K]][[iter_alpha]]
+    res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] + res[[iter_K]][[iter_lambda]]
   }
-  res_ave[[iter_alpha]] <- res_ave[[iter_alpha]] / K
-  cat("alpha:", alphas[iter_alpha], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
-  cat(round(colMeans(res_ave[[iter_alpha]]), 4), "\n")
+  res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] / K
+  cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
+  cat(round(colMeans(res_ave[[iter_lambda]]), 4), "\n")
+}
+
+## print results
+for (iter_lambda in seq_len(length(lambdas))) {
+  res_tmp <- round(colMeans(res_ave[[iter_lambda]]), 4)
+  cat(
+    K, "&", lambdas[iter_lambda], "&", e_com, "&", e_pri, "&",
+    res_tmp[2], "&", res_tmp[3], "&", res_tmp[4], "&", res_tmp[6], "\\\\", "\n"
+  )
 }

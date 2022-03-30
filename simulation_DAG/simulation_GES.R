@@ -5,8 +5,8 @@ source("simulation_DAG/graph_generation.R")
 # p <- as.numeric(args[6])
 # n_tol <- as.numeric(args[7])
 p <- 100
-n_tol <- 600
-K <- 2
+n_tol <- 1200
+K <- 5
 n <- n_tol / K
 e_com <- 50
 e_pri <- 50
@@ -69,7 +69,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
 # }
 # data <- graph_sim$X[[1]]
-# 
+#
 # #### GES method
 # ges_fun <- function(dta, lambdas = c(1, 2, 3, 4, 5)) {
 #   p <- ncol(dta)
@@ -83,12 +83,12 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   }
 #   return(dag_list)
 # }
-# 
+#
 # dag_list <- list()
 # for (iter_K in seq_len(K)) {
 #   dag_list[[iter_K]] <- ges_fun(data[[iter_K]])
 # }
-# 
+#
 # #### check results
 # eval_fun <- function(dag_list, g_true, adj_true, lambdas = c(1, 2, 3, 4, 5)) {
 #   for (iter in seq_len(length(dag_list))) {
@@ -104,7 +104,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     )
 #   }
 # }
-# 
+#
 # ## data set 1
 # for (iter_K in seq_len(K)) {
 #   cat("data set", iter_K, "\n")
@@ -113,8 +113,8 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 
 ########################### Do parallel ##################################
 #### generate graph
-set.seed(2021)
-n_graph <- 20
+set.seed(2022)
+n_graph <- 50
 graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
@@ -137,7 +137,7 @@ ges_fun <- function(dta, lambdas = c(1, 2, 3, 4, 5)) {
 library(foreach)
 library(doParallel)
 library(doRNG)
-cl <- makeCluster(20)
+cl <- makeCluster(25)
 registerDoParallel(cl)
 out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
   library(pcalg)
@@ -181,7 +181,7 @@ for (iter_lambda in seq_len(length(lambdas))) {
     }
   }
   cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
-  for (iter_K in seq_len(K)){
+  for (iter_K in seq_len(K)) {
     cat("data", iter_K, round(colMeans(res[[iter_K]][[iter_lambda]]), 4), "\n")
   }
 }
@@ -195,4 +195,13 @@ for (iter_lambda in seq_len(length(lambdas))) {
   res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] / K
   cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
   cat(round(colMeans(res_ave[[iter_lambda]]), 4), "\n")
+}
+
+## print results
+for (iter_lambda in seq_len(length(lambdas))) {
+  res_tmp <- round(colMeans(res_ave[[iter_lambda]]), 4)
+  cat(
+    K, "&", lambdas[iter_lambda], "&", e_com, "&", e_pri, "&",
+    res_tmp[2], "&", res_tmp[3], "&", res_tmp[4], "&", res_tmp[6], "\\\\", "\n"
+  )
 }

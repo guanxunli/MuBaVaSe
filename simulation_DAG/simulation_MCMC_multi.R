@@ -9,15 +9,13 @@ n_tol <- 600
 K <- 2
 n <- n_tol / K
 e_com <- 100
-e_pri <- 30
+e_pri <- 20
 # Define prior
 prior_vec_list <- list()
-prior_vec_list[[1]] <- c(1 / p^1.25, 1 / p^1.25, 1 / p^1.5)
-prior_vec_list[[2]] <- c(1 / (2 * p^1.25), 1 / (2 * p^1.25), 1 / p^1.5)
-prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^1.5, 1 / p^2)
-prior_vec_list[[4]] <- c(1 / (2 * p^1.5), 1 / (2 * p^1.5), 1 / p^2)
-prior_vec_list[[5]] <- c(1 / p^2, 1 / p^2, 1 / p^2.25)
-prior_vec_list[[6]] <- c(1 / (2 * p^2), 1 / (2 * p^2), 1 / p^2.25)
+prior_vec_list[[1]] <- c(1 / (2 * p^1.25), 1 / (2 * p^1.25), 1 / p^1.5)
+prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / (2 * p^1.5), 1 / p^2)
+prior_vec_list[[3]] <- c(1 / p^2, 1 / p^2, 1 / p^2.25)
+prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / (2 * p^2), 1 / p^2.25)
 
 # Define MCMC parameters
 scale_x <- FALSE
@@ -113,7 +111,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # source("graph_mcmc_multi_sim.R")
 # #### with GES Initialization
 # # get order
-# set.seed(2021)
+# set.seed(2022)
 # dta <- matrix(NA, nrow = K * n, ncol = p)
 # for (iter_K in seq_len(K)) {
 #   dta[(1 + (iter_K - 1) * n):(iter_K * n), ] <- graph_sim$X[[1]][[iter_K]]
@@ -136,16 +134,16 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # library(gridExtra)
 # gl <- ggplot() + geom_line(aes(x = seq_len(iter_max), y = out_res$llike_vec)) +
 #   xlab("Iteration") + ylab("Log likelihood")
-# gs_1 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+# gs_1 <- ggplot() + geom_line(aes(x = seq_len(iter_max),
 #                                  y = out_res$error_mat_list[[1]][1, ])) +
 #   xlab("Iteration") + ylab("SHD")
-# gu_1 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+# gu_1 <- ggplot() + geom_line(aes(x = seq_len(iter_max),
 #                                  y = out_res$error_mat_list[[1]][2, ])) +
 #   xlab("Iteration") + ylab("No order")
-# gs_2 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+# gs_2 <- ggplot() + geom_line(aes(x = seq_len(iter_max),
 #                                  y = out_res$error_mat_list[[2]][1, ])) +
 #   xlab("Iteration") + ylab("SHD")
-# gu_2 <- ggplot() + geom_line(aes(x = seq_len(iter_max), 
+# gu_2 <- ggplot() + geom_line(aes(x = seq_len(iter_max),
 #                                  y = out_res$error_mat_list[[2]][2, ])) +
 #   xlab("Iteration") + ylab("No order")
 # layout_matrix <- matrix(c(1, 2, 3), nrow = 3)
@@ -154,9 +152,9 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 
 ########################### Do parallel ##################################
 #### generate graph
-source("graph_mcmc_multi_sim.R")
-set.seed(2021)
-n_graph <- 20
+source("graph_mcmc_multi.R")
+set.seed(2022)
+n_graph <- 50
 graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
   e_com = e_com, e_pri = e_pri
@@ -171,9 +169,8 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   out_res <- list()
   prior_vec <- prior_vec_list[[iter_prior]]
   ## do parallel
-  cl <- makeCluster(20)
+  cl <- makeCluster(25)
   registerDoParallel(cl)
-  set.seed(2021)
   out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
     library(pcalg)
     # get order
@@ -194,36 +191,37 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
       dta_list = graph_sim$X[[iter]], scale_x = scale_x, intercept = intercept,
       order_int = order_int, iter_max = iter_max,
       prior_vec = prior_vec, itermax = 100, L_max = 10,
-      burn_in = iter_max - 5000, adj_true = adj_true
+      burn_in = iter_max - 5000
     )
   }
   stopCluster(cl)
+  saveRDS(out_res, paste0("prior", iter_prior, "K", K, "e_com", e_com, "e_pri", e_pri, "mcmc.rds"))
   ## check results
   res <- list()
   for (iter_K in seq_len(K)) {
     res[[iter_K]] <- matrix(NA, nrow = n_graph, ncol = 7)
   }
   res_ave <- matrix(0, nrow = n_graph, ncol = 7)
-
+  
   for (iter_graph in seq_len(n_graph)) {
     res_tmp <- out_res[[iter_graph]]
-    A_mat_list <- list()
-    alpha_mat_list <- list()
+    A_mat_list <- res_tmp$A_list
+    alpha_mat_list <- res_tmp$alpha_list
     # analysis
-    for (iter_K in seq_len(K)) {
-      alpha_mat_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
-      A_mat_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
-    }
-
-    for (iter in seq_len(5000)) {
-      order_tmp <- order(res_tmp$order_list[[iter]])
-      for (iter_K in seq_len(K)) {
-        alpha_mat_list[[iter_K]] <- alpha_mat_list[[iter_K]] +
-          res_tmp$alpha_list[[iter]][[iter_K]][order_tmp, order_tmp]
-        A_mat_list[[iter_K]] <- A_mat_list[[iter_K]] +
-          res_tmp$A_list[[iter]][[iter_K]][order_tmp, order_tmp]
-      }
-    }
+    # for (iter_K in seq_len(K)) {
+    #   alpha_mat_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
+    #   A_mat_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
+    # }
+    # 
+    # for (iter in seq_len(5000)) {
+    #   order_tmp <- order(res_tmp$order_list[[iter]])
+    #   for (iter_K in seq_len(K)) {
+    #     alpha_mat_list[[iter_K]] <- alpha_mat_list[[iter_K]] +
+    #       res_tmp$alpha_list[[iter]][[iter_K]][order_tmp, order_tmp]
+    #     A_mat_list[[iter_K]] <- A_mat_list[[iter_K]] +
+    #       res_tmp$A_list[[iter]][[iter_K]][order_tmp, order_tmp]
+    #   }
+    # }
     for (iter_K in seq_len(K)) {
       alpha_mat_list[[iter_K]] <- alpha_mat_list[[iter_K]] / 5000
       A_mat_list[[iter_K]] <- A_mat_list[[iter_K]] / 5000
@@ -252,6 +250,10 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   }
   # average results
   res_ave <- res_ave / K
-  cat("prior:", round(prior_vec, 4), "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
-  cat(round(colMeans(res_ave), 4), "\n")
+  # cat("prior:", round(prior_vec, 4), "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
+  # cat(round(colMeans(res_ave), 4), "\n")
+  cat(
+    K, "&", "prior", iter_prior, "&", e_com, "&", e_pri, "&",
+    res_ave[2], "&", res_ave[3], "&", res_ave[4], "&", res_ave[6], "\\\\", "\n"
+  )
 }

@@ -119,8 +119,10 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
   A_list <- list()
   order_list <- list()
   for (iter_K in seq_len(K)) {
-    alpha_list[[iter_K]] <- list()
-    A_list[[iter_K]] <- list()
+    alpha_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
+    A_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
+    # alpha_list[[iter_K]] <- list()
+    # A_list[[iter_K]] <- list()
   }
   ## begin iteration
   for (iter_MCMC in seq_len(iter_max)) {
@@ -239,16 +241,23 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
     }
     # save lists
     llike_vec[iter_MCMC] <- llike_old
+    # if (iter_MCMC > burn_in) {
+    #   alpha_list[[iter_MCMC - burn_in]] <- alpha_res_old
+    #   A_list[[iter_MCMC - burn_in]] <- A_res_old
+    #   order_list[[iter_MCMC - burn_in]] <- order_old
+    # }
     if (iter_MCMC > burn_in) {
-      alpha_list[[iter_MCMC - burn_in]] <- alpha_res_old
-      A_list[[iter_MCMC - burn_in]] <- A_res_old
-      order_list[[iter_MCMC - burn_in]] <- order_old
+      for (iter_K in seq_len(K)) {
+        alpha_list[[iter_K]] <- alpha_list[[iter_K]] + 
+          alpha_res_old[[iter_K]][order(order_old), order(order_old)]
+        A_list[[iter_K]] <- A_list[[iter_K]] + 
+          A_res_old[[iter_K]][order(order_old), order(order_old)]
+      }
     }
   }
   # return results
   return(list(
     alpha_list = alpha_list, A_list = A_list,
-    order_list = order_list,
     llike_vec = llike_vec
   ))
 }
