@@ -1,0 +1,16 @@
+#!/bin/bash
+
+##NECESSARY JOB SPECIFICATIONS
+#SBATCH --job-name=K2com100pri20        # Sets the job name
+#SBATCH --time=48:00:00          # Sets the runtime limit
+#SBATCH --ntasks=25             # Requests 10 cores
+#SBATCH --mem=128G               # Requests memory per node
+#SBATCH --output=out1_1%J    # Sends stdout and stderr to 
+
+## Load the necessary modules
+module load GCC/11.2.0
+module load OpenMPI/4.1.1
+module load R/4.1.2
+
+## Launch R with proper parameters 
+Rscript simulation_DAG/simulation_MCMC_multi.R
