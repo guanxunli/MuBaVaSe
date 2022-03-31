@@ -37,14 +37,14 @@
 # intercept: calculate the mean of Y
 # sigma02_int is initialization for signal prior variance
 # sigma2_int is initialization for error variance
-# prior_vecr is prior for common part and for single part
+# prior_vec is prior for common part and for single part
 # L is the effict size
 # itermax is the maximum iteration
 # tol is the threshold for ELBO
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("Two_dataset_new/utility_two.R")
+source("two_data_sets/utility_two.R")
 sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept = TRUE,
                                   sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                   L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
@@ -54,17 +54,17 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
   if (p != ncol(X_2)) stop("The number of features should be same!")
   n1 <- nrow(X_1)
   n2 <- nrow(X_2)
-  
+
   # Initialize sigma
   if (is.null(sigma2_int)) sigma2_int <- as.numeric(var(c(Y_1, Y_2)))
   if (is.null(sigma02_int)) sigma02_int <- 0.2 * sigma2_int
   if (is.null(L)) L <- min(10, p)
   if (is.null(residual_variance_lowerbound)) residual_variance_lowerbound <- 1e-4
-  
+
   ## data preprocess
   X_scale_1 <- scale(X_1, center = intercept, scale = scale_x)
   X_scale_2 <- scale(X_2, center = intercept, scale = scale_x)
-  
+
   if (intercept) {
     mean_Y_1 <- mean(Y_1)
     mean_Y_2 <- mean(Y_2)
@@ -74,27 +74,27 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
   }
   Y_1 <- Y_1 - mean_Y_1
   Y_2 <- Y_2 - mean_Y_2
-  
+
   ## data set 1
   X_scale2_1 <- X_scale_1 * X_scale_1
   X2_1 <- colSums(X_scale2_1)
   # data set 2
   X_scale2_2 <- X_scale_2 * X_scale_2
   X2_2 <- colSums(X_scale2_2)
-  
+
   # Initialize prior
   if (is.null(prior_vec)) {
     prior_vec <- c(1 / (2 * p^1.5), 1 / (p^2))
   }
   prior_pi <- c(rep(prior_vec[1], 2 * p), rep(prior_vec[2], p))
   prior_pi <- c(prior_pi, 1 - sum(prior_pi))
-  
+
   # initialize ELBO
   ELBO <- rep(NA, itermax + 1)
   ELBO[1] <- -Inf
   sigma2 <- sigma2_int
   sigma02_vec <- rep(sigma02_int, L)
-  
+
   # Save matrix
   b_mat_1 <- matrix(0, nrow = p, ncol = L)
   b2_mat_1 <- matrix(0, nrow = p, ncol = L)
@@ -103,7 +103,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
   alpha_mat_1 <- matrix(0, nrow = p, ncol = L)
   alpha_mat_2 <- matrix(0, nrow = p, ncol = L)
   alpha_mat <- matrix(0, nrow = 3 * p, ncol = L)
-  
+
   # Begin iteration
   for (iter in seq_len(itermax)) {
     res_1 <- Y_1 - X_scale_1 %*% rowSums(b_mat_1)
@@ -188,7 +188,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
   res$ELBO <- ELBO
   res$sigma2 <- sigma2
   res$sigma02_vec <- sigma02_vec
-  
+
   if (length(index_L) > 0) {
     # all alpha
     res$alpha <- 1 - matrixStats::rowProds(1 - alpha_mat[, index_L, drop = FALSE])

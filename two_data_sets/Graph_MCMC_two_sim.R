@@ -1,5 +1,4 @@
-source("Two_dataset_new/sum_single_effect_two_graph.R")
-source("Two_dataset_new/Graph_given_order_two.R")
+source("two_data_sets/Graph_given_order_two.R")
 Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
                                order_int = NULL, iter_max = 50000,
                                sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
@@ -50,10 +49,10 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
   error_mat1 <- matrix(NA, nrow = 2, ncol = iter_max)
   error_mat2 <- matrix(NA, nrow = 2, ncol = iter_max)
   ## save lists
-  alpha_list_1 <- matrix(0, nrow = p, ncol = p)
-  alpha_list_2 <- matrix(0, nrow = p, ncol = p)
-  A_list_1 <- matrix(0, nrow = p, ncol = p)
-  A_list_2 <- matrix(0, nrow = p, ncol = p)
+  alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
+  alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
+  A_mat_1 <- matrix(0, nrow = p, ncol = p)
+  A_mat_2 <- matrix(0, nrow = p, ncol = p)
   order_list <- list()
   ## load the true results
   # data set 1
@@ -200,16 +199,20 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
     if (iter_MCMC > burn_in) {
       order_list[[iter_MCMC - burn_in]] <- order_old
       order_tmp <- order(order_old)
-      alpha_list_1 <- alpha_list_1 + alpha_res_1_old[order_tmp, order_tmp]
-      alpha_list_2 <- alpha_list_2 + alpha_res_2_old[order_tmp, order_tmp]
-      A_list_1 <- A_list_1 + A_res_1_old[order_tmp, order_tmp]
-      A_list_2 <- A_list_2 + A_res_2_old[order_tmp, order_tmp]
+      alpha_mat_1 <- alpha_mat_1 + alpha_res_1_old[order_tmp, order_tmp]
+      alpha_mat_2 <- alpha_mat_2 + alpha_res_2_old[order_tmp, order_tmp]
+      A_mat_1 <- A_mat_1 + A_res_1_old[order_tmp, order_tmp]
+      A_mat_2 <- A_mat_2 + A_res_2_old[order_tmp, order_tmp]
     }
   }
+  alpha_mat_1 <- alpha_mat_1 / length(order_list)
+  alpha_mat_2 <- alpha_mat_2 / length(order_list)
+  A_mat_1 <- A_mat_1 / length(order_list)
+  A_mat_2 <- A_mat_2 / length(order_list)
   # return results
   return(list(
-    alpha_list_1 = alpha_list_1, alpha_list_2 = alpha_list_2,
-    A_list_1 = A_list_1, A_list_2 = A_list_2,
+    alpha_mat_1 = alpha_mat_1, alpha_mat_2 = alpha_mat_2,
+    A_mat_1 = A_mat_1, A_mat_2 = A_mat_2,
     order_list = order_list, llike_vec = llike_vec,
     error_mat1 = error_mat1, error_mat2 = error_mat2
   ))

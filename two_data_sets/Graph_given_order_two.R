@@ -44,8 +44,7 @@
 # residual_variance_lowerbound is the lower bound for sigma2
 
 ## load variable selection function
-# source("Two_dataset_new/sum_single_effect_two.R")
-source("Two_dataset_new/sum_single_effect_two_graph.R")
+source("two_data_sets/sum_single_effect_two_graph.R")
 joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
                                 sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                 itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
@@ -122,7 +121,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
   ))
 }
 
-# ################## check results with GES ##################
+################## check results with GES ##################
 # ## show time spent
 # Rprof()
 # res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2)
@@ -140,6 +139,7 @@ joint_graph_fun_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
 #   adj_act <- ceiling((adj_act + t(adj_act)) / 2)
 #   return(sum(abs(adj_pre - adj_act)) / 2)
 # }
+# res_joint <- joint_graph_fun_two(dta_1 = dta_1, dta_2 = dta_2)
 # library(pcalg)
 # ######## data set 1
 # #### Define true

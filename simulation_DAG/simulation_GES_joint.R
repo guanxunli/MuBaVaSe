@@ -144,7 +144,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 
 ########################### Do parallel ##################################
 #### generate graph
-set.seed(2022)
+set.seed(2021)
 n_graph <- 50
 graph_sim <- graph_generation(
   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
@@ -160,8 +160,8 @@ ges_joint_fun <- function(data, lambdas = c(1, 2, 3, 4, 5)) {
   for (iter_lambda in seq_len(length(lambdas))) {
     lambda <- lambdas[iter_lambda]
     l0score <- new("MultiGaussL0pen",
-                   data = data, lambda = lambda * log(p),
-                   intercept = TRUE, use.cpp = FALSE
+      data = data, lambda = lambda * log(p),
+      intercept = TRUE, use.cpp = FALSE
     )
     ges_fit <- ges(l0score)
     dag <- as(ges_fit$essgraph, "matrix")
@@ -243,10 +243,6 @@ for (iter_lambda in seq_len(length(lambdas))) {
       )
     }
   }
-  cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
-  for (iter_K in seq_len(K)) {
-    cat("data", iter_K, round(colMeans(res[[iter_K]][[iter_lambda]]), 4), "\n")
-  }
 }
 
 res_ave <- list()
@@ -256,8 +252,6 @@ for (iter_lambda in seq_len(length(lambdas))) {
     res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] + res[[iter_K]][[iter_lambda]]
   }
   res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] / K
-  cat("lambda:", lambdas[iter_lambda], "p:", p, "e_com:", e_com, "e_pri", e_pri, "\n")
-  cat(round(colMeans(res_ave[[iter_lambda]]), 4), "\n")
 }
 
 ## print results

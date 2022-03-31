@@ -47,7 +47,7 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("sum_single_effect_mult_graph.R")
+source("sum_single_effect_multi_graph.R")
 joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
                               sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                               com_mat = NULL, com_list = NULL,
@@ -126,7 +126,7 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
       dta_vs_list[[iter_K]]$Y <- dta_list[[iter_K]][, iter_p + 1]
     }
     ## variable selection
-    res_vs <- sum_single_effect_mult(dta_vs_list,
+    res_vs <- sum_single_effect_multi(dta_vs_list,
       scale_x = scale_x, intercept = intercept,
       sigma02_int = sigma02_int, sigma2_int = sigma2_int,
       prior_vec = prior_vec, L = min(iter_p, L_max), itermax = itermax,
@@ -162,7 +162,7 @@ joint_graph_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE,
 # )
 # Sys.time() - time1
 #
-# source("Two_dataset_new/Graph_given_order_two.R")
+# source("two_data_sets/Graph_given_order_two.R")
 # time1 <- Sys.time()
 # res_two <- joint_graph_fun_two(dta_1, dta_2, prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))
 # Sys.time() - time1

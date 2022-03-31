@@ -51,11 +51,11 @@
 # sigma0_low_bd is the threshold for select effect l
 
 source("multi_utility.R")
-sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
-                                   sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
-                                   L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
-                                   com_mat = NULL, com_list = NULL,
-                                   residual_variance_lowerbound = NULL) {
+sum_single_effect_multi <- function(dta_list, scale_x = TRUE, intercept = TRUE,
+                                    sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
+                                    L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                                    com_mat = NULL, com_list = NULL,
+                                    residual_variance_lowerbound = NULL) {
   ## Initialization
   K <- length(dta_list)
   n_group <- 2^K - 1
@@ -247,14 +247,14 @@ sum_single_effect_mult <- function(dta_list, scale_x = TRUE, intercept = TRUE,
 
 # ## general function
 # time1 <- Sys.time()
-# out_res <- sum_single_effect_mult(dta_list,
+# out_res <- sum_single_effect_multi(dta_list,
 #                                   L = p_c + p_1 + p_2,
 #                                   prior_vec = c(1 / (6 * p^1.5), 1 / (6 * p^1.5), 2 / (3 * p^1.5))
 # )
 # Sys.time() - time1
 #
 # ## original function for twp data sets
-# source("Two_dataset_new/sum_single_effect_two.R")
+# source("two_data_sets/sum_single_effect_two.R")
 # time1 <- Sys.time()
 # res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2,
 #                              prior_vec = c(1 / (6 * p^1.5), 2 / (3 * p^1.5)))

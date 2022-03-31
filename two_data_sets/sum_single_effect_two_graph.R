@@ -44,7 +44,7 @@
 # sigma0_low_bd is the threshold for select effect l
 # residual_variance_lowerbound is the lower bound for sigma2
 
-source("Two_dataset_new/utility_two.R")
+source("two_data_sets/utility_two.R")
 sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept = TRUE,
                                   sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                   L = NULL, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
@@ -132,7 +132,7 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
       z2_2 <- b_hat_2^2 / s2_2
       # calculate sigma0
       lsigma02_int <- max(log(sigma02_vec[l]), -30)
-      sigma02 <- sigma0_opt_two_test(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2)
+      sigma02 <- sigma0_opt_two(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2)
       sigma02_vec[l] <- sigma02
       ## Get Bayesian Factor
       # data set 1
@@ -223,51 +223,11 @@ sum_single_effect_two <- function(X_1, Y_1, X_2, Y_2, scale_x = TRUE, intercept 
 }
 
 # #### check results
-# ## joint method
-# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1, scale_x = FALSE, intercept = TRUE)
-# res$index1 <- which(res$alpha_1 > 0.5)
-# res$index2 <- which(res$alpha_2 > 0.5)
-# res_scale <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1, scale_x = TRUE, intercept = TRUE)
-# res_scale$index1 <- which(res_scale$alpha_1 > 0.5)
-# res_scale$index2 <- which(res_scale$alpha_2 > 0.5)
-# ## single metehod
-# # data set 1
-# res1 <- susieR::susie(X = X_1, y = Y_1, L = p_c + p_1 + 1, standardize = FALSE)
-# res1$index <- which(1 - apply(1 - res1$alpha, 2, prod) > 0.5)
-# res1_scale <- susieR::susie(X = X_1, y = Y_1, L = p_c + p_1 + 1, standardize = TRUE)
-# res1_scale$index <- which(1 - apply(1 - res1_scale$alpha, 2, prod) > 0.5)
-# # data set 2
-# res2 <- susieR::susie(X = X_2, y = Y_2, L = p_c + p_2 + 1, standardize = FALSE)
-# res2$index <- which(1 - apply(1 - res2$alpha, 2, prod) > 0.5)
-# res2_scale <- susieR::susie(X = X_2, y = Y_2, L = p_c + p_2 + 1, standardize = TRUE)
-# res2_scale$index <- which(1 - apply(1 - res2_scale$alpha, 2, prod) > 0.5)
+# time1 <- Sys.time()
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1, scale_x = TRUE, intercept = TRUE)
+# Sys.time() - time1
 #
-# ## data set 1
-# cat("Joint: ", round(length(intersect(res$index1, c(index_1, index_c))) / (p_1 + p_c), 4),
-#     round(length(intersect(res$index1, c(index_1, index_c))) / length(res$index1), 4),
-#     round(sum((res$post_mean1 - b_1)^2), 4), round(sum((X_1 %*% b_1 - res$Xb_1)^2), 4), "\n",
-#     "Single: ", round(length(intersect(res1$index, c(index_1, index_c))) / (p_1 + p_c), 4),
-#     round(length(intersect(res1$index, c(index_1, index_c))) / length(res1$index), 4),
-#     round(sum((colSums(res1$mu * res1$alpha) - b_1)^2), 4), round(sum((X_1 %*% b_1 - res1$Xr)^2), 4), "\n")
-#
-# cat("Joint: ", round(length(intersect(res_scale$index1, c(index_1, index_c))) / (p_1 + p_c), 4),
-#     round(length(intersect(res_scale$index1, c(index_1, index_c))) / length(res_scale$index1), 4),
-#     round(sum((res_scale$post_mean1 - b_1)^2), 4), round(sum((X_1 %*% b_1 - res_scale$Xb_1)^2), 4), "\n",
-#     "Single: ", round(length(intersect(res1_scale$index, c(index_1, index_c))) / (p_1 + p_c), 4),
-#     round(length(intersect(res1_scale$index, c(index_1, index_c))) / length(res1_scale$index), 4),
-#     round(sum((colSums(res1_scale$mu * res1_scale$alpha) - b_1)^2), 4), round(sum((X_1 %*% b_1 - res1_scale$Xr)^2), 4), "\n")
-#
-# ## data set 2
-# cat("Joint: ", round(length(intersect(res$index2, c(index_2, index_c))) / (p_2 + p_c), 4),
-#     round(length(intersect(res$index2, c(index_2, index_c))) / length(res$index2), 4),
-#     round(sum((res$post_mean2 - b_2)^2), 4), round(sum((X_2 %*% b_2 - res$Xb_2)^2), 4), "\n",
-#     "Single: ", round(length(intersect(res2$index, c(index_2, index_c))) / (p_2 + p_c), 4),
-#     round(length(intersect(res2$index, c(index_2, index_c))) / length(res2$index), 4),
-#     round(sum((colSums(res2$mu * res2$alpha) - b_2)^2), 4), round(sum((X_2 %*% b_2 - res2$Xr)^2), 4), "\n")
-#
-# cat("Joint: ", round(length(intersect(res_scale$index2, c(index_2, index_c))) / (p_2 + p_c), 4),
-#     round(length(intersect(res_scale$index2, c(index_2, index_c))) / length(res_scale$index2), 4),
-#     round(sum((res_scale$post_mean2 - b_2)^2), 4), round(sum((X_2 %*% b_2 - res_scale$Xb_2)^2), 4), "\n",
-#     "Single: ", round(length(intersect(res2_scale$index, c(index_2, index_c))) / (p_2 + p_c), 4),
-#     round(length(intersect(res2_scale$index, c(index_2, index_c))) / length(res2_scale$index), 4),
-#     round(sum((colSums(res2_scale$mu * res2_scale$alpha) - b_2)^2), 4), round(sum((X_2 %*% b_2 - res2_scale$Xr)^2), 4), "\n")
+# source("two_data_sets/sum_single_effect_two.R")
+# time1 <- Sys.time()
+# res <- sum_single_effect_two(X_1, Y_1, X_2, Y_2, L = p_c + p_1 + p_2 + 1, scale_x = TRUE, intercept = TRUE)
+# Sys.time() - time1

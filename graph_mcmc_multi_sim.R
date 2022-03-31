@@ -1,4 +1,3 @@
-source("sum_single_effect_mult_graph.R")
 source("graph_given_order_multi.R")
 Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_mat = NULL,
                              order_int = NULL, iter_max = 50000, sigma02_int = NULL, sigma2_int = NULL,
@@ -52,11 +51,11 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
   }
   ## Generate the first graph
   res_old <- joint_graph_multi(dta_old_list,
-                               scale_x = scale_x, intercept = intercept,
-                               sigma02_int = sigma02_int, sigma2_int = sigma2_int, prior_vec = prior_vec,
-                               com_mat = com_mat, com_list = com_list, itermax = itermax, L_max = L_max,
-                               tol = tol, sigma0_low_bd = sigma0_low_bd,
-                               residual_variance_lowerbound = residual_variance_lowerbound
+    scale_x = scale_x, intercept = intercept,
+    sigma02_int = sigma02_int, sigma2_int = sigma2_int, prior_vec = prior_vec,
+    com_mat = com_mat, com_list = com_list, itermax = itermax, L_max = L_max,
+    tol = tol, sigma0_low_bd = sigma0_low_bd,
+    residual_variance_lowerbound = residual_variance_lowerbound
   )
   ## old results
   alpha_res_old <- res_old$alpha_list
@@ -73,8 +72,8 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
   error_mat_list <- list()
   g_true <- list()
   for (iter_K in seq_len(K)) {
-    alpha_list[[iter_K]] <- list()
-    A_list[[iter_K]] <- list()
+    alpha_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
+    A_list[[iter_K]] <- matrix(0, nrow = p, ncol = p)
     error_mat_list[[iter_K]] <- matrix(NA, nrow = 2, ncol = iter_max)
     g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
   }
@@ -123,7 +122,7 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
         dta_tmp_list[[iter_K]]$X <- dta_pro_list[[iter_K]][, seq_len(pos_change - 1), drop = FALSE]
         dta_tmp_list[[iter_K]]$Y <- dta_pro_list[[iter_K]][, pos_change]
       }
-      res_pos <- sum_single_effect_mult(
+      res_pos <- sum_single_effect_multi(
         dta_list = dta_tmp_list, scale_x = scale_x, intercept = intercept,
         sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change + 1], prior_vec = prior_vec,
         L = min(pos_change - 1, L_max), itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
@@ -137,7 +136,7 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
       dta_tmp_list[[iter_K]]$X <- dta_pro_list[[iter_K]][, seq_len(pos_change), drop = FALSE]
       dta_tmp_list[[iter_K]]$Y <- dta_pro_list[[iter_K]][, pos_change + 1]
     }
-    res_pos1 <- sum_single_effect_mult(
+    res_pos1 <- sum_single_effect_multi(
       dta_list = dta_tmp_list, scale_x = scale_x, intercept = intercept,
       sigma02_int = sigma02_int, sigma2_int = sigma2_vec_old[pos_change], prior_vec = prior_vec,
       L = min(pos_change, L_max), itermax = itermax, tol = tol, sigma0_low_bd = sigma0_low_bd,
@@ -158,7 +157,7 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
     }
     llike_pro <- llike_pro + sum(llike_mat_pro[c(pos_change, pos_change + 1), ]) +
       sum(llike_penalty_pro[c(pos_change, pos_change + 1)])
-    
+
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
@@ -205,10 +204,19 @@ Graph_MCMC_multi <- function(dta_list, scale_x = FALSE, intercept = TRUE, com_ma
       )
     }
     if (iter_MCMC > burn_in) {
-      alpha_list[[iter_MCMC - burn_in]] <- alpha_res_old
-      A_list[[iter_MCMC - burn_in]] <- A_res_old
       order_list[[iter_MCMC - burn_in]] <- order_old
+      order_tmp <- order(order_old)
+      for (iter_K in seq_len(K)) {
+        alpha_list[[iter_K]] <- alpha_list[[iter_K]] +
+          alpha_res_old[[iter_K]][order_tmp, order_tmp]
+        A_list[[iter_K]] <- A_list[[iter_K]] +
+          A_res_old[[iter_K]][order_tmp, order_tmp]
+      }
     }
+  }
+  for (iter_K in seq_len(K)) {
+    alpha_list[[iter_K]] <- alpha_list[[iter_K]] / length(order_list)
+    A_list[[iter_K]] <- A_list[[iter_K]] / length(order_list)
   }
   # return results
   return(list(

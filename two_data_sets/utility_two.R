@@ -23,27 +23,11 @@ sigma0_opt_two <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat
     lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1,
     s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
   )
-  lsigma02 <- optim(
-    par = log(max(c(b_hat_1^2 - s2_1, 1, b_hat_2^2 - s2_2))), fn = lBF_model_two,
-    method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1,
-    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
-  )$par
-  tmp2 <- lBF_model_two(
-    lsigma02 = lsigma02, prior_pi = prior_pi, z2_1 = z2_1,
-    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
-  )
-  if (tmp2 < tmp1) {
-    return(exp(lsigma02))
-  } else {
-    return(exp(lsigma02_int))
-  }
-}
-
-sigma0_opt_two_test <- function(lsigma02_int, prior_pi, z2_1, s2_1, z2_2, s2_2, b_hat_1, b_hat_2) {
-  tmp1 <- lBF_model_two(
-    lsigma02 = lsigma02_int, prior_pi = prior_pi, z2_1 = z2_1,
-    s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
-  )
+  # lsigma02 <- optim(
+  #   par = log(max(c(b_hat_1^2 - s2_1, 1, b_hat_2^2 - s2_2))), fn = lBF_model_two,
+  #   method = "Brent", lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1,
+  #   s2_1 = s2_1, z2_2 = z2_2, s2_2 = s2_2
+  # )$par
   lsigma02 <- optimize(
     lBF_model_two,
     lower = -30, upper = 15, prior_pi = prior_pi, z2_1 = z2_1,
