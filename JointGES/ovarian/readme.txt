@@ -1,1 +1,0 @@
-The data set used for this simulation is in the data folder. To run each method, first run "sep.R" in each folder, this will give you an "ovarian_result.rda" file in the "sep" folder within each directory. Then run the report.R script with the generated "ovarian_result.rda" file as the input to get the report.

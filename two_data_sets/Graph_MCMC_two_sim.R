@@ -1,7 +1,7 @@
 source("Two_dataset_new/sum_single_effect_two_graph.R")
 source("Two_dataset_new/Graph_given_order_two.R")
 Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
-                               order_int = NULL, iter_max = 50000, prior_penalty = TRUE,
+                               order_int = NULL, iter_max = 50000,
                                sigma02_int = NULL, sigma2_int = NULL, prior_vec = NULL,
                                itermax = 100, L_max = 10, tol = 1e-4, sigma0_low_bd = 1e-8,
                                burn_in = iter_max - 5000,
@@ -45,18 +45,15 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
   llike_1_vec_old <- res_old$llike_1_vec
   llike_2_vec_old <- res_old$llike_2_vec
   llike_penalty_vec_old <- res_old$llike_penalty_vec
-  llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old) 
-  if (prior_penalty) {
-    llike_old <- llike_old + sum(llike_penalty_vec_old)
-  }
+  llike_old <- sum(llike_1_vec_old) + sum(llike_2_vec_old) + sum(llike_penalty_vec_old)
   llike_vec <- rep(NA, iter_max)
   error_mat1 <- matrix(NA, nrow = 2, ncol = iter_max)
   error_mat2 <- matrix(NA, nrow = 2, ncol = iter_max)
   ## save lists
-  alpha_list_1 <- list()
-  alpha_list_2 <- list()
-  A_list_1 <- list()
-  A_list_2 <- list()
+  alpha_list_1 <- matrix(0, nrow = p, ncol = p)
+  alpha_list_2 <- matrix(0, nrow = p, ncol = p)
+  A_list_1 <- matrix(0, nrow = p, ncol = p)
+  A_list_2 <- matrix(0, nrow = p, ncol = p)
   order_list <- list()
   ## load the true results
   # data set 1
@@ -86,10 +83,8 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
     llike_penalty_vec_pro <- llike_penalty_vec_old
     ## propose the new order
     pos_change <- sample(seq_len(p - 1), 1)
-    llike_pro <- llike_old - sum(llike_1_vec_old[c(pos_change, pos_change + 1)]) - sum(llike_2_vec_old[c(pos_change, pos_change + 1)])
-    if (prior_penalty) {
-      llike_pro <- llike_pro - sum(llike_penalty_vec_old[c(pos_change, pos_change + 1)])
-    }
+    llike_pro <- llike_old - sum(llike_1_vec_old[c(pos_change, pos_change + 1)]) - sum(llike_2_vec_old[c(pos_change, pos_change + 1)]) -
+      sum(llike_penalty_vec_old[c(pos_change, pos_change + 1)])
     dta_1_pro[, c(pos_change, pos_change + 1)] <- dta_1_old[, c(pos_change + 1, pos_change)]
     dta_2_pro[, c(pos_change, pos_change + 1)] <- dta_2_old[, c(pos_change + 1, pos_change)]
     order_pro[c(pos_change, pos_change + 1)] <- order_old[c(pos_change + 1, pos_change)]
@@ -136,10 +131,8 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
     llike_2_vec_pro[pos_change] <- sum(dnorm(x = dta_2_pro[, pos_change], mean = res_pos$Xb_2, sd = sqrt(res_pos$sigma2), log = TRUE))
     llike_1_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_1_pro[, pos_change + 1], mean = res_pos1$Xb_1, sd = sqrt(res_pos1$sigma2), log = TRUE))
     llike_2_vec_pro[pos_change + 1] <- sum(dnorm(x = dta_2_pro[, pos_change + 1], mean = res_pos1$Xb_2, sd = sqrt(res_pos1$sigma2), log = TRUE))
-    llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + sum(llike_2_vec_pro[c(pos_change, pos_change + 1)])
-    if (prior_penalty) {
-      llike_pro <- llike_pro + sum(llike_penalty_vec_pro[c(pos_change, pos_change + 1)])
-    }
+    llike_pro <- llike_pro + sum(llike_1_vec_pro[c(pos_change, pos_change + 1)]) + sum(llike_2_vec_pro[c(pos_change, pos_change + 1)]) +
+      sum(llike_penalty_vec_pro[c(pos_change, pos_change + 1)])
     # accept or not
     if (llike_pro > llike_old) {
       accept <- TRUE
@@ -205,11 +198,12 @@ Graph_MCMC_two_sim <- function(dta_1, dta_2, scale_x = FALSE, intercept = FALSE,
       check_edge(adj_true2, adj_2)
     )
     if (iter_MCMC > burn_in) {
-      alpha_list_1[[iter_MCMC - burn_in]] <- alpha_res_1_old
-      alpha_list_2[[iter_MCMC - burn_in]] <- alpha_res_2_old
-      A_list_1[[iter_MCMC - burn_in]] <- A_res_1_old
-      A_list_2[[iter_MCMC - burn_in]] <- A_res_2_old
       order_list[[iter_MCMC - burn_in]] <- order_old
+      order_tmp <- order(order_old)
+      alpha_list_1 <- alpha_list_1 + alpha_res_1_old[order_tmp, order_tmp]
+      alpha_list_2 <- alpha_list_2 + alpha_res_2_old[order_tmp, order_tmp]
+      A_list_1 <- A_list_1 + A_res_1_old[order_tmp, order_tmp]
+      A_list_2 <- A_list_2 + A_res_2_old[order_tmp, order_tmp]
     }
   }
   # return results
