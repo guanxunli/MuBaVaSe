@@ -54,68 +54,68 @@ check_adj_l1 <- function(adj_pre, adj_act) {
   return(sum(abs(adj_pre - adj_act)) / 2)
 }
 
-########################### Do one figure ##################################
-#### generate graph
-set.seed(2021)
-n_graph <- 1
-graph_sim <- graph_generation(
-  K = K, n_graph = n_graph, p = p, n_tol = n_tol,
-  e_com = e_com, e_pri = e_pri
-)
-adj_true <- list()
-g_true <- list()
-for (iter_K in seq_len(K)) {
-  adj_true[[iter_K]] <- t(graph_sim$G[[1]][[iter_K]])
-  g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
-}
-data <- graph_sim$X[[1]]
+# ########################### Do one figure ##################################
+# #### generate graph
+# set.seed(2021)
+# n_graph <- 1
+# graph_sim <- graph_generation(
+#   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
+#   e_com = e_com, e_pri = e_pri
+# )
+# adj_true <- list()
+# g_true <- list()
+# for (iter_K in seq_len(K)) {
+#   adj_true[[iter_K]] <- t(graph_sim$G[[1]][[iter_K]])
+#   g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
+# }
+# data <- graph_sim$X[[1]]
 
-## PC method
-pc_fun <- function(dta,
-                   alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
-  p <- ncol(dta)
-  dta_cor <- cor(dta)
-  dag_list <- list()
-  for (iter_alpha in seq_len(length(alphas))) {
-    alpha <- alphas[iter_alpha]
-    pc_fit <- pc(
-      suffStat = list(C = dta_cor, n = dim(dta)[1]),
-      indepTest = gaussCItest, alpha = alpha,
-      labels = sapply(1:p, toString)
-    )
-    dag <- as(pc_fit@graph, "matrix")
-    dag_list[[iter_alpha]] <- ifelse(dag == TRUE, 1, 0)
-  }
-  return(dag_list)
-}
+# ## PC method
+# pc_fun <- function(dta,
+#                    alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
+#   p <- ncol(dta)
+#   dta_cor <- cor(dta)
+#   dag_list <- list()
+#   for (iter_alpha in seq_len(length(alphas))) {
+#     alpha <- alphas[iter_alpha]
+#     pc_fit <- pc(
+#       suffStat = list(C = dta_cor, n = dim(dta)[1]),
+#       indepTest = gaussCItest, alpha = alpha,
+#       labels = sapply(1:p, toString)
+#     )
+#     dag <- as(pc_fit@graph, "matrix")
+#     dag_list[[iter_alpha]] <- ifelse(dag == TRUE, 1, 0)
+#   }
+#   return(dag_list)
+# }
 
-dag_list <- list()
-for (iter_K in seq_len(K)) {
-  dag_list[[iter_K]] <- ges_fun(data[[iter_K]])
-}
+# dag_list <- list()
+# for (iter_K in seq_len(K)) {
+#   dag_list[[iter_K]] <- pc_fun(data[[iter_K]])
+# }
 
-#### check results
-eval_fun <- function(dag_list, g_true, adj_true,
-                     alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
-  for (iter in seq_len(length(dag_list))) {
-    adj <- dag_list[[iter]]
-    g <- as(adj, "graphNEL")
-    cat(
-      "alpha = ", alphas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
-      "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
-      "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
-      "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4),
-      "L2", round(check_adj_l2(adj_pre = adj, adj_act = adj_true), 4),
-      "L1", round(check_adj_l1(adj_pre = adj, adj_act = adj_true), 4), "\n"
-    )
-  }
-}
+# #### check results
+# eval_fun <- function(dag_list, g_true, adj_true,
+#                      alphas = c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)) {
+#   for (iter in seq_len(length(dag_list))) {
+#     adj <- dag_list[[iter]]
+#     g <- as(adj, "graphNEL")
+#     cat(
+#       "alpha = ", alphas[iter], c(shd(g_true, g), check_edge(adj_true, adj)),
+#       "TP", round(TPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+#       "FP", round(FPrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+#       "FN", round(FNrate_fun(adj_pre = adj, adj_act = adj_true), 4),
+#       "L2", round(check_adj_l2(adj_pre = adj, adj_act = adj_true), 4),
+#       "L1", round(check_adj_l1(adj_pre = adj, adj_act = adj_true), 4), "\n"
+#     )
+#   }
+# }
 
-## data set 1
-for (iter_K in seq_len(K)) {
-  cat("data set", iter_K, "\n")
-  eval_fun(dag_list[[iter_K]], g_true = g_true[[iter_K]], adj_true = adj_true[[iter_K]])
-}
+# ## data set 1
+# for (iter_K in seq_len(K)) {
+#   cat("data set", iter_K, "\n")
+#   eval_fun(dag_list[[iter_K]], g_true = g_true[[iter_K]], adj_true = adj_true[[iter_K]])
+# }
 
 ########################### Do parallel ##################################
 #### generate graph
@@ -157,7 +157,7 @@ out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
   dag_list <- list()
   ## Do GES
   for (iter_K in seq_len(K)) {
-    dag_list[[iter_K]] <- pc_fun(data[[iter_K]], lambdas = lambdas)
+    dag_list[[iter_K]] <- pc_fun(data[[iter_K]], alphas = alphas)
   }
   return(dag_list)
 }

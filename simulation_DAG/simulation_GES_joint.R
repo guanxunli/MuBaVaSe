@@ -4,12 +4,19 @@ source("simulation_DAG/graph_generation.R")
 # args <- commandArgs()
 # p <- as.numeric(args[6])
 # n_tol <- as.numeric(args[7])
-p <- 100
-n_tol <- 1200
-K <- 5
-n <- n_tol / K
-e_com <- 50
-e_pri <- 50
+# p <- 100
+# n_tol <- 600
+# K <- 2
+# n <- n_tol / K
+# e_com_vec <- c(50, 100)
+# e_pri_vec <- c(20, 50)
+paradf <- data.frame(
+  p = rep(100, 6),
+  n_tol = c(rep(600, 3), rep(1200, 3)),
+  K = c(rep(2, 3), rep(5, 3)),
+  e_com = c(100, 100, 50, 100, 100, 50),
+  e_pri = c(20, 50, 50, 20, 50, 50)
+)
 
 ## define metric function
 ## remove order edge
@@ -143,15 +150,6 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 # }
 
 ########################### Do parallel ##################################
-#### generate graph
-set.seed(2021)
-n_graph <- 50
-graph_sim <- graph_generation(
-  K = K, n_graph = n_graph, p = p, n_tol = n_tol,
-  e_com = e_com, e_pri = e_pri
-)
-lambdas <- c(1, 2, 3, 4, 5)
-
 #### joint GES method the first step
 ges_joint_fun <- function(data, lambdas = c(1, 2, 3, 4, 5)) {
   source("simulation_DAG/newclass.R")
@@ -194,71 +192,88 @@ ges_alg <- function(dag_list, dta) {
   return(adj_list)
 }
 
-library(foreach)
-library(doParallel)
-library(doRNG)
-cl <- makeCluster(25)
-registerDoParallel(cl)
-out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
-  library(pcalg)
-  ## load data
-  data <- graph_sim$X[[iter]]
-  dag_list <- list()
-  ## Do joint GES the first step
-  dag_list_com <- ges_joint_fun(data)
-  ## Do joint GES the second step
-  for (iter_K in seq_len(K)) {
-    dag_list[[iter_K]] <- ges_alg(dag_list_com, data[[iter_K]])
-  }
-  return(dag_list)
-}
-stopCluster(cl)
-saveRDS(out_res, paste0("K", K, "e_com", e_com, "e_pri", e_pri, "joint_ges.rds"))
-
-## check results
-res <- list()
-for (iter_K in seq_len(K)) {
-  res[[iter_K]] <- list()
-}
-for (iter_lambda in seq_len(length(lambdas))) {
-  for (iter_K in seq_len(K)) {
-    res[[iter_K]][[iter_lambda]] <- matrix(NA, nrow = n_graph, ncol = 7)
-  }
-  for (iter_graph in seq_len(n_graph)) {
+for (iter_para in seq_len(nrow(paradf))) {
+  p <- paradf$p[iter_para]
+  n_tol <- paradf$n_tol[iter_para]
+  K <- paradf$K[iter_para]
+  n <- n_tol / K
+  e_com <- paradf$e_com[iter_para]
+  e_pri <- paradf$e_pri[iter_para]
+  ## generate graphs
+  set.seed(2021)
+  n_graph <- 50
+  graph_sim <- graph_generation(
+    K = K, n_graph = n_graph, p = p, n_tol = n_tol,
+    e_com = e_com, e_pri = e_pri
+  )
+  lambdas <- c(1, 2, 3, 4, 5)
+  ## do simulations
+  library(foreach)
+  library(doParallel)
+  library(doRNG)
+  cl <- makeCluster(25)
+  registerDoParallel(cl)
+  out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
+    library(pcalg)
+    ## load data
+    data <- graph_sim$X[[iter]]
+    dag_list <- list()
+    ## Do joint GES the first step
+    dag_list_com <- ges_joint_fun(data)
+    ## Do joint GES the second step
     for (iter_K in seq_len(K)) {
-      ## load true value
-      adj_true <- t(graph_sim$G[[iter_graph]][[iter_K]])
-      g_true <- as(getGraph(adj_true), "graphNEL")
-      ## load results
-      adj <- out_res[[iter_graph]][[iter_K]][[iter_lambda]]
-      g <- as(adj, "graphNEL")
-      res[[iter_K]][[iter_lambda]][iter_graph, ] <- c(
-        shd(g_true, g),
-        check_edge(adj_true, adj),
-        TPrate_fun(adj_pre = adj, adj_act = adj_true),
-        FPrate_fun(adj_pre = adj, adj_act = adj_true),
-        FNrate_fun(adj_pre = adj, adj_act = adj_true),
-        check_adj_l2(adj_pre = adj, adj_act = adj_true),
-        check_adj_l1(adj_pre = adj, adj_act = adj_true)
-      )
+      dag_list[[iter_K]] <- ges_alg(dag_list_com, data[[iter_K]])
+    }
+    return(dag_list)
+  }
+  stopCluster(cl)
+  saveRDS(out_res, paste0("K", K, "e_com", e_com, "e_pri", e_pri, "joint_ges.rds"))
+
+  ## check results
+  res <- list()
+  for (iter_K in seq_len(K)) {
+    res[[iter_K]] <- list()
+  }
+  for (iter_lambda in seq_len(length(lambdas))) {
+    for (iter_K in seq_len(K)) {
+      res[[iter_K]][[iter_lambda]] <- matrix(NA, nrow = n_graph, ncol = 7)
+    }
+    for (iter_graph in seq_len(n_graph)) {
+      for (iter_K in seq_len(K)) {
+        ## load true value
+        adj_true <- t(graph_sim$G[[iter_graph]][[iter_K]])
+        g_true <- as(getGraph(adj_true), "graphNEL")
+        ## load results
+        adj <- out_res[[iter_graph]][[iter_K]][[iter_lambda]]
+        g <- as(adj, "graphNEL")
+        res[[iter_K]][[iter_lambda]][iter_graph, ] <- c(
+          shd(g_true, g),
+          check_edge(adj_true, adj),
+          TPrate_fun(adj_pre = adj, adj_act = adj_true),
+          FPrate_fun(adj_pre = adj, adj_act = adj_true),
+          FNrate_fun(adj_pre = adj, adj_act = adj_true),
+          check_adj_l2(adj_pre = adj, adj_act = adj_true),
+          check_adj_l1(adj_pre = adj, adj_act = adj_true)
+        )
+      }
     }
   }
-}
 
-res_ave <- list()
-for (iter_lambda in seq_len(length(lambdas))) {
-  res_ave[[iter_lambda]] <- matrix(0, nrow = n_graph, ncol = 7)
-  for (iter_K in seq_len(K)) {
-    res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] + res[[iter_K]][[iter_lambda]]
+  res_ave <- list()
+  for (iter_lambda in seq_len(length(lambdas))) {
+    res_ave[[iter_lambda]] <- matrix(0, nrow = n_graph, ncol = 7)
+    for (iter_K in seq_len(K)) {
+      res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] + res[[iter_K]][[iter_lambda]]
+    }
+    res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] / K
   }
-  res_ave[[iter_lambda]] <- res_ave[[iter_lambda]] / K
-}
 
-## print results
-for (iter_lambda in seq_len(length(lambdas))) {
-  res_tmp <- round(colMeans(res_ave[[iter_lambda]]), 4)
-  cat(
-    K, "&", lambdas[iter_lambda], "&", e_com, "&", e_pri, "&",
-    res_tmp[2], "&", res_tmp[3], "&", res_tmp[4], "&", res_tmp[6], "\\\\", "\n"
-  )
+  ## print results
+  for (iter_lambda in seq_len(length(lambdas))) {
+    res_tmp <- round(colMeans(res_ave[[iter_lambda]]), 4)
+    cat(
+      K, "&", lambdas[iter_lambda], "&", e_com, "&", e_pri, "&",
+      res_tmp[2], "&", res_tmp[3], "&", res_tmp[4], "&", res_tmp[6], "\\\\", "\n"
+    )
+  }
 }

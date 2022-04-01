@@ -8,7 +8,7 @@ p <- 100
 n_tol <- 600
 K <- 2
 n <- n_tol / K
-e_com <- 100
+e_com <- 50
 e_pri <- 50
 # Define prior
 prior_vec_list <- list()
