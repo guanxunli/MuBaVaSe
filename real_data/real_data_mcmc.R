@@ -1,4 +1,5 @@
 ## load data
+library(ggplot2)
 load("real_data/ovarian.rda")
 dta_1 <- data[[1]]
 dta_2 <- data[[2]]
@@ -64,12 +65,13 @@ iter_max <- 50000
 dta <- rbind(dta_1, dta_2)
 set.seed(2021)
 library(pcalg)
-score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
-ges_fit <- ges(score_ges)
-ges_adj <- as(ges_fit$repr, "matrix")
-ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
-graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
-order_int <- as.numeric(igraph::topo_sort(graph_i))
+order_int <- NULL
+# score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
+# ges_fit <- ges(score_ges)
+# ges_adj <- as(ges_fit$repr, "matrix")
+# ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
+# graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
+# order_int <- as.numeric(igraph::topo_sort(graph_i))
 ## Do MCMC
 
 library(foreach)
@@ -92,6 +94,12 @@ saveRDS(out_res, "real_data/results/out_mcmc.rds")
 ## save results
 for (iter_prior in seq_len(length(prior_vec_list))) {
   res_tmp <- out_res[[iter_prior]]
+  png(paste0("prior", iter_prior, "realdata_mcmctwo.png"))
+  ggplot() +
+    geom_line(aes(x = seq_len(iter_max), y = res_tmp$llike_vec)) +
+    xlab("Iteration") +
+    ylab("Log likelihood")
+  dev.off()
   alpha_mat_1 <- res_tmp$alpha_mat_1
   alpha_mat_2 <- res_tmp$alpha_mat_2
   A_mat_1 <- res_tmp$A_mat_1
