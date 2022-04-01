@@ -15,7 +15,7 @@ prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / p^2.25)
 
 scale_x <- FALSE
 intercept <- TRUE
-iter_max <- 50000
+iter_max <- 1e5
 
 # ## A quick test
 # set.seed(2021)
@@ -65,13 +65,13 @@ iter_max <- 50000
 dta <- rbind(dta_1, dta_2)
 set.seed(2021)
 library(pcalg)
-order_int <- NULL
-# score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
-# ges_fit <- ges(score_ges)
-# ges_adj <- as(ges_fit$repr, "matrix")
-# ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
-# graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
-# order_int <- as.numeric(igraph::topo_sort(graph_i))
+# order_int <- NULL
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
+ges_fit <- ges(score_ges)
+ges_adj <- as(ges_fit$repr, "matrix")
+ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
+graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
+order_int <- as.numeric(igraph::topo_sort(graph_i))
 ## Do MCMC
 
 library(foreach)
