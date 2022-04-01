@@ -5,144 +5,109 @@ dta_2 <- data[[2]]
 p <- ncol(data[[1]])
 
 ## generate graph
-source("Two_dataset_new//Graph_MCMC_two.R")
-prior_vec <- c(1 / (2 * p^1.5), 1 / p^2)
+source("two_data_sets/Graph_MCMC_two.R")
+prior_vec_list <- list()
+prior_vec_list[[1]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
+prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
+prior_vec_list[[3]] <- c(1 / p^2, 1 / p^2.25)
+prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / p^2.25)
+
 scale_x <- FALSE
 intercept <- TRUE
 iter_max <- 50000
 
-## Do MCMC without order
-set.seed(2021)
-out_res <- Graph_MCMC_two(dta_1, dta_2,
-                          scale_x = scale_x, intercept = intercept,
-                          order_int = NULL, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
-                          burn_in = 1
-)
-
-## plot results
-library(ggplot2)
-library(gridExtra)
-p1 <- ggplot() +
-  geom_line(aes(x = seq_len(length(out_res[[1]])), y = out_res$llike_vec))
-p2 <- ggplot() +
-  geom_line(aes(x = seq_len(5000), y = out_res$llike_vec[(length(out_res[[1]]) - 4999):length(out_res[[1]])]))
-layout_matrix <- matrix(c(1, 2), nrow = 2)
-pdf(file = "real_data/results/llikehoold_without.pdf")
-grid.arrange(p1, p2)
-dev.off()
-
-## save results
-out_res$alpha_list_1 <- out_res$alpha_list_1[-seq_len(iter_max - 5001)]
-out_res$alpha_list_2 <- out_res$alpha_list_2[-seq_len(iter_max - 5001)]
-out_res$A_list_1 <- out_res$A_list_1[-seq_len(iter_max - 5001)]
-out_res$A_list_2 <- out_res$A_list_2[-seq_len(iter_max - 5001)]
-out_res$order_list <- out_res$order_list[-seq_len(iter_max - 5001)]
-out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5001)]
-saveRDS(out_res, "real_data/results/out_mcmc_without.rds")
-
-## check results
-out_res <- readRDS("real_data/results/out_mcmc_without.rds")
-alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-A_mat_1 <- matrix(0, nrow = p, ncol = p)
-A_mat_2 <- matrix(0, nrow = p, ncol = p)
-for (iter in seq_len(5000)) {
-  order_tmp <- order(out_res$order_list[[iter]])
-  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter]][order_tmp, order_tmp]
-  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter]][order_tmp, order_tmp]
-  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter]][order_tmp, order_tmp]
-  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter]][order_tmp, order_tmp]
-}
-alpha_mat_1 <- alpha_mat_1 / 5000
-alpha_mat_2 <- alpha_mat_2 / 5000
-A_mat_1 <- A_mat_1 / 5000
-A_mat_2 <- A_mat_2 / 5000
-
-#### Compare results
-## data set 1
-adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
-adj_1 <- t(adj_1)
-## data set 2
-adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
-adj_2 <- t(adj_2)
-## check results
-cat(
-  "scale_x:", scale_x, "intercept", intercept, "prior_vec", prior_vec, "\n",
-  sum(adj_1), sum(adj_2), length(intersect(which(adj_1 == 1), which(adj_2 == 1))), "\n"
-)
-
-# scale_x: FALSE intercept TRUE prior_vec 0.000754657 0.0001731302 40 93 40 
+# ## A quick test
+# set.seed(2021)
+# prior_vec <- prior_vec_list[[1]]
+# ## get order
+# dta <- rbind(dta_1, dta_2)
+# set.seed(2021)
+# library(pcalg)
+# score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
+# ges_fit <- ges(score_ges)
+# ges_adj <- as(ges_fit$repr, "matrix")
+# ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
+# graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
+# order_int <- as.numeric(igraph::topo_sort(graph_i))
+# out_res <- Graph_MCMC_two(dta_1, dta_2,
+#                           scale_x = scale_x, intercept = intercept,
+#                           order_int = order_int, iter_max = 200, sigma02_int = NULL, sigma2_int = NULL,
+#                           prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+#                           burn_in = 1
+# )
+# 
+# ## plot results
+# library(ggplot2)
+# library(gridExtra)
+# ggplot() + geom_line(aes(x = seq_len(length(out_res$llike_vec)), y = out_res$llike_vec))
+# alpha_mat_1 <- out_res$alpha_mat_1
+# alpha_mat_2 <- out_res$alpha_mat_2
+# A_mat_1 <- out_res$A_mat_1
+# A_mat_2 <- out_res$A_mat_2
+# #### Compare results
+# ## data set 1
+# adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
+# adj_1 <- t(adj_1)
+# ## data set 2
+# adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
+# adj_2 <- t(adj_2)
+# # intersection
+# inter_order <- length(intersect(which(adj_1 == 1), which(adj_2 == 1)))
+# ## check results
+# cat(
+#   "scale_x:", scale_x, "intercept", intercept,
+#   sum(adj_1), sum(adj_2), inter_order, "\n"
+# )
 
 #### Do MCMC with order
 ## get order
 dta <- rbind(dta_1, dta_2)
 set.seed(2021)
 library(pcalg)
-score_ges <- new("GaussL0penObsScore", data = dta, intercept = intercept)
+score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
 ges_fit <- ges(score_ges)
 ges_adj <- as(ges_fit$repr, "matrix")
 ges_adj <- ifelse(ges_adj == TRUE, 1, 0)
 graph_i <- igraph::graph_from_adjacency_matrix(ges_adj, mode = "directed", diag = FALSE)
 order_int <- as.numeric(igraph::topo_sort(graph_i))
 ## Do MCMC
-out_res <- Graph_MCMC_two(dta_1, dta_2,
-                          scale_x = scale_x, intercept = intercept,
-                          order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                          prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
-                          burn_in = 1
-)
 
-## plot results
-library(ggplot2)
-library(gridExtra)
-p1 <- ggplot() +
-  geom_line(aes(x = seq_len(length(out_res[[1]])), y = out_res$llike_vec))
-p2 <- ggplot() +
-  geom_line(aes(x = seq_len(5000), y = out_res$llike_vec[(length(out_res[[1]]) - 4999):length(out_res[[1]])]))
-layout_matrix <- matrix(c(1, 2), nrow = 2)
-pdf(file = "real_data/results/llikehoold.pdf")
-grid.arrange(p1, p2)
-dev.off()
+library(foreach)
+library(doParallel)
+library(doRNG)
 
-## save results
-out_res$alpha_list_1 <- out_res$alpha_list_1[-seq_len(iter_max - 5001)]
-out_res$alpha_list_2 <- out_res$alpha_list_2[-seq_len(iter_max - 5001)]
-out_res$A_list_1 <- out_res$A_list_1[-seq_len(iter_max - 5001)]
-out_res$A_list_2 <- out_res$A_list_2[-seq_len(iter_max - 5001)]
-out_res$order_list <- out_res$order_list[-seq_len(iter_max - 5001)]
-out_res$llike_vec <- out_res$llike_vec[-seq_len(iter_max - 5001)]
-saveRDS(out_res, "real_data/results/out_mcmc.rds")
-
-## check results
-out_res <- readRDS("real_data/results/out_mcmc.rds")
-alpha_mat_1 <- matrix(0, nrow = p, ncol = p)
-alpha_mat_2 <- matrix(0, nrow = p, ncol = p)
-A_mat_1 <- matrix(0, nrow = p, ncol = p)
-A_mat_2 <- matrix(0, nrow = p, ncol = p)
-for (iter in seq_len(5000)) {
-  order_tmp <- order(out_res$order_list[[iter]])
-  alpha_mat_1 <- alpha_mat_1 + out_res$alpha_list_1[[iter]][order_tmp, order_tmp]
-  alpha_mat_2 <- alpha_mat_2 + out_res$alpha_list_2[[iter]][order_tmp, order_tmp]
-  A_mat_1 <- A_mat_1 + out_res$A_list_1[[iter]][order_tmp, order_tmp]
-  A_mat_2 <- A_mat_2 + out_res$A_list_2[[iter]][order_tmp, order_tmp]
+cl <- makeCluster(4)
+registerDoParallel(cl)
+out_res <- foreach(iter_prior = seq_len(length(prior_vec_list))) %dorng% {
+  prior_vec <- prior_vec_list[[iter_prior]]
+  Graph_MCMC_two(dta_1, dta_2,
+                 scale_x = scale_x, intercept = intercept,
+                 order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
+                 prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+                 burn_in = iter_max - 5000
+  )
 }
-alpha_mat_1 <- alpha_mat_1 / 5000
-alpha_mat_2 <- alpha_mat_2 / 5000
-A_mat_1 <- A_mat_1 / 5000
-A_mat_2 <- A_mat_2 / 5000
-
-#### Compare results
-## data set 1
-adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
-adj_1 <- t(adj_1)
-## data set 2
-adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
-adj_2 <- t(adj_2)
-## check results
-cat(
-  "scale_x:", scale_x, "intercept", intercept, "prior_vec", prior_vec, "\n",
-  sum(adj_1), sum(adj_2), length(intersect(which(adj_1 == 1), which(adj_2 == 1))), "\n"
-)
-
-# scale_x: FALSE intercept TRUE prior_vec 0.000754657 0.0001731302 39 97 39 
+stopCluster(cl)
+saveRDS(out_res, "real_data/results/out_mcmc.rds")
+## save results
+for (iter_prior in seq_len(length(prior_vec_list))) {
+  res_tmp <- out_res[[iter_prior]]
+  alpha_mat_1 <- res_tmp$alpha_mat_1
+  alpha_mat_2 <- res_tmp$alpha_mat_2
+  A_mat_1 <- res_tmp$A_mat_1
+  A_mat_2 <- res_tmp$A_mat_1
+  #### Compare results
+  ## data set 1
+  adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
+  adj_1 <- t(adj_1)
+  ## data set 2
+  adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
+  adj_2 <- t(adj_2)
+  # intersection
+  inter_order <- length(intersect(which(adj_1 == 1), which(adj_2 == 1)))
+  ## check results
+  cat(
+    "scale_x:", scale_x, "intercept", intercept, "prior", iter_prior,
+    sum(adj_1), sum(adj_2), inter_order, "\n"
+  )
+}

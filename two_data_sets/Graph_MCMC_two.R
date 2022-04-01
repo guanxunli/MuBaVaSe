@@ -213,7 +213,7 @@ Graph_MCMC_two <- function(dta_1, dta_2, scale_x = FALSE, intercept = TRUE,
     llike_vec[iter_MCMC] <- llike_old
     if (iter_MCMC > burn_in) {
       order_list[[iter_MCMC - burn_in]] <- order_old
-      order_tmp <- order(order_list)
+      order_tmp <- order(order_old)
       alpha_mat_1 <- alpha_mat_1 + alpha_res_1_old[order_tmp, order_tmp]
       alpha_mat_2 <- alpha_mat_2 + alpha_res_2_old[order_tmp, order_tmp]
       A_mat_1 <- A_mat_1 + A_res_1_old[order_tmp, order_tmp]
