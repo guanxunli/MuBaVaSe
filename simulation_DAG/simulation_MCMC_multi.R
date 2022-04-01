@@ -220,6 +220,8 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     res_tmp <- out_res[[iter_graph]]
     ## plot likelihood and error
     if (iter_graph %% 25 == 0) {
+      library(ggplot2)
+      library(gridExtra)
       gl <- ggplot() +
         geom_line(aes(x = seq_len(iter_max), y = res_tmp$llike_vec)) +
         xlab("Iteration") +
