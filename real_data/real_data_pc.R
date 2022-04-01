@@ -23,7 +23,7 @@ stabs_pc <- function(x, y, q, ...) {
   dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
   # dt <- data[[idx]]
   p <- ncol(dt)
-  
+
   # train the model
   alphas <- c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)
   model_alpha <- function(alpha) {
@@ -35,7 +35,7 @@ stabs_pc <- function(x, y, q, ...) {
     dag <- as(pc_fit@graph, "matrix")
     as.vector(dag != 0)
   }
-  
+
   # get the path and selected variables
   path <- sapply(alphas, model_alpha)
   selected <- rowSums(path) != 0

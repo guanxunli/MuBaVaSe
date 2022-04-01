@@ -35,7 +35,7 @@ iter_max <- 50000
 #                           prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
 #                           burn_in = 1
 # )
-# 
+#
 # ## plot results
 # library(ggplot2)
 # library(gridExtra)
@@ -81,10 +81,10 @@ registerDoParallel(cl)
 out_res <- foreach(iter_prior = seq_len(length(prior_vec_list))) %dorng% {
   prior_vec <- prior_vec_list[[iter_prior]]
   Graph_MCMC_two(dta_1, dta_2,
-                 scale_x = scale_x, intercept = intercept,
-                 order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
-                 prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
-                 burn_in = iter_max - 5000
+    scale_x = scale_x, intercept = intercept,
+    order_int = order_int, iter_max = iter_max, sigma02_int = NULL, sigma2_int = NULL,
+    prior_vec = prior_vec, itermax = 100, tol = 1e-4, sigma0_low_bd = 1e-8,
+    burn_in = iter_max - 5000
   )
 }
 stopCluster(cl)
