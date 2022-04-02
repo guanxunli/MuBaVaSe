@@ -5,17 +5,52 @@ source("simulation_DAG/graph_generation.R")
 # n_tol <- as.numeric(args[7])
 # Define parameters
 p <- 100
-n_tol <- 600
-K <- 2
+n_tol <- 1200
+K <- 5
 n <- n_tol / K
-e_com <- 100
+e_com <- 50
 e_pri <- 50
-# Define prior
+## Define prior
+if (K == 2) {
+  # two data sets
+  prior_pi_list <- list()
+  prior_pi_list[[1]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
+  prior_pi_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
+  prior_pi_list[[3]] <- c(1 / p^2, 1 / p^2.25)
+  prior_pi_list[[4]] <- c(1 / (2 * p^2), 1 / p^2.25)
+} else if (K == 5) {
+  # five data sets
+  prior_pi_list <- list()
+  prior_pi_list[[1]] <- c(1 / (5 * p^1.5), 1 / (10 * p^1.75), 1 / (10 * p^2), 1 / (5 * p^2.25), 1 / p^2.5)
+  prior_pi_list[[2]] <- c(1 / p^1.75, 1 / p^2, 1 / p^2.25, 1 / p^2.5, 1 / p^3)
+  prior_pi_list[[3]] <- c(1 / (5 * p^1.75), 1 / (10 * p^2), 1 / (10 * p^2.25), 1 / (5 * p^2.5), 1 / p^3)
+  prior_pi_list[[4]] <- c(1 / p^2, 1 / p^2.25, 1 / p^2.5, 1 / p^2.75, 1 / p^3)
+}
 prior_vec_list <- list()
-prior_vec_list[[1]] <- c(1 / (2 * p^1.25), 1 / (2 * p^1.25), 1 / p^1.5)
-prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / (2 * p^1.5), 1 / p^2)
-prior_vec_list[[3]] <- c(1 / p^2, 1 / p^2, 1 / p^2.25)
-prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / (2 * p^2), 1 / p^2.25)
+for (iter_pi in seq_len(length(prior_pi_list))) {
+  n_group <- 2^K - 1
+  com_list <- list()
+  com_mat <- matrix(c(0, 1), ncol = 1)
+  for (iter in 2:K) {
+    com_mat_copy <- com_mat
+    com_mat <- cbind(1, com_mat)
+    com_mat_copy <- cbind(0, com_mat_copy)
+    com_mat <- rbind(com_mat_copy, com_mat)
+  }
+  com_mat <- com_mat[-1, ]
+
+  for (iter_com in seq_len(n_group)) {
+    com_list[[iter_com]] <- which(com_mat[iter_com, ] == 1)
+  }
+  com_length <- lapply(com_list, length)
+  prior_vec <- rep(NA, n_group)
+  prior_pi <- prior_pi_list[[iter_pi]]
+  for (iter in seq_len(n_group)) {
+    prior_vec[iter] <- prior_pi[com_length[[iter]]]
+  }
+  prior_vec_list[[iter_pi]] <- prior_vec
+}
+
 
 # Define MCMC parameters
 scale_x <- FALSE
@@ -78,11 +113,11 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #   adj_true[[iter_K]] <- t(graph_sim$G[[1]][[iter_K]])
 #   g_true[[iter_K]] <- as(getGraph(adj_true[[iter_K]]), "graphNEL")
 # }
-#
+
 # #### our method
 # source("graph_given_order_multi.R")
 # dta_list <- graph_sim$X[[1]]
-#
+
 # #### If we know the order
 # for (iter_prior in seq_len(length(prior_vec_list))) {
 #   prior_vec <- prior_vec_list[[iter_prior]]
@@ -104,7 +139,7 @@ check_adj_l1 <- function(adj_pre, adj_act) {
 #     )
 #   }
 # }
-#
+
 # ########################## Do MCMC quick test ############################
 # iter_max <- 200
 # prior_vec <- prior_vec_list[[1]]
@@ -182,7 +217,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   out_res <- list()
   prior_vec <- prior_vec_list[[iter_prior]]
   ## do parallel
-  cl <- makeCluster(25)
+  cl <- makeCluster(50)
   registerDoParallel(cl)
   out_res <- foreach(iter = seq_len(n_graph)) %dorng% {
     library(pcalg)
@@ -276,7 +311,7 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     res_ave <- res_ave + res[[iter_K]]
   }
   # average results
-  res_ave <- colMeans(res_ave) / K
+  res_ave <- round(colMeans(res_ave) / K, 4)
   cat(
     K, "&", "prior", iter_prior, "&", e_com, "&", e_pri, "&",
     res_ave[2], "&", res_ave[3], "&", res_ave[4], "&", res_ave[6], "\\\\", "\n"
