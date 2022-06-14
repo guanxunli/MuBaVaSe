@@ -92,14 +92,15 @@ out_res <- foreach(iter_prior = seq_len(length(prior_vec_list))) %dorng% {
 stopCluster(cl)
 saveRDS(out_res, "real_data/results/out_mcmc.rds")
 ## save results
+out_res <- readRDS("real_data/results/out_mcmc.rds")
 for (iter_prior in seq_len(length(prior_vec_list))) {
   res_tmp <- out_res[[iter_prior]]
-  png(paste0("prior", iter_prior, "realdata_mcmctwo.png"))
-  ggplot() +
-    geom_line(aes(x = seq_len(iter_max), y = res_tmp$llike_vec)) +
-    xlab("Iteration") +
-    ylab("Log likelihood")
-  dev.off()
+  # png(paste0("prior", iter_prior, "realdata_mcmctwo.png"))
+  # ggplot() +
+  #   geom_line(aes(x = seq_len(iter_max), y = res_tmp$llike_vec)) +
+  #   xlab("Iteration") +
+  #   ylab("Log likelihood")
+  # dev.off()
   alpha_mat_1 <- res_tmp$alpha_mat_1
   alpha_mat_2 <- res_tmp$alpha_mat_2
   A_mat_1 <- res_tmp$A_mat_1

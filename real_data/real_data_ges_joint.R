@@ -1,9 +1,68 @@
 # # load data
 load("real_data/ovarian.rda")
 p <- ncol(data[[1]])
-
-## GES method
 library(pcalg)
+
+################################ with out stable selection ########################
+lambdas <- c(1, 2, 3, 4, 5)
+
+## Joint GES the first step
+ges_joint_fun <- function(data, lambda) {
+  source("simulation_DAG/newclass.R")
+  p <- ncol(data[[1]])
+  dag_list <- list()
+  l0score <- new("MultiGaussL0pen",
+                 data = data, lambda = lambda * log(p),
+                 intercept = TRUE, use.cpp = FALSE
+  )
+  ges_fit <- ges(l0score)
+  dag <- as(ges_fit$essgraph, "matrix")
+  return(ifelse(dag == TRUE, 1, 0))
+}
+
+## Joint GES the second step
+subset <- function(y, x, data) {
+  t <- rep(0, ncol(data))
+  if (length(x) <= 1) {
+    t[x] <- 1
+  } else {
+    model <- glmnet::cv.glmnet(as.matrix(data[, x]), data[, y], family = "gaussian", intercept = FALSE)
+    nonz <- which(as.vector(coef(model)) != 0) - 1
+    t[x[nonz]] <- 1
+  }
+  return(t)
+}
+
+# do joint estimation given single data
+ges_alg <- function(dag_com, dta) {
+  in_mat <- dag_com
+  joint_mat <- sapply(seq_len(ncol(dta)), function(i) subset(i, which(in_mat[, i] != 0), dta))
+  adj_pri <- joint_mat
+  return(adj_pri)
+}
+
+for (iter in seq_len(length(lambdas))) {
+  lambda_use <- lambdas[iter]
+  dag_com <- ges_joint_fun(data, lambda_use)
+  dag1 <- ges_alg(dag_com, data[[1]])
+  dag2 <- ges_alg(dag_com, data[[2]])
+  ## data set 1 results
+  ges_joint_graph1 <- as(dag1, "matrix")
+  ges_joint_graph1 <- ifelse(ges_joint_graph1 == 1, TRUE, FALSE)
+  ges_joint_graph1 <- ges_joint_graph1 | t(ges_joint_graph1)
+  ## data set 2
+  ges_joint_graph2 <- as(dag2, "matrix")
+  ges_joint_graph2 <- ifelse(ges_joint_graph2 == 1, TRUE, FALSE)
+  ges_joint_graph2 <- ges_joint_graph2 | t(ges_joint_graph2)
+  ## intersections
+  ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
+  ## check results
+  cat("lambda: ", lambda_use, c(sum(ges_joint_graph1), sum(ges_joint_graph2), 
+                            sum(ges_joint_graph)) / 2, "\n")
+  
+}
+
+################################ with stable selection ########################
 library(stabs)
 
 #### joint GSE method
@@ -41,15 +100,11 @@ for (i in seq_len(length(data))) {
   y <- c(y, rep(i, nrow(data[[i]])))
 }
 ## stable joint GES
-cutoff <- 0.75
+cutoff <- 0.6
 stab_result <- stabsel(x = x, y = y, fitfun = stabs_ges, cutoff = cutoff, PFER = 1)
 saveRDS(stab_result, "real_data/results/out_ges_joint.rds")
 
 stab_result <- readRDS("real_data/results/out_ges_joint.rds")
-cutoff <- 0.6
-dag <- matrix(as.vector(stab_result$max > cutoff), nrow = p, ncol = p)
-dag <- as(dag, "graphNEL")
-
 ## Joint GES the second step
 subset <- function(y, x, data) {
   t <- rep(0, ncol(data))
@@ -69,24 +124,32 @@ ges_alg <- function(data, dag) {
   joint_mat <- lapply(data, function(dt) sapply(seq_len(ncol(dt)), function(i) subset(i, which(in_mat[, i] != 0), dt)))
   return(lapply(joint_mat, function(sing_mat) dag2cpdag(as(sing_mat, "graphNEL"))))
 }
+cutoff_vec <- seq(0.5, 0.9, by = 0.05)
 
-gesdag <- ges_alg(data, dag)
-## data set 1 results
-ges_joint_graph1 <- gesdag[[1]]
-ges_joint_graph1 <- as(ges_joint_graph1, "matrix")
-ges_joint_graph1 <- ifelse(ges_joint_graph1 == 1, TRUE, FALSE)
-ges_joint_graph1 <- ges_joint_graph1 | t(ges_joint_graph1)
-sum(ges_joint_graph1) / 2
-
-## data set 2
-ges_joint_graph2 <- gesdag[[2]]
-ges_joint_graph2 <- as(ges_joint_graph2, "matrix")
-ges_joint_graph2 <- ifelse(ges_joint_graph2 == 1, TRUE, FALSE)
-ges_joint_graph2 <- ges_joint_graph2 | t(ges_joint_graph2)
-sum(ges_joint_graph2) / 2
-
-## intersections
-ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
-sum(ges_joint_graph) / 2
-
-## 53 55 50
+for (iter in seq_len(length(cutoff_vec))) {
+  cutoff <- cutoff_vec[iter]
+  dag <- matrix(as.vector(stab_result$max > cutoff), nrow = p, ncol = p)
+  dag <- as(dag, "graphNEL")
+  
+  gesdag <- ges_alg(data, dag)
+  ## data set 1 results
+  ges_joint_graph1 <- gesdag[[1]]
+  ges_joint_graph1 <- as(ges_joint_graph1, "matrix")
+  ges_joint_graph1 <- ifelse(ges_joint_graph1 == 1, TRUE, FALSE)
+  ges_joint_graph1 <- ges_joint_graph1 | t(ges_joint_graph1)
+  
+  ## data set 2
+  ges_joint_graph2 <- gesdag[[2]]
+  ges_joint_graph2 <- as(ges_joint_graph2, "matrix")
+  ges_joint_graph2 <- ifelse(ges_joint_graph2 == 1, TRUE, FALSE)
+  ges_joint_graph2 <- ges_joint_graph2 | t(ges_joint_graph2)
+  
+  ## intersections
+  ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
+  
+  ## check results
+  cat("joint GES &", cutoff, "&", sum(ges_joint_graph1) / 2, "&", 
+      sum(ges_joint_graph2) / 2, "&",  sum(ges_joint_graph) / 2, "\\\\\n")
+  # cat("cutoff: ", cutoff, c(sum(ges_joint_graph1), sum(ges_joint_graph2), 
+  #                           sum(ges_joint_graph)) / 2, "\n")
+}

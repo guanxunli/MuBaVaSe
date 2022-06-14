@@ -1,14 +1,35 @@
 # # load data
 load("real_data/ovarian.rda")
 p <- ncol(data[[1]])
-
-## GES method
 library(pcalg)
+
+################################ with out stable selection ########################
+lambdas <- c(1, 2, 3, 4, 5)
+
+ges_fun <- function(dta, lambda) {
+  p <- ncol(dta)
+  l0score <- new("GaussL0penObsScore", data = dta, lambda = lambda * log(p), intercept = FALSE)
+  ges_fit <- ges(l0score)
+  dag <- as(ges_fit$repr, "matrix")
+  return(ifelse(dag == TRUE, 1, 0))
+}
+
+for (iter_lambda in seq_len(length(lambdas))) {
+  lambda_use <- lambdas[iter_lambda]
+  dag1 <- ges_fun(data[[1]], lambda_use)
+  dag2 <- ges_fun(data[[2]], lambda_use)
+  ges_adj1 <- dag1 | t(dag1)
+  ges_adj2 <- dag2 | t(dag2)
+  ges_adj <- ges_adj1 & ges_adj2
+  ## check results
+  cat("lambda: ", lambda_use, c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n")
+}
+
+################################ with stable selection ########################
 library(stabs)
 library(parallel)
 
 set.seed(2021)
-#### GES method
 ## GES input
 stab_input <- function(i) {
   p <- ncol(data[[i]])
@@ -49,19 +70,18 @@ saveRDS(gesdag_list, "real_data/results/out_ges.rds")
 
 #### check results
 gesdag_list <- readRDS("real_data/results/out_ges.rds")
-cutoff <- 0.75
-## data set 1 results
-ges_adj1 <- matrix(as.vector(gesdag_list[[1]]$max > cutoff), nrow = p, ncol = p)
-ges_adj1 <- ges_adj1 | t(ges_adj1)
-sum(ges_adj1) / 2
-
-## data set 2
-ges_adj2 <- matrix(as.vector(gesdag_list[[2]]$max > cutoff), nrow = p, ncol = p)
-ges_adj2 <- ges_adj2 | t(ges_adj2)
-sum(ges_adj2) / 2
-
-## intersections
-ges_adj <- ges_adj1 & ges_adj2
-sum(ges_adj) / 2
-
-## 0.9: 68 102 34
+cutoff_vec <- seq(0.5, 0.9, by = 0.05)
+for (iter in seq_len(length(cutoff_vec))) {
+  cutoff <- cutoff_vec[iter]
+  ## data set 1 results
+  ges_adj1 <- matrix(as.vector(gesdag_list[[1]]$max > cutoff), nrow = p, ncol = p)
+  ges_adj1 <- ges_adj1 | t(ges_adj1)
+  ## data set 2
+  ges_adj2 <- matrix(as.vector(gesdag_list[[2]]$max > cutoff), nrow = p, ncol = p)
+  ges_adj2 <- ges_adj2 | t(ges_adj2)
+  ## intersections
+  ges_adj <- ges_adj1 & ges_adj2
+  ## check results
+  cat("GES &", cutoff, "&", sum(ges_adj1) / 2, "&", sum(ges_adj2) / 2, "&",  sum(ges_adj) / 2, "\\\\\n")
+  # cat("cutoff: ", cutoff, c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n")
+}

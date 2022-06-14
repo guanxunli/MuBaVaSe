@@ -8,8 +8,8 @@ p <- 100
 n_tol <- 600
 K <- 2
 n <- n_tol / K
-e_com <- 50
-e_pri <- 50
+e_com <- 100
+e_pri <- 20
 # Define prior
 prior_vec_list <- list()
 prior_vec_list[[1]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
@@ -328,3 +328,63 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
     res[2], "&", res[3], "&", res[4], "&", res[6], "\\\\", "\n"
   )
 }
+
+# ########################## check results ##########################
+# # Define prior
+# iter_prior <- 4
+# out_res <- readRDS(paste0("simulation_dag/results/muSuSiEDAG/prior", iter_prior, "K", K, "e_com", e_com, "e_pri", e_pri, "mcmc.rds"))
+# set.seed(2021)
+# n_graph <- 50
+# graph_sim <- graph_generation(
+#   K = K, n_graph = n_graph, p = p, n_tol = n_tol,
+#   e_com = e_com, e_pri = e_pri
+# )
+# res_1 <- matrix(NA, nrow = n_graph, ncol = 7)
+# res_2 <- matrix(NA, nrow = n_graph, ncol = 7)
+# n_graph <- 50
+# for (iter_graph in seq_len(n_graph)) {
+#   res_tmp <- out_res[[iter_graph]]
+#   # analysis
+#   alpha_mat_1 <- res_tmp$alpha_mat_1
+#   alpha_mat_2 <- res_tmp$alpha_mat_2
+#   A_mat_1 <- res_tmp$A_mat_1
+#   A_mat_2 <- res_tmp$A_mat_2
+#   ## data set 1
+#   adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
+#   adj_1 <- t(adj_1)
+#   g_1 <- as(getGraph(adj_1), "graphNEL")
+#   ## data set 2
+#   adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
+#   adj_2 <- t(adj_2)
+#   g_2 <- as(getGraph(adj_2), "graphNEL")
+#   ## load true value
+#   adj_true1 <- t(graph_sim$G[[iter_graph]][[1]])
+#   g_true1 <- as(getGraph(adj_true1), "graphNEL")
+#   adj_true2 <- t(graph_sim$G[[iter_graph]][[2]])
+#   g_true2 <- as(getGraph(adj_true2), "graphNEL")
+#   ## save results
+#   res_1[iter_graph, ] <- c(
+#     shd(g_true1, g_1),
+#     check_edge(adj_true1, adj_1),
+#     TPrate_fun(adj_pre = adj_1, adj_act = adj_true1),
+#     FPrate_fun(adj_pre = adj_1, adj_act = adj_true1),
+#     FNrate_fun(adj_pre = adj_1, adj_act = adj_true1),
+#     check_adj_l2(adj_pre = alpha_mat_1, adj_act = adj_true1),
+#     check_adj_l1(adj_pre = alpha_mat_1, adj_act = adj_true1)
+#   )
+#   res_2[iter_graph, ] <- c(
+#     shd(g_true2, g_2),
+#     check_edge(adj_true2, adj_2),
+#     TPrate_fun(adj_pre = adj_2, adj_act = adj_true2),
+#     FPrate_fun(adj_pre = adj_2, adj_act = adj_true2),
+#     FNrate_fun(adj_pre = adj_2, adj_act = adj_true2),
+#     check_adj_l2(adj_pre = alpha_mat_2, adj_act = adj_true2),
+#     check_adj_l1(adj_pre = alpha_mat_2, adj_act = adj_true2)
+#   )
+# }
+# # show results
+# res <- round((colMeans(res_1) + colMeans(res_2)) / 2, 4)
+# cat(
+#   K, "&", "prior", iter_prior, "&", e_com, "&", e_pri, "&",
+#   res[2], "&", res[3], "&", res[4], "&", res[6], "\\\\", "\n"
+# )
