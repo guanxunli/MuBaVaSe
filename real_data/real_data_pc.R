@@ -2,7 +2,7 @@
 load("real_data/ovarian.rda")
 p <- ncol(data[[1]])
 library(pcalg)
-
+library(graph)
 ################################ with out stable selection ########################
 alphas <- c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)
 
@@ -23,17 +23,17 @@ for (iter_alpha in seq_len(length(alphas))) {
   alpha_use <- alphas[iter_alpha]
   dag1 <- pc_fun(data[[1]], alpha_use)
   dag2 <- pc_fun(data[[2]], alpha_use)
-  ges_adj1 <- dag1 | t(dag1)
-  ges_adj2 <- dag2 | t(dag2)
-  ges_adj <- ges_adj1 & ges_adj2
+  pc_adj1 <- dag1 | t(dag1)
+  pc_adj2 <- dag2 | t(dag2)
+  pc_adj <- pc_adj1 & pc_adj2
   ## check results
-  cat("alpha: ", alpha_use, c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n")
+  cat("alpha: ", alpha_use, c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n")
 }
 
 ################################ with stable selection ########################
 library(stabs)
+set.seed(1)
 
-set.seed(2021)
 ## PC input
 stab_input <- function(i) {
   p <- ncol(data[[i]])
@@ -50,7 +50,7 @@ stabs_pc <- function(x, y, q, ...) {
   dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
   # dt <- data[[idx]]
   p <- ncol(dt)
-
+  
   # train the model
   alphas <- c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)
   model_alpha <- function(alpha) {
@@ -62,33 +62,44 @@ stabs_pc <- function(x, y, q, ...) {
     dag <- as(pc_fit@graph, "matrix")
     as.vector(dag != 0)
   }
-
+  
   # get the path and selected variables
   path <- sapply(alphas, model_alpha)
   selected <- rowSums(path) != 0
   return(list(selected = selected, path = path))
 }
 
-cutoff <- 0.6
-gesdag_list <- lapply(
-  stab_input_list,
-  function(stab_input) stabsel(x = stab_input$x, y = stab_input$y, fitfun = stabs_pc, cutoff = cutoff, PFER = 1)
-)
-saveRDS(gesdag_list, "real_data/results/out_pc.rds")
+library(parallel)
+cutoff_vec <- seq(0.6, 0.9, by = 0.05)
+
+pcdag_fun <- function(cutoff, stab_input_list) {
+  return(lapply(
+    stab_input_list,
+    function(stab_input) stabsel(x = stab_input$x, y = stab_input$y, fitfun = stabs_pc, cutoff = cutoff, PFER = 1)
+  ))
+}
+
+
+pcdag_list <- mclapply(pcdag_fun, cutoff_vec, stab_input_list = stab_input_list,
+                        mc.cores = length(cutoff_vec))
+saveRDS(pcdag_list, "out_pc.rds")
 
 #### check results
-gesdag_list <- readRDS("real_data/results/out_pc.rds")
-cutoff_vec <- seq(0.5, 0.9, by = 0.05)
+cutoff_vec2 <- seq(0.5, 0.9, by = 0.05)
 for (iter in seq_len(length(cutoff_vec))) {
-  cutoff <- cutoff_vec[iter]
-  ## data set 1 results
-  ges_adj1 <- matrix(as.vector(gesdag_list[[1]]$max > cutoff), nrow = p, ncol = p)
-  ges_adj1 <- ges_adj1 | t(ges_adj1)
-  ## data set 2
-  ges_adj2 <- matrix(as.vector(gesdag_list[[2]]$max > cutoff), nrow = p, ncol = p)
-  ges_adj2 <- ges_adj2 | t(ges_adj2)
-  ## intersections
-  ges_adj <- ges_adj1 & ges_adj2
-  cat("PC &", cutoff, "&", sum(ges_adj1) / 2, "&", sum(ges_adj2) / 2, "&",  sum(ges_adj) / 2, "\\\\\n")
-  # cat("cutoff: ", cutoff, c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n")
+  pcdag_list_tmp <- pcdag_list[[iter]]
+  for (iter2 in seq_len(length(cutoff_vec2))) {
+    cutoff <- cutoff_vec2[iter2]
+    ## data set 1 results
+    pc_adj1 <- matrix(as.vector(pcdag_list_tmp[[1]]$max > cutoff), nrow = p, ncol = p)
+    pc_adj1 <- pc_adj1 | t(pc_adj1)
+    ## data set 2
+    pc_adj2 <- matrix(as.vector(pcdag_list_tmp[[2]]$max > cutoff), nrow = p, ncol = p)
+    pc_adj2 <- pc_adj2 | t(pc_adj2)
+    ## intersections
+    pc_adj <- pc_adj1 & pc_adj2
+    # cat("PC &", cutoff, "&", sum(pc_adj1) / 2, "&", sum(pc_adj2) / 2, "&",  sum(pc_adj) / 2, "\\\\\n")
+    cat("cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff, 
+        c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n")
+  }
 }

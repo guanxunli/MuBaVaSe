@@ -8,10 +8,15 @@ p <- ncol(data[[1]])
 ## generate graph
 source("two_data_sets/Graph_MCMC_two.R")
 prior_vec_list <- list()
-prior_vec_list[[1]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
-prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
-prior_vec_list[[3]] <- c(1 / p^2, 1 / p^2.25)
-prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / p^2.25)
+# prior_vec_list[[1]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
+# prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
+# prior_vec_list[[3]] <- c(1 / p^2, 1 / p^2.25)
+# prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / p^2.25)
+
+prior_vec_list[[1]] <- c(1 / p^2, 1 / p^2.5)
+prior_vec_list[[2]] <- c(1 / (2 * p^2), 1 / p^2.5)
+prior_vec_list[[3]] <- c(1 / p^2, 1 / p^3)
+prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / p^3)
 
 scale_x <- FALSE
 intercept <- TRUE
@@ -63,7 +68,7 @@ iter_max <- 1e5
 #### Do MCMC with order
 ## get order
 dta <- rbind(dta_1, dta_2)
-set.seed(2021)
+set.seed(1)
 library(pcalg)
 # order_int <- NULL
 score_ges <- new("GaussL0penObsScore", data = dta, intercept = FALSE)
@@ -90,9 +95,9 @@ out_res <- foreach(iter_prior = seq_len(length(prior_vec_list))) %dorng% {
   )
 }
 stopCluster(cl)
-saveRDS(out_res, "real_data/results/out_mcmc.rds")
-## save results
-out_res <- readRDS("real_data/results/out_mcmc.rds")
+saveRDS(out_res, "out_mcmc.rds")
+# ## save results
+# out_res <- readRDS("real_data/results/out_mcmc.rds")
 for (iter_prior in seq_len(length(prior_vec_list))) {
   res_tmp <- out_res[[iter_prior]]
   # png(paste0("prior", iter_prior, "realdata_mcmctwo.png"))
