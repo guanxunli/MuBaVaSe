@@ -24,16 +24,23 @@ for (iter_alpha in seq_len(length(alphas))) {
   dag1 <- pc_fun(data[[1]], alpha_use)
   dag2 <- pc_fun(data[[2]], alpha_use)
   pc_adj1 <- dag1 | t(dag1)
+  n1 <- sum(pc_adj1) / 2
   pc_adj2 <- dag2 | t(dag2)
+  n2 <- sum(pc_adj2) / 2
   pc_adj <- pc_adj1 & pc_adj2
+  n_com <- sum(pc_adj) / 2
+  n_total <- n1 + n2 - n_com
+  n_ratio <- n_com / n_total
   ## check results
-  cat("alpha: ", alpha_use, c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n")
+  cat("PC & $\\alpha = ", alpha_use, "$&", n1, "&", n2, "&", n_com,
+      "&", n_total, "&", round(n_ratio, 4), "\\\\\n")
+  # cat("alpha: ", alpha_use, c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n")
 }
 
 ################################ with stable selection ########################
 library(stabs)
 set.seed(1)
-
+cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 ## PC input
 stab_input <- function(i) {
   p <- ncol(data[[i]])
@@ -70,7 +77,6 @@ stabs_pc <- function(x, y, q, ...) {
 }
 
 library(parallel)
-cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 
 pcdag_fun <- function(cutoff) {
   res <- lapply(
@@ -86,6 +92,7 @@ pcdag_list <- mclapply(cutoff_vec, pcdag_fun,
 saveRDS(pcdag_list, "out_pc.rds")
 
 #### check results
+pcdag_list <- readRDS("real_data/results/out_pc.rds")
 cutoff_vec2 <- seq(0.5, 0.9, by = 0.05)
 for (iter in seq_len(length(cutoff_vec))) {
   pcdag_list_tmp <- pcdag_list[[iter]]
@@ -94,15 +101,21 @@ for (iter in seq_len(length(cutoff_vec))) {
     ## data set 1 results
     pc_adj1 <- matrix(as.vector(pcdag_list_tmp[[1]]$max > cutoff), nrow = p, ncol = p)
     pc_adj1 <- pc_adj1 | t(pc_adj1)
+    n1 <- sum(pc_adj1) / 2
     ## data set 2
     pc_adj2 <- matrix(as.vector(pcdag_list_tmp[[2]]$max > cutoff), nrow = p, ncol = p)
     pc_adj2 <- pc_adj2 | t(pc_adj2)
+    n2 <-  sum(pc_adj2) / 2
     ## intersections
     pc_adj <- pc_adj1 & pc_adj2
-    # cat("PC &", cutoff, "&", sum(pc_adj1) / 2, "&", sum(pc_adj2) / 2, "&",  sum(pc_adj) / 2, "\\\\\n")
-    cat(
-      "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
-      c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n"
-    )
+    n_com <- sum(pc_adj) / 2
+    n_total <- n1 + n2 - n_com
+    n_ratio <- n_com / n_total
+    cat("PC &", cutoff_vec[iter], "&", cutoff, "&", n1, "&", n2, "&", n_com,
+        "&", n_total, "&", round(n_ratio, 4), "\\\\\n")
+    # cat(
+    #   "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
+    #   c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n"
+    # )
   }
 }

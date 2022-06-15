@@ -51,24 +51,31 @@ for (iter in seq_len(length(lambdas))) {
   ges_joint_graph1 <- as(dag1, "matrix")
   ges_joint_graph1 <- ifelse(ges_joint_graph1 == 1, TRUE, FALSE)
   ges_joint_graph1 <- ges_joint_graph1 | t(ges_joint_graph1)
+  n1 <- sum(ges_joint_graph1) / 2
   ## data set 2
   ges_joint_graph2 <- as(dag2, "matrix")
   ges_joint_graph2 <- ifelse(ges_joint_graph2 == 1, TRUE, FALSE)
   ges_joint_graph2 <- ges_joint_graph2 | t(ges_joint_graph2)
+  n2 <- sum(ges_joint_graph2) / 2
   ## intersections
   ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
+  n_com <- sum(ges_joint_graph) / 2
+  n_total <- n1 + n2 - n_com
+  n_ratio <- n_com / n_total
   ## check results
-  cat("lambda: ", lambda_use, c(
-    sum(ges_joint_graph1), sum(ges_joint_graph2),
-    sum(ges_joint_graph)
-  ) / 2, "\n")
+  cat("joint GES &$\\lambda = ", lambda_use, "$&", n1, "&", n2, "&", n_com,
+      "&", n_total, "&", round(n_ratio, 4), "\\\\\n")
+  # cat("lambda: ", lambda_use, c(
+  #   sum(ges_joint_graph1), sum(ges_joint_graph2),
+  #   sum(ges_joint_graph)
+  # ) / 2, "\n")
 }
 
 ################################ with stable selection ########################
 library(stabs)
 #### joint GSE method
 source("real_data/newclass.R")
-
+cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 set.seed(1)
 
 ## learn causal networks
@@ -80,7 +87,7 @@ stabs_ges <- function(x, y, q, ...) {
   # Y is the label of the classes, X is the input matrix
   dt <- lapply(data, sample_data)
   # dt <- data
-  lambdas <- c(2, 3, 4, 5)
+  lambdas <- c(1, 2, 3, 4, 5)
   model_lambda <- function(lambda) {
     l0score <- new("MultiGaussL0pen", data = dt, lambda = lambda * log(ncol(dt[[1]])), intercept = TRUE, use.cpp = FALSE)
     ges_fit <- ges(l0score)
@@ -103,7 +110,6 @@ for (i in seq_len(length(data))) {
 }
 
 ## stable joint GES
-cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 stab_fun <- function(cutoff) {
   return(stabsel(x = x, y = y, fitfun = stabs_ges, cutoff = cutoff, PFER = 1))
 }
@@ -112,6 +118,7 @@ stab_result_list <- mclapply(cutoff_vec, stab_fun, mc.cores = length(cutoff_vec)
 saveRDS(stab_result_list, "out_ges_joint.rds")
 
 ## Joint GES the second step
+stab_result_list <- readRDS("real_data/results/out_ges_joint.rds")
 subset <- function(y, x, data) {
   t <- rep(0, ncol(data))
   if (length(x) <= 1) {
@@ -146,22 +153,26 @@ for (iter in seq_len(length(cutoff_vec))) {
     ges_joint_graph1 <- as(ges_joint_graph1, "matrix")
     ges_joint_graph1 <- ifelse(ges_joint_graph1 == 1, TRUE, FALSE)
     ges_joint_graph1 <- ges_joint_graph1 | t(ges_joint_graph1)
+    n1 <- sum(ges_joint_graph1) / 2
 
     ## data set 2
     ges_joint_graph2 <- gesdag[[2]]
     ges_joint_graph2 <- as(ges_joint_graph2, "matrix")
     ges_joint_graph2 <- ifelse(ges_joint_graph2 == 1, TRUE, FALSE)
     ges_joint_graph2 <- ges_joint_graph2 | t(ges_joint_graph2)
+    n2 <- sum(ges_joint_graph2) / 2
 
     ## intersections
     ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
-
+    n_com <- sum(ges_joint_graph) / 2
+    n_total <- n1 + n2 - n_com
+    n_ratio <- n_com / n_total
     ## check results
-    # cat("joint GES &", cutoff, "&", sum(ges_joint_graph1) / 2, "&",
-    #     sum(ges_joint_graph2) / 2, "&",  sum(ges_joint_graph) / 2, "\\\\\n")
-    cat(
-      "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
-      c(sum(ges_joint_graph1), sum(ges_joint_graph2), sum(ges_joint_graph)) / 2, "\n"
-    )
+    cat("joint GES &", cutoff_vec[iter], "&", cutoff, "&", n1, "&", n2, "&", n_com,
+        "&", n_total, "&", round(n_ratio, 4), "\\\\\n")
+    # cat(
+    #   "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
+    #   c(sum(ges_joint_graph1), sum(ges_joint_graph2), sum(ges_joint_graph)) / 2, "\n"
+    # )
   }
 }

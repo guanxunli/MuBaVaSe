@@ -8,15 +8,19 @@ p <- ncol(data[[1]])
 ## generate graph
 source("two_data_sets/Graph_MCMC_two.R")
 prior_vec_list <- list()
-# prior_vec_list[[1]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
-# prior_vec_list[[2]] <- c(1 / (2 * p^1.5), 1 / p^2)
-# prior_vec_list[[3]] <- c(1 / p^2, 1 / p^2.25)
-# prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / p^2.25)
 
-prior_vec_list[[1]] <- c(1 / p^2, 1 / p^2.5)
-prior_vec_list[[2]] <- c(1 / (2 * p^2), 1 / p^2.5)
-prior_vec_list[[3]] <- c(1 / p^2, 1 / p^3)
-prior_vec_list[[4]] <- c(1 / (2 * p^2), 1 / p^3)
+prior_vec_list[[1]] <- c(1 / p^1.25, 1 / p^2)
+prior_vec_list[[2]] <- c(1 / (2 * p^1.25), 1 / p^1.5)
+prior_vec_list[[3]] <- c(1 / p^1.5, 1 / p^2.5)
+prior_vec_list[[4]] <- c(1 / (2 * p^1.5), 1 / p^2)
+prior_vec_list[[5]] <- c(1 / p^2, 1 / p^2.25)
+prior_vec_list[[6]] <- c(1 / p^2, 1 / p^2.5)
+prior_vec_list[[7]] <- c(1 / p^2, 1 / p^3)
+prior_vec_list[[8]] <- c(1 / p^2, 1 / p^3.5)
+prior_vec_list[[9]] <- c(1 / (2 * p^2), 1 / p^2.25)
+prior_vec_list[[10]] <- c(1 / (2 * p^2), 1 / p^2.5)
+prior_vec_list[[11]] <- c(1 / (2 * p^2), 1 / p^3)
+prior_vec_list[[12]] <- c(1 / (2 * p^2), 1 / p^3.5)
 
 scale_x <- FALSE
 intercept <- TRUE
@@ -83,7 +87,7 @@ library(foreach)
 library(doParallel)
 library(doRNG)
 
-cl <- makeCluster(4)
+cl <- makeCluster(length(prior_vec_list))
 registerDoParallel(cl)
 out_res <- foreach(iter_prior = seq_len(length(prior_vec_list))) %dorng% {
   prior_vec <- prior_vec_list[[iter_prior]]
@@ -100,6 +104,7 @@ saveRDS(out_res, "out_mcmc.rds")
 # out_res <- readRDS("real_data/results/out_mcmc.rds")
 for (iter_prior in seq_len(length(prior_vec_list))) {
   res_tmp <- out_res[[iter_prior]]
+  prior <- prior_vec_list[[iter_prior]]
   # png(paste0("prior", iter_prior, "realdata_mcmctwo.png"))
   # ggplot() +
   #   geom_line(aes(x = seq_len(iter_max), y = res_tmp$llike_vec)) +
@@ -114,14 +119,20 @@ for (iter_prior in seq_len(length(prior_vec_list))) {
   ## data set 1
   adj_1 <- ifelse(alpha_mat_1 > 0.5, 1, 0)
   adj_1 <- t(adj_1)
+  n1 <- sum(adj_1)
   ## data set 2
   adj_2 <- ifelse(alpha_mat_2 > 0.5, 1, 0)
   adj_2 <- t(adj_2)
+  n2 <- sum(adj_2)
   # intersection
-  inter_order <- length(intersect(which(adj_1 == 1), which(adj_2 == 1)))
+  n_com <- length(intersect(which(adj_1 == 1), which(adj_2 == 1)))
+  n_total <- n1 + n2 - n_com
+  n_ratio <- n_com / n_total
   ## check results
-  cat(
-    "scale_x:", scale_x, "intercept", intercept, "prior", iter_prior,
-    sum(adj_1), sum(adj_2), inter_order, "\n"
-  )
+  cat("muSuSiE-DAG &", prior[1], "&", prior[2], "&", n1, "&", n2, "&", n_com,
+      "&", n_total, "&", round(n_ratio, 4), "\\\\\n")
+  # cat(
+  #   "scale_x:", scale_x, "intercept", intercept, "prior", iter_prior,
+  #   sum(adj_1), sum(adj_2), inter_order, "\n"
+  # )
 }

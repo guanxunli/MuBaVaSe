@@ -20,16 +20,23 @@ for (iter_lambda in seq_len(length(lambdas))) {
   dag1 <- ges_fun(data[[1]], lambda_use)
   dag2 <- ges_fun(data[[2]], lambda_use)
   ges_adj1 <- dag1 | t(dag1)
+  n1 <- sum(ges_adj1) / 2
   ges_adj2 <- dag2 | t(dag2)
+  n2 <- sum(ges_adj2) / 2
   ges_adj <- ges_adj1 & ges_adj2
+  n_com <- sum(ges_adj) / 2
+  n_total <- n1 + n2 - n_com
+  n_ratio <- n_com / n_total
   ## check results
-  cat("lambda: ", lambda_use, c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n")
+  cat("GES & $\\lambda = ", lambda_use, "$&", n1, "&", n2, "&", n_com,
+      "&", n_total, "&", round(n_ratio, 4), "\\\\\n")
+  # cat("lambda: ", lambda_use, c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n")
 }
 
 ################################ with stable selection ########################
 library(stabs)
-
 set.seed(1)
+cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 
 ## GES input
 stab_input <- function(i) {
@@ -63,7 +70,6 @@ stab_ges <- function(x, y, q, ...) {
 }
 
 library(parallel)
-cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 
 gesdag_fun <- function(cutoff) {
   return(lapply(
@@ -78,6 +84,7 @@ gesdag_list <- mclapply(cutoff_vec, gesdag_fun,
 saveRDS(gesdag_list, "out_ges.rds")
 
 #### check results
+gesdag_list <- readRDS("real_data/results/out_ges.rds")
 cutoff_vec2 <- seq(0.5, 0.9, by = 0.05)
 for (iter in seq_len(length(cutoff_vec))) {
   gesdag_list_tmp <- gesdag_list[[iter]]
@@ -86,15 +93,21 @@ for (iter in seq_len(length(cutoff_vec))) {
     ## data set 1 results
     ges_adj1 <- matrix(as.vector(gesdag_list_tmp[[1]]$max > cutoff), nrow = p, ncol = p)
     ges_adj1 <- ges_adj1 | t(ges_adj1)
+    n1 <- sum(ges_adj1) / 2
     ## data set 2
     ges_adj2 <- matrix(as.vector(gesdag_list_tmp[[2]]$max > cutoff), nrow = p, ncol = p)
     ges_adj2 <- ges_adj2 | t(ges_adj2)
+    n2 <- sum(ges_adj2) / 2
     ## intersections
     ges_adj <- ges_adj1 & ges_adj2
-    # cat("ges &", cutoff, "&", sum(ges_adj1) / 2, "&", sum(ges_adj2) / 2, "&",  sum(ges_adj) / 2, "\\\\\n")
-    cat(
-      "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
-      c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n"
-    )
+    n_com <- sum(ges_adj) / 2
+    n_total <- n1 + n2 - n_com
+    n_ratio <- n_com / n_total
+    cat("GES &", cutoff_vec[iter], "&", cutoff, "&", n1, "&", n2, "&", n_com,
+        "&", n_total, "&", round(n_ratio, 4), "\\\\\n")
+    # cat(
+    #   "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
+    #   c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n"
+    # )
   }
 }
