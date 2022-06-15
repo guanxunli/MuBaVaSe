@@ -50,7 +50,7 @@ stabs_pc <- function(x, y, q, ...) {
   dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
   # dt <- data[[idx]]
   p <- ncol(dt)
-  
+
   # train the model
   alphas <- c(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05)
   model_alpha <- function(alpha) {
@@ -62,7 +62,7 @@ stabs_pc <- function(x, y, q, ...) {
     dag <- as(pc_fit@graph, "matrix")
     as.vector(dag != 0)
   }
-  
+
   # get the path and selected variables
   path <- sapply(alphas, model_alpha)
   selected <- rowSums(path) != 0
@@ -72,16 +72,17 @@ stabs_pc <- function(x, y, q, ...) {
 library(parallel)
 cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 
-pcdag_fun <- function(cutoff, stab_input_list) {
-  return(lapply(
+pcdag_fun <- function(cutoff) {
+  res <- lapply(
     stab_input_list,
     function(stab_input) stabsel(x = stab_input$x, y = stab_input$y, fitfun = stabs_pc, cutoff = cutoff, PFER = 1)
-  ))
+  )
+  return(res)
 }
 
-
-pcdag_list <- mclapply(pcdag_fun, cutoff_vec, stab_input_list = stab_input_list,
-                        mc.cores = length(cutoff_vec))
+pcdag_list <- mclapply(cutoff_vec, pcdag_fun,
+  mc.cores = length(cutoff_vec)
+)
 saveRDS(pcdag_list, "out_pc.rds")
 
 #### check results
@@ -99,7 +100,9 @@ for (iter in seq_len(length(cutoff_vec))) {
     ## intersections
     pc_adj <- pc_adj1 & pc_adj2
     # cat("PC &", cutoff, "&", sum(pc_adj1) / 2, "&", sum(pc_adj2) / 2, "&",  sum(pc_adj) / 2, "\\\\\n")
-    cat("cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff, 
-        c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n")
+    cat(
+      "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
+      c(sum(pc_adj1), sum(pc_adj2), sum(pc_adj)) / 2, "\n"
+    )
   }
 }

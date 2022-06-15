@@ -2,6 +2,7 @@
 load("real_data/ovarian.rda")
 p <- ncol(data[[1]])
 library(pcalg)
+library(graph)
 
 ################################ with out stable selection ########################
 lambdas <- c(1, 2, 3, 4, 5)
@@ -12,8 +13,8 @@ ges_joint_fun <- function(data, lambda) {
   p <- ncol(data[[1]])
   dag_list <- list()
   l0score <- new("MultiGaussL0pen",
-                 data = data, lambda = lambda * log(p),
-                 intercept = TRUE, use.cpp = FALSE
+    data = data, lambda = lambda * log(p),
+    intercept = TRUE, use.cpp = FALSE
   )
   ges_fit <- ges(l0score)
   dag <- as(ges_fit$essgraph, "matrix")
@@ -57,9 +58,10 @@ for (iter in seq_len(length(lambdas))) {
   ## intersections
   ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
   ## check results
-  cat("lambda: ", lambda_use, c(sum(ges_joint_graph1), sum(ges_joint_graph2), 
-                                sum(ges_joint_graph)) / 2, "\n")
-  
+  cat("lambda: ", lambda_use, c(
+    sum(ges_joint_graph1), sum(ges_joint_graph2),
+    sum(ges_joint_graph)
+  ) / 2, "\n")
 }
 
 ################################ with stable selection ########################
@@ -137,27 +139,29 @@ for (iter in seq_len(length(cutoff_vec))) {
     cutoff <- cutoff_vec2[iter2]
     dag <- matrix(as.vector(stab_result$max > cutoff), nrow = p, ncol = p)
     dag <- as(dag, "graphNEL")
-    
+
     gesdag <- ges_alg(data, dag)
     ## data set 1 results
     ges_joint_graph1 <- gesdag[[1]]
     ges_joint_graph1 <- as(ges_joint_graph1, "matrix")
     ges_joint_graph1 <- ifelse(ges_joint_graph1 == 1, TRUE, FALSE)
     ges_joint_graph1 <- ges_joint_graph1 | t(ges_joint_graph1)
-    
+
     ## data set 2
     ges_joint_graph2 <- gesdag[[2]]
     ges_joint_graph2 <- as(ges_joint_graph2, "matrix")
     ges_joint_graph2 <- ifelse(ges_joint_graph2 == 1, TRUE, FALSE)
     ges_joint_graph2 <- ges_joint_graph2 | t(ges_joint_graph2)
-    
+
     ## intersections
     ges_joint_graph <- ges_joint_graph1 & ges_joint_graph2
-    
+
     ## check results
-    # cat("joint GES &", cutoff, "&", sum(ges_joint_graph1) / 2, "&", 
+    # cat("joint GES &", cutoff, "&", sum(ges_joint_graph1) / 2, "&",
     #     sum(ges_joint_graph2) / 2, "&",  sum(ges_joint_graph) / 2, "\\\\\n")
-    cat("cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff, 
-        c(sum(ges_joint_graph1), sum(ges_joint_graph2), sum(ges_joint_graph)) / 2, "\n")
+    cat(
+      "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
+      c(sum(ges_joint_graph1), sum(ges_joint_graph2), sum(ges_joint_graph)) / 2, "\n"
+    )
   }
 }

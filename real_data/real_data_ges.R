@@ -1,7 +1,8 @@
-# # load data
+## load data
 load("real_data/ovarian.rda")
 p <- ncol(data[[1]])
-library(gesalg)
+library(pcalg)
+library(graph)
 
 ################################ with out stable selection ########################
 lambdas <- c(1, 2, 3, 4, 5)
@@ -45,7 +46,7 @@ stab_ges <- function(x, y, q, ...) {
   totcol <- nrow(data[[idx]])
   dt <- data[[idx]][sample(1:totcol, as.integer(0.9 * totcol), replace = FALSE), ]
   # dt <- data[[idx]]
-  
+
   # train the model
   lambdas <- c(1, 2, 3, 4, 5)
   model_lambda <- function(lambda) {
@@ -54,7 +55,7 @@ stab_ges <- function(x, y, q, ...) {
     dag <- as(ges_fit$essgraph, "matrix")
     as.vector(dag != 0)
   }
-  
+
   # get the path and selected variables
   path <- sapply(lambdas, model_lambda)
   selected <- rowSums(path) != 0
@@ -64,15 +65,16 @@ stab_ges <- function(x, y, q, ...) {
 library(parallel)
 cutoff_vec <- seq(0.6, 0.9, by = 0.05)
 
-gesdag_fun <- function(cutoff, stab_input_list) {
+gesdag_fun <- function(cutoff) {
   return(lapply(
     stab_input_list,
     function(stab_input) stabsel(x = stab_input$x, y = stab_input$y, fitfun = stab_ges, cutoff = cutoff, PFER = 1)
   ))
 }
 
-gesdag_list <- mclapply(gesdag_fun, cutoff_vec, stab_input_list = stab_input_list,
-                       mc.cores = length(cutoff_vec))
+gesdag_list <- mclapply(cutoff_vec, gesdag_fun,
+  mc.cores = length(cutoff_vec)
+)
 saveRDS(gesdag_list, "out_ges.rds")
 
 #### check results
@@ -90,7 +92,9 @@ for (iter in seq_len(length(cutoff_vec))) {
     ## intersections
     ges_adj <- ges_adj1 & ges_adj2
     # cat("ges &", cutoff, "&", sum(ges_adj1) / 2, "&", sum(ges_adj2) / 2, "&",  sum(ges_adj) / 2, "\\\\\n")
-    cat("cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff, 
-        c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n")
+    cat(
+      "cutoff1: ", cutoff_vec[iter], "cutoff2: ", cutoff,
+      c(sum(ges_adj1), sum(ges_adj2), sum(ges_adj)) / 2, "\n"
+    )
   }
 }
