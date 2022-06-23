@@ -3,13 +3,13 @@ load("real_data/ovarian.rda")
 p <- ncol(data[[1]])
 library(pcalg)
 library(graph)
-
+intercept_use <- TRUE
 ################################ with out stable selection ########################
 lambdas <- c(1, 2, 3, 4, 5)
 
 ges_fun <- function(dta, lambda) {
   p <- ncol(dta)
-  l0score <- new("GaussL0penObsScore", data = dta, lambda = lambda * log(p), intercept = FALSE)
+  l0score <- new("GaussL0penObsScore", data = dta, lambda = lambda * log(p), intercept = intercept_use)
   ges_fit <- ges(l0score)
   dag <- as(ges_fit$repr, "matrix")
   return(ifelse(dag == TRUE, 1, 0))
@@ -57,7 +57,7 @@ stab_ges <- function(x, y, q, ...) {
   # train the model
   lambdas <- c(1, 2, 3, 4, 5)
   model_lambda <- function(lambda) {
-    l0score <- new("GaussL0penObsScore", data = dt, lambda = lambda * log(ncol(dt)), intercept = FALSE)
+    l0score <- new("GaussL0penObsScore", data = dt, lambda = lambda * log(ncol(dt)), intercept = intercept_use)
     ges_fit <- ges(l0score)
     dag <- as(ges_fit$essgraph, "matrix")
     as.vector(dag != 0)
@@ -84,7 +84,7 @@ gesdag_list <- mclapply(cutoff_vec, gesdag_fun,
 saveRDS(gesdag_list, "out_ges.rds")
 
 #### check results
-gesdag_list <- readRDS("real_data/results/out_ges.rds")
+# gesdag_list <- readRDS("real_data/results/out_ges.rds")
 cutoff_vec2 <- seq(0.5, 0.9, by = 0.05)
 for (iter in seq_len(length(cutoff_vec))) {
   gesdag_list_tmp <- gesdag_list[[iter]]

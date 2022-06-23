@@ -4,6 +4,7 @@ p <- ncol(data[[1]])
 library(pcalg)
 library(graph)
 
+intercept_use <- FALSE
 ################################ with out stable selection ########################
 lambdas <- c(1, 2, 3, 4, 5)
 
@@ -14,7 +15,7 @@ ges_joint_fun <- function(data, lambda) {
   dag_list <- list()
   l0score <- new("MultiGaussL0pen",
     data = data, lambda = lambda * log(p),
-    intercept = TRUE, use.cpp = FALSE
+    intercept = intercept_use, use.cpp = FALSE
   )
   ges_fit <- ges(l0score)
   dag <- as(ges_fit$essgraph, "matrix")
@@ -27,7 +28,7 @@ subset <- function(y, x, data) {
   if (length(x) <= 1) {
     t[x] <- 1
   } else {
-    model <- glmnet::cv.glmnet(as.matrix(data[, x]), data[, y], family = "gaussian", intercept = FALSE)
+    model <- glmnet::cv.glmnet(as.matrix(data[, x]), data[, y], family = "gaussian", intercept = intercept_use)
     nonz <- which(as.vector(coef(model)) != 0) - 1
     t[x[nonz]] <- 1
   }
@@ -89,7 +90,7 @@ stabs_ges <- function(x, y, q, ...) {
   # dt <- data
   lambdas <- c(1, 2, 3, 4, 5)
   model_lambda <- function(lambda) {
-    l0score <- new("MultiGaussL0pen", data = dt, lambda = lambda * log(ncol(dt[[1]])), intercept = TRUE, use.cpp = FALSE)
+    l0score <- new("MultiGaussL0pen", data = dt, lambda = lambda * log(ncol(dt[[1]])), intercept = intercept_use, use.cpp = FALSE)
     ges_fit <- ges(l0score)
     dag <- as(ges_fit$essgraph, "matrix")
     as.vector(dag != 0)
@@ -118,13 +119,13 @@ stab_result_list <- mclapply(cutoff_vec, stab_fun, mc.cores = length(cutoff_vec)
 saveRDS(stab_result_list, "out_ges_joint.rds")
 
 ## Joint GES the second step
-stab_result_list <- readRDS("real_data/results/out_ges_joint.rds")
+# stab_result_list <- readRDS("real_data/results/out_ges_joint.rds")
 subset <- function(y, x, data) {
   t <- rep(0, ncol(data))
   if (length(x) <= 1) {
     t[x] <- 1
   } else {
-    model <- glmnet::cv.glmnet(as.matrix(data[, x]), data[, y], family = "gaussian", intercept = FALSE)
+    model <- glmnet::cv.glmnet(as.matrix(data[, x]), data[, y], family = "gaussian", intercept = intercept_use)
     nonz <- which(as.vector(coef(model)) != 0) - 1
     t[x[nonz]] <- 1
   }

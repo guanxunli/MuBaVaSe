@@ -23,7 +23,7 @@ prior_vec_list[[11]] <- c(1 / (2 * p^2), 1 / p^3)
 prior_vec_list[[12]] <- c(1 / (2 * p^2), 1 / p^3.5)
 
 scale_x <- FALSE
-intercept <- TRUE
+intercept <- TRUE # can't get two graphs if setting false
 iter_max <- 1e5
 
 # ## A quick test
